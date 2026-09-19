@@ -1,0 +1,23 @@
+/* Variantes de badge do domínio (success, warning, info) usando as variáveis do tema */
+@layer components {
+  .badge-success,
+  .badge-warning,
+  .badge-info {
+    @apply border-transparent;
+  }
+
+  .badge-success {
+    color: var(--success);
+    background-color: color-mix(in oklab, var(--success) 14%, transparent);
+  }
+
+  .badge-warning {
+    color: color-mix(in oklab, var(--warning) 70%, var(--foreground));
+    background-color: color-mix(in oklab, var(--warning) 18%, transparent);
+  }
+
+  .badge-info {
+    color: var(--info);
+    background-color: color-mix(in oklab, var(--info) 14%, transparent);
+  }
+}

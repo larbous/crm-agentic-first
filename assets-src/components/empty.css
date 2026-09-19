@@ -1,0 +1,7 @@
+/* empty: ajustes sobre o estado vazio do Basecoat quando usado dentro de cards/tabelas */
+@layer components {
+  .card .empty,
+  .card > section > .empty {
+    @apply border-0 p-8;
+  }
+}

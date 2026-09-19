@@ -1,0 +1,87 @@
+/* Shell da aplicação: marca, topo, conteúdo e painel de chat (SPEC §12.7) */
+@layer components {
+  .app-marca {
+    @apply flex items-center gap-2 px-2 py-3 font-semibold tracking-tight;
+  }
+
+  .app-marca-logo {
+    @apply bg-primary text-primary-foreground grid size-7 shrink-0 place-items-center rounded-md text-sm font-bold;
+  }
+
+  .app-shell {
+    @apply flex min-h-svh min-w-0 flex-col;
+  }
+
+  .topbar {
+    @apply bg-background/85 sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur md:px-4;
+  }
+
+  .topbar-busca {
+    @apply hidden w-full max-w-md sm:block;
+  }
+
+  .app-corpo {
+    @apply flex min-h-0 flex-1;
+  }
+
+  .app-conteudo {
+    @apply min-w-0 flex-1 p-4 outline-none md:p-6;
+  }
+
+  /* Largura máxima de 1440px, centralizado */
+  .app-conteudo > * {
+    @apply mx-auto max-w-[1440px];
+  }
+
+  .app-conteudo > * + * {
+    @apply mt-4;
+  }
+
+  .page-cabecalho {
+    @apply flex flex-wrap items-start justify-between gap-3;
+  }
+
+  .page-titulo {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  /* Painel de chat recolhível (380px à direita; tela cheia abaixo de 1024px) */
+  .chat-painel {
+    @apply bg-card sticky top-14 flex h-[calc(100svh-3.5rem)] w-[380px] shrink-0 flex-col border-l;
+  }
+
+  .chat-painel[hidden] {
+    @apply hidden;
+  }
+
+  .chat-painel-topo {
+    @apply flex h-12 shrink-0 items-center justify-between border-b px-3;
+  }
+
+  .chat-painel-corpo {
+    @apply flex min-h-0 flex-1 flex-col overflow-y-auto p-3;
+  }
+
+  .chat-painel-entrada {
+    @apply shrink-0 border-t p-3;
+  }
+
+  @media (max-width: 1023.98px) {
+    .chat-painel {
+      @apply fixed inset-0 z-50 h-svh w-full border-l-0;
+    }
+  }
+
+  /* Grade para a demonstração do guia de estilo */
+  .ui-secao {
+    @apply scroll-mt-20;
+  }
+
+  .ui-amostra {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .ui-cor {
+    @apply size-10 shrink-0 rounded-md border;
+  }
+}

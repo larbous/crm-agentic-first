@@ -1,0 +1,45 @@
+/* data-table: extensão da table do Basecoat (cabeçalho fixo, ordenação, seleção, linhas compactas) */
+@layer components {
+  .data-table {
+    @apply bg-card text-card-foreground overflow-hidden rounded-lg border;
+  }
+
+  .data-table-scroll {
+    @apply relative overflow-auto;
+  }
+
+  .data-table .table th,
+  .data-table .table td {
+    @apply px-3 py-1.5;
+  }
+
+  .data-table .table thead th {
+    @apply bg-muted text-muted-foreground sticky top-0 z-10 text-left text-xs font-medium tracking-wide uppercase;
+  }
+
+  .data-table .table tbody tr:hover {
+    @apply bg-muted/50;
+  }
+
+  .data-table .table tbody tr[data-state='selected'] {
+    @apply bg-accent/60;
+  }
+
+  .data-table-sort {
+    @apply hover:text-foreground inline-flex cursor-pointer items-center gap-1 uppercase;
+  }
+
+  .data-table th[aria-sort='ascending'] .data-table-sort,
+  .data-table th[aria-sort='descending'] .data-table-sort {
+    @apply text-foreground;
+  }
+
+  .data-table th[aria-sort='ascending'] .data-table-sort svg,
+  .data-table th[aria-sort='descending'] .data-table-sort svg {
+    @apply opacity-100;
+  }
+
+  .data-table .empty {
+    @apply border-0 p-0;
+  }
+}

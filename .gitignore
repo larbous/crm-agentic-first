@@ -1,0 +1,19 @@
+# Configuração local e segredos
+config.local.php
+
+# Banco, uploads e logs
+/storage/db/*
+/storage/uploads/*
+/storage/logs/*
+!/storage/**/.gitkeep
+
+# Executável do Tailwind (baixar conforme docs/INSTALACAO.md)
+/tailwindcss
+/tailwindcss.exe
+/tools/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

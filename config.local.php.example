@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Copie para config.local.php (não versionado) e ajuste.
+ * Só é preciso informar as chaves que diferem do padrão em config.php.
+ */
+
+return [
+    'app' => [
+        'debug'    => true,
+        'base_url' => '',
+    ],
+    'anthropic' => [
+        'api_key' => '', // chave da API Anthropic (usada a partir da Fase 4)
+    ],
+];

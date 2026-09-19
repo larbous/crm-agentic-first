@@ -1,0 +1,6 @@
+/* kbd: atalhos de teclado agrupados (Ctrl + K) ficam lado a lado */
+@layer components {
+  kbd.kbd + kbd.kbd {
+    @apply ms-0.5;
+  }
+}

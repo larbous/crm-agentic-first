@@ -1,0 +1,14 @@
+/* Pílula de etapa do funil: a cor vem do banco via style="--etapa: #hex" */
+@layer components {
+  .pill-etapa {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap;
+    color: color-mix(in oklab, var(--etapa, var(--muted-foreground)) 75%, var(--foreground));
+    border-color: color-mix(in oklab, var(--etapa, var(--border)) 40%, transparent);
+    background-color: color-mix(in oklab, var(--etapa, var(--muted)) 12%, transparent);
+  }
+
+  .pill-etapa-ponto {
+    @apply size-1.5 rounded-full;
+    background-color: var(--etapa, var(--muted-foreground));
+  }
+}
