@@ -39,3 +39,7 @@
 @import "./components/kbd.css";
 @import "./components/pill-etapa.css";
 @import "./components/badge-dominio.css";
+@import "./components/kanban.css";
+@import "./components/timeline.css";
+@import "./components/diff.css";
+@import "./components/filter-bar.css";

@@ -1,0 +1,35 @@
+/* timeline: histórico de atividades com ícone por tipo */
+@layer components {
+  .timeline {
+    @apply relative m-0 list-none p-0;
+  }
+
+  .timeline::before {
+    @apply bg-border absolute top-2 bottom-2 left-3.5 w-px content-[''];
+  }
+
+  .timeline-item {
+    @apply relative flex gap-3 pb-4 last:pb-0;
+  }
+
+  .timeline-icone {
+    @apply bg-background text-muted-foreground relative z-10 grid size-7 shrink-0 place-items-center rounded-full border;
+  }
+
+  .timeline-item[data-tipo='sistema'] .timeline-icone {
+    @apply bg-muted;
+  }
+
+  .timeline-item[data-tipo='sistema'] .timeline-corpo {
+    @apply text-muted-foreground;
+  }
+
+  .timeline-item[data-tipo='nota'] .timeline-icone,
+  .timeline-item[data-tipo='reuniao'] .timeline-icone {
+    @apply text-primary;
+  }
+
+  .timeline-corpo {
+    @apply min-w-0 flex-1 pt-0.5;
+  }
+}

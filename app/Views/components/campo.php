@@ -54,7 +54,7 @@ function campo(array $o): string
 
     $ehCheck = $tipo === 'checkbox' || $tipo === 'switch';
     $html = '<div class="field"' . ($ehCheck ? ' data-orientation="horizontal"' : '') . '>';
-    $html .= $ehCheck ? $controle . $rotulo : $rotulo . $controle;
+    $html .= $ehCheck ? '<input type="hidden" name="' . e($nome) . '" value="0">' . $controle . $rotulo : $rotulo . $controle;
     if (isset($o['ajuda'])) {
         $html .= '<p id="' . e($descricao) . '" class="text-muted-foreground text-sm">' . e($o['ajuda']) . '</p>';
     }

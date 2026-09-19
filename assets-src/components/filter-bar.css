@@ -1,0 +1,39 @@
+/* filter-bar: busca + selects + ações de filtro; também usada pela busca global do topo */
+@layer components {
+  .filter-bar {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .filter-bar .input-group {
+    @apply w-auto;
+  }
+
+  .busca-wrapper {
+    @apply relative w-full max-w-md;
+  }
+
+  .busca-resultados {
+    @apply bg-popover text-popover-foreground absolute top-full right-0 left-0 z-50 mt-1 max-h-96 overflow-y-auto rounded-lg border p-1 shadow-md;
+  }
+
+  .busca-resultados[hidden] {
+    @apply hidden;
+  }
+
+  .busca-grupo {
+    @apply text-muted-foreground px-2 pt-2 pb-1 text-xs font-medium tracking-wide uppercase;
+  }
+
+  .busca-item {
+    @apply flex w-full flex-col rounded-md px-2 py-1.5 text-sm;
+  }
+
+  .busca-item:hover,
+  .busca-item[aria-selected='true'] {
+    @apply bg-accent text-accent-foreground;
+  }
+
+  .busca-item small {
+    @apply text-muted-foreground truncate text-xs;
+  }
+}

@@ -52,6 +52,14 @@ document.addEventListener('click', (ev) => {
     }
 });
 
+// Formulários com data-confirmar pedem confirmação antes de enviar (arquivar, desfazer, desvincular…).
+document.addEventListener('submit', (ev) => {
+    const form = ev.target;
+    if (form instanceof HTMLFormElement && form.dataset.confirmar && !window.confirm(form.dataset.confirmar)) {
+        ev.preventDefault();
+    }
+});
+
 // Atalho "/" foca a busca global (quando habilitada).
 document.addEventListener('keydown', (ev) => {
     if (ev.key === '/' && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !ehCampoDeTexto(document.activeElement)) {

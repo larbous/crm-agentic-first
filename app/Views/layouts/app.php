@@ -73,15 +73,18 @@ $item = static function (array $n) use ($ativo): string {
         <button type="button" class="btn" data-variant="ghost" data-size="icon" aria-label="Alternar menu lateral"
                 data-alternar-sidebar><?= icone('panel-left') ?></button>
 
-        <form class="topbar-busca" role="search" onsubmit="return false">
-            <label for="busca-global" class="sr-only">Busca global</label>
-            <div class="input-group">
-                <?= icone('search') ?>
-                <input id="busca-global" type="search" placeholder="Buscar empresas, contatos, negócios…" autocomplete="off" disabled
-                       aria-describedby="busca-dica">
-                <div data-align="end" id="busca-dica"><?= kbd('/') ?></div>
-            </div>
-        </form>
+        <div class="topbar-busca busca-wrapper" data-busca>
+            <form role="search" onsubmit="return false">
+                <label for="busca-global" class="sr-only">Busca global</label>
+                <div class="input-group">
+                    <div data-align="start"><?= icone('search') ?></div>
+                    <input id="busca-global" type="search" placeholder="Buscar empresas, contatos, negócios…" autocomplete="off"
+                           role="combobox" aria-expanded="false" aria-controls="busca-resultados" aria-autocomplete="list">
+                    <div data-align="end"><?= kbd('/') ?></div>
+                </div>
+            </form>
+            <div id="busca-resultados" class="busca-resultados" role="listbox" aria-label="Resultados da busca" hidden></div>
+        </div>
 
         <div class="ml-auto flex items-center gap-1">
             <button type="button" class="btn" data-variant="ghost" data-size="sm" data-alternar-chat
@@ -96,9 +99,12 @@ $item = static function (array $n) use ($ativo): string {
             <?= menu('menu-usuario', avatar($usuario['nome'], null, 'sm'), [
                 ['grupo' => $usuario['nome']],
                 ['separador' => true],
+                ['rotulo' => 'Desfazer última ação', 'icone' => 'undo-2', 'attrs' => ['data-enviar-form' => 'form-desfazer']],
+                ['rotulo' => 'Auditoria', 'href' => url('/auditoria'), 'icone' => 'scroll-text'],
                 ['rotulo' => 'Guia de estilo', 'href' => url('/ui'), 'icone' => 'palette'],
                 ['rotulo' => 'Sair', 'icone' => 'log-out', 'attrs' => ['data-enviar-form' => 'form-sair']],
             ], ['classe_gatilho' => 'btn rounded-full', 'alinhar' => 'end']) ?>
+            <form id="form-desfazer" method="post" action="<?= e(url('/desfazer')) ?>" hidden><?= csrf_field() ?><input type="hidden" name="voltar" value="<?= e($caminho) ?>"></form>
             <form id="form-sair" method="post" action="<?= e(url('/logout')) ?>" hidden><?= csrf_field() ?></form>
         </div>
     </header>
@@ -132,5 +138,8 @@ $item = static function (array $n) use ($ativo): string {
 <script type="module" src="<?= e(asset('js/ui.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/table.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/chat.js')) ?>"></script>
+<script type="module" src="<?= e(asset('js/busca.js')) ?>"></script>
+<script type="module" src="<?= e(asset('js/forms.js')) ?>"></script>
+<script type="module" src="<?= e(asset('js/kanban.js')) ?>"></script>
 </body>
 </html>

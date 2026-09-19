@@ -158,3 +158,100 @@ function old(string $campo, mixed $padrao = ''): mixed
 {
     return $_SESSION['_old'][$campo] ?? $padrao;
 }
+
+/** Minúsculas sem acentos, para buscas insensíveis a caixa e acento. */
+function normalizar_busca(?string $texto): string
+{
+    $texto = mb_strtolower((string) $texto);
+    return strtr($texto, [
+        'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+        'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i', 'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o',
+        'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ç' => 'c', 'ñ' => 'n',
+    ]);
+}
+
+/** Somente dígitos. */
+function so_digitos(?string $texto): string
+{
+    return preg_replace('/\D+/', '', (string) $texto) ?? '';
+}
+
+/** Valida CNPJ (14 dígitos, com dígitos verificadores). */
+function cnpj_valido(string $cnpj): bool
+{
+    $d = so_digitos($cnpj);
+    if (strlen($d) !== 14 || preg_match('/^(\d)\1{13}$/', $d)) {
+        return false;
+    }
+    foreach ([12, 13] as $n) {
+        $soma = 0;
+        $peso = $n - 7;
+        for ($i = 0; $i < $n; $i++) {
+            $soma += (int) $d[$i] * $peso;
+            $peso = $peso === 2 ? 9 : $peso - 1;
+        }
+        $dv = $soma % 11 < 2 ? 0 : 11 - $soma % 11;
+        if ((int) $d[$n] !== $dv) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/** Valida CPF (11 dígitos, com dígitos verificadores). */
+function cpf_valido(string $cpf): bool
+{
+    $d = so_digitos($cpf);
+    if (strlen($d) !== 11 || preg_match('/^(\d)\1{10}$/', $d)) {
+        return false;
+    }
+    foreach ([9, 10] as $n) {
+        $soma = 0;
+        for ($i = 0; $i < $n; $i++) {
+            $soma += (int) $d[$i] * ($n + 1 - $i);
+        }
+        $dv = ($soma * 10) % 11 % 10;
+        if ((int) $d[$n] !== $dv) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/** "12345678000195" → "12.345.678/0001-95" (devolve o original se não tiver 14 dígitos). */
+function cnpj_formatado(?string $cnpj): string
+{
+    $d = so_digitos($cnpj);
+    return strlen($d) === 14
+        ? substr($d, 0, 2) . '.' . substr($d, 2, 3) . '.' . substr($d, 5, 3) . '/' . substr($d, 8, 4) . '-' . substr($d, 12)
+        : (string) $cnpj;
+}
+
+/** "01234567" → "01234-567". */
+function cep_formatado(?string $cep): string
+{
+    $d = so_digitos($cep);
+    return strlen($d) === 8 ? substr($d, 0, 5) . '-' . substr($d, 5) : (string) $cep;
+}
+
+/** Aceita apenas caminhos internos (evita open redirect). Devolve $padrao se inválido. */
+function caminho_seguro(?string $caminho, string $padrao = '/'): string
+{
+    if ($caminho !== null && preg_match('#^/(?!/)[^\r\n\\\\]*$#', $caminho) === 1) {
+        return $caminho;
+    }
+    return $padrao;
+}
+
+/** Dias inteiros entre duas datas ISO (b - a); null se inválidas. */
+function dias_entre(?string $a, ?string $b): ?int
+{
+    if (!$a || !$b) {
+        return null;
+    }
+    try {
+        return (int) (new DateTimeImmutable(substr($a, 0, 10)))->diff(new DateTimeImmutable(substr($b, 0, 10)))->format('%r%a');
+    } catch (Throwable) {
+        return null;
+    }
+}

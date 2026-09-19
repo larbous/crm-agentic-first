@@ -26,20 +26,20 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 
 ## Fase 2 — CRUDs principais
 
-- [ ] `Services/ActionExecutor`, `Audit`, `Events` (SPEC §2, §5, §10) — todas as escritas passam por eles
-- [ ] Empresas: lista (busca, filtros, ordenação, paginação, colunas configuráveis), formulário em abas, detalhe com timeline
-- [ ] ViaCEP e BrasilAPI (CNPJ) no formulário de empresa
-- [ ] Contatos: lista, formulário, detalhe; vínculo com empresa
-- [ ] Negócios: lista, formulário, detalhe; código automático; kanban com arrastar; modais de ganho (valor_fechado) e perda (motivo)
-- [ ] Atividades: criação rápida na timeline; atividades `sistema` automáticas; atualização de `ultimo_contato_em`
-- [ ] Tarefas: tela hoje/atrasadas/próximas/todas; conclusão rápida; vínculos
-- [ ] Anexos: upload seguro e download autenticado
-- [ ] Tags em empresas, contatos e negócios
-- [ ] Botão "Converter em cliente" (evento `empresa.convertida`)
-- [ ] Busca global
-- [ ] Tela de Auditoria com Desfazer
-- [ ] Configurações: pipelines/etapas, origens, motivos de perda, tags
-- [ ] Testes: ActionExecutor (criar/atualizar/arquivar/desfazer) e regras de ganho/perda
+- [x] `Services/ActionExecutor`, `Audit`, `Events` (SPEC §2, §5, §10) — todas as escritas passam por eles
+- [x] Empresas: lista (busca, filtros, ordenação, paginação, colunas configuráveis), formulário em abas, detalhe com timeline
+- [x] ViaCEP e BrasilAPI (CNPJ) no formulário de empresa
+- [x] Contatos: lista, formulário, detalhe; vínculo com empresa
+- [x] Negócios: lista, formulário, detalhe; código automático; kanban com arrastar; modais de ganho (valor_fechado) e perda (motivo)
+- [x] Atividades: criação rápida na timeline; atividades `sistema` automáticas; atualização de `ultimo_contato_em`
+- [x] Tarefas: tela hoje/atrasadas/próximas/todas; conclusão rápida; vínculos
+- [x] Anexos: upload seguro e download autenticado
+- [x] Tags em empresas, contatos e negócios
+- [x] Botão "Converter em cliente" (evento `empresa.convertida`)
+- [x] Busca global
+- [x] Tela de Auditoria com Desfazer
+- [x] Configurações: pipelines/etapas, origens, motivos de perda, tags
+- [x] Testes: ActionExecutor (criar/atualizar/arquivar/desfazer) e regras de ganho/perda
 
 **Pronto quando:** é possível operar o CRM inteiro sem IA, todo registro alterado aparece na auditoria e pode ser desfeito.
 

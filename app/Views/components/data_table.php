@@ -9,7 +9,7 @@ declare(strict_types=1);
  *
  * $colunas: [chave => ['rotulo' => '...', 'ordenavel' => bool, 'tipo' => 'texto'|'numero', 'alinhar' => 'direita']]
  * $linhas:  lista de arrays; célula = texto (escapado) ou ['html' => '...', 'valor' => chave de ordenação].
- * Opções: id, selecionavel (bool), vazio_html (mensagem quando não há linhas), altura_max (classe Tailwind).
+ * Opções: id, selecionavel (bool), ordenar (ordenação no servidor: ['ordem' => chave atual, 'dir' => asc|desc, 'url' => fn(chave, dir): string]), vazio_html (mensagem quando não há linhas), altura_max (classe Tailwind).
  */
 function data_table(array $colunas, array $linhas, array $o = []): string
 {
@@ -24,15 +24,25 @@ function data_table(array $colunas, array $linhas, array $o = []): string
     }
     foreach ($colunas as $chave => $col) {
         $ordenavel = !empty($col['ordenavel']);
+        $servidor = $ordenavel && isset($o['ordenar']);
+        $atualOrdem = $servidor && ($o['ordenar']['ordem'] ?? '') === $chave;
+        $dirAtual = $atualOrdem ? ($o['ordenar']['dir'] ?? 'asc') : null;
         $attrs = attrs_html([
-            'data-sort'  => $ordenavel ? ($col['tipo'] ?? 'texto') : null,
-            'aria-sort'  => $ordenavel ? 'none' : null,
+            'data-sort'  => $ordenavel && !$servidor ? ($col['tipo'] ?? 'texto') : null,
+            'aria-sort'  => $ordenavel ? ($dirAtual === null ? 'none' : ($dirAtual === 'desc' ? 'descending' : 'ascending')) : null,
             'class'      => ($col['alinhar'] ?? '') === 'direita' ? 'text-right' : null,
         ]);
         $rotulo = e($col['rotulo'] ?? $chave);
-        $html .= '<th' . $attrs . '>' . ($ordenavel
-            ? '<button type="button" class="data-table-sort">' . $rotulo . icone('chevrons-up-down', 'size-3.5 opacity-50') . '</button>'
-            : $rotulo) . '</th>';
+        $seta = icone($dirAtual === 'asc' ? 'arrow-up' : ($dirAtual === 'desc' ? 'arrow-down' : 'chevrons-up-down'), 'size-3.5 ' . ($dirAtual === null ? 'opacity-50' : ''));
+        if ($servidor) {
+            $proxima = $dirAtual === 'asc' ? 'desc' : 'asc';
+            $conteudoTh = '<a class="data-table-sort" href="' . e(($o['ordenar']['url'])($chave, $proxima)) . '">' . $rotulo . $seta . '</a>';
+        } elseif ($ordenavel) {
+            $conteudoTh = '<button type="button" class="data-table-sort">' . $rotulo . $seta . '</button>';
+        } else {
+            $conteudoTh = $rotulo;
+        }
+        $html .= '<th' . $attrs . '>' . $conteudoTh . '</th>';
     }
     $html .= '</tr></thead><tbody>';
 

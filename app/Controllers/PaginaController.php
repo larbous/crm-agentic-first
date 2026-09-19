@@ -12,7 +12,13 @@ final class PaginaController
 {
     public function inicio(): Response
     {
-        return View::pagina('paginas/inicio', ['titulo' => 'Início']);
+        $repo = \App\Repositories\Repositorios::tarefas();
+        $limite = date('Y-m-d', strtotime('+7 days'));
+        return View::pagina('paginas/inicio', [
+            'titulo'    => 'Início',
+            'atrasadas' => $repo->grupo('atrasadas', hoje(), $limite),
+            'hoje'      => $repo->grupo('hoje', hoje(), $limite),
+        ]);
     }
 
     /** Opções da rota: titulo, icone, fase. */

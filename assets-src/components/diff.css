@@ -1,0 +1,30 @@
+/* diff: antes/depois por campo (auditoria e, mais adiante, ações pendentes) */
+@layer components {
+  .diff {
+    @apply m-0 grid gap-1 text-xs;
+  }
+
+  .diff-linha {
+    @apply flex flex-wrap items-baseline gap-x-2;
+  }
+
+  .diff-linha dt {
+    @apply text-muted-foreground min-w-24 shrink-0;
+  }
+
+  .diff-linha dd {
+    @apply m-0 flex min-w-0 flex-wrap items-baseline gap-1.5;
+  }
+
+  .diff-antes {
+    @apply text-destructive line-through decoration-destructive/50;
+  }
+
+  .diff-depois {
+    @apply text-success font-medium;
+  }
+
+  .diff-seta {
+    @apply text-muted-foreground;
+  }
+}
