@@ -1,0 +1,13 @@
+{
+  "slug": "pos-reuniao",
+  "nome": "Pós-reunião",
+  "descricao": "Registra a reunião, monta a proposta e cria a tarefa de follow-up (informe as notas no texto de apoio)",
+  "versao": 1,
+  "entrada": "negocios",
+  "etapas": [
+    {"agente": "resumidor-reuniao"},
+    {"agente": "montador-proposta", "usa_saida_de": ["resumidor-reuniao"]},
+    {"acao": "tarefa", "dados": {"titulo": "Follow-up da proposta", "tipo": "followup", "prioridade": "alta", "vencimento_em_dias": 3}}
+  ],
+  "gatilho": {"tipo": "manual"}
+}

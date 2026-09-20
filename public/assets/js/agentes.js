@@ -146,6 +146,8 @@ if (dialogo) {
         const item = ev.target instanceof Element ? ev.target.closest('[data-agente-executar]') : null;
         if (!item) return;
         atual = { url: item.dataset.executarUrl, registro: Number(item.dataset.registro) };
+        // Squads vão para a fila do worker e não têm simulação.
+        dialogo.querySelector('[data-agente-simulacao]').hidden = item.dataset.semSimulacao === '1';
         dialogo.querySelector('h2').textContent = item.dataset.agenteNome;
         dialogo.querySelector('[data-agente-descricao-texto]').textContent = item.dataset.agenteDescricao ?? '';
         form.reset();
@@ -156,12 +158,16 @@ if (dialogo) {
     form.addEventListener('submit', async (ev) => {
         ev.preventDefault();
         if (!atual) return;
-        const simulacao = form.elements.simulacao?.checked === true;
+        const simulacao = form.elements.simulacao?.checked === true && !dialogo.querySelector('[data-agente-simulacao]').hidden;
         enviar.disabled = true;
         const rotulo = enviar.textContent;
         enviar.textContent = 'Executando…';
         try {
             const r = await chamar(atual.url, { registro_id: atual.registro, entrada: form.elements.entrada.value, simulacao });
+            if (r.url) { // squad enfileirado: vai para o andamento da execução
+                location.href = r.url;
+                return;
+            }
             if (simulacao) {
                 saida.innerHTML = r.html; // HTML montado e escapado no servidor
                 form.hidden = true;

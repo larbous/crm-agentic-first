@@ -75,14 +75,28 @@ Para medir o acerto do roteador (meta ≥ 90%): `php scripts/avaliar-roteador.ph
 
 ## Agentes de IA
 
-`php scripts/seed.php` importa os agentes da biblioteca (`/library/*.agent.json`) que ainda não existem (nunca sobrescreve os já importados ou editados). Use a chave da API da seção anterior; modelo e `max_tokens` vêm da definição de cada agente (padrão `ia.modelo_agente` em `configuracoes`, senão `claude-sonnet-5`).
+`php scripts/seed.php` importa os agentes (`/library/*.agent.json`) e os squads (`/library/*.squad.json`) da biblioteca que ainda não existem (nunca sobrescreve os já importados ou editados). Use a chave da API da seção anterior; modelo e `max_tokens` vêm da definição de cada agente (padrão `ia.modelo_agente` em `configuracoes`, senão `claude-sonnet-5`).
 `php scripts/avaliar-agentes.php` roda cada agente sobre dados de exemplo (`--offline` só valida, `agente-slug` roda um; `--verbose` mostra o texto). Usa banco em memória, mas **chama a API real e consome tokens** (o `pesquisador`, com busca na web, usa dezenas de milhares).
 A execução de um agente leva de alguns segundos a ~2 minutos (busca na web): em hospedagem compartilhada, confira o `max_execution_time` do PHP (o código pede 180 s).
 
+## Worker (cron)
+
+Agentes e squads disparados por evento ou agenda, squads executados pelo operador, tarefas recorrentes, tarefas vencidas, propostas expiradas e contratos vencendo/vencidos dependem do worker. Cadastre **uma** tarefa no cron da hospedagem, a cada minuto:
+
+```
+* * * * * php /caminho/do/projeto/cron/worker.php
+```
+
+- Use o mesmo `php` (8.2+) do site. No painel da hospedagem, costuma ser "Tarefas Cron" com o comando acima.
+- Só um worker roda por vez (lock em `storage/worker.lock`); uma chamada que chegar com outra em andamento sai em silêncio. Sem nada a fazer, não imprime nada (não gera e-mail do cron). `php cron/worker.php --verbose` mostra o resumo da rodada.
+- Cada rodada: recupera execuções interrompidas; roda as rotinas (recorrentes, vencidas, expiradas); dispara agendamentos vencidos; e processa a fila (até 5 execuções por rodada, sem começar nada novo depois de 4 minutos). Um squad com várias etapas de IA pode levar minutos: `set_time_limit(0)` no CLI; se a hospedagem limitar o tempo do cron, o restante continua na rodada seguinte.
+- **Sem o worker nada roda sozinho**: os eventos apenas põem a execução na fila (a tela Execuções mostra "Na fila"). Em desenvolvimento, rode `php cron/worker.php --verbose` à mão depois de disparar um squad.
+- Fuso horário das agendas: `app.fuso` (padrão `America/Sao_Paulo`). Expressões cron de 5 campos (`0 8 * * 1` = segunda 08:00); sem nomes de mês/dia nem atalhos como `@daily`.
+- Avisos do worker (`tarefa.vencida`, `contrato.vencendo`, próxima tarefa recorrente) são emitidos uma vez por registro/data (tabela `worker_marcas`). Contratos avisam `aviso_renovacao_dias` antes do fim.
+
 ## Hospedagem compartilhada
 
-Aponte o document root para `/public`. `storage/`, `app/`, `migrations/` e `config*.php` ficam fora dele.
-O cron do worker será documentado na Fase 6.
+Aponte o document root para `/public`. `storage/`, `app/`, `migrations/`, `cron/` e `config*.php` ficam fora dele. `storage/` precisa ser gravável pelo usuário do PHP e do cron.
 
 ## Links públicos e banco de testes
 

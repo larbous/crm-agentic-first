@@ -11,7 +11,7 @@ use App\Services\AI\CommandRouter;
 
 $statusRotulos = ['fila' => 'Na fila', 'rodando' => 'Rodando', 'concluida' => 'Concluída', 'erro' => 'Erro', 'aguardando_aprovacao' => 'Aguardando aprovação', 'cancelada' => 'Cancelada'];
 $variantes = ['concluida' => 'success', 'erro' => 'destructive', 'aguardando_aprovacao' => 'warning', 'rodando' => 'info'];
-$tipos = ['agentes' => 'Agentes', 'roteador' => 'Roteador do chat'];
+$tipos = ['agentes' => 'Agentes', 'squads' => 'Squads', 'roteador' => 'Roteador do chat'];
 $rotaEntidade = ['empresas' => '/empresas/', 'contatos' => '/contatos/', 'negocios' => '/negocios/', 'propostas' => '/propostas/', 'contratos' => '/contratos/'];
 $num = static fn (int $n): string => number_format($n, 0, ',', '.');
 
@@ -27,16 +27,20 @@ foreach ($totais as $t) {
 
 $linhas = [];
 foreach ($resultado['linhas'] as $x) {
+    $cabecalhoSquad = $x['squad_id'] !== null && $x['squad_execucao_id'] === null;
     $origem = $x['agente_id'] !== null
         ? '<a class="underline-offset-4 hover:underline" href="' . e(url('/agentes/' . (int) $x['agente_id'] . '/editar')) . '">' . e((string) ($x['agente_nome'] ?? 'agente #' . $x['agente_id'])) . '</a>'
-        : ($x['squad_id'] !== null ? 'Squad #' . (int) $x['squad_id'] : 'Roteador do chat');
+            . ($x['squad_execucao_id'] !== null ? ' <span class="text-muted-foreground text-xs">· etapa ' . (int) $x['etapa_ordem'] . ' do <a class="underline underline-offset-4" href="' . e(url('/squads/execucoes/' . (int) $x['squad_execucao_id'])) . '">squad #' . (int) $x['squad_execucao_id'] . '</a></span>' : '')
+        : ($x['squad_id'] !== null
+            ? '<a class="font-medium underline-offset-4 hover:underline" href="' . e(url('/squads/execucoes/' . (int) $x['id'])) . '">Squad ' . e((string) ($x['squad_nome'] ?? '#' . $x['squad_id'])) . '</a>'
+            : 'Roteador do chat');
     $alvo = '';
     if ($x['entidade'] !== null && $x['registro_id'] !== null && isset($rotaEntidade[$x['entidade']])) {
         $alvo = '<a class="underline-offset-4 hover:underline" href="' . e(url($rotaEntidade[$x['entidade']] . (int) $x['registro_id'])) . '">' . e($x['entidade']) . ' #' . (int) $x['registro_id'] . '</a>';
     }
 
     // Detalhe: saída do agente (resumo/texto) ou texto bruto; entrada e erro.
-    $saida = (string) $x['saida'];
+    $saida = $cabecalhoSquad ? '' : (string) $x['saida'];
     $json = $saida !== '' ? CommandRouter::extrairJson($saida) : null;
     $detalhe = '';
     if ($x['erro']) {
@@ -50,7 +54,11 @@ foreach ($resultado['linhas'] as $x) {
             $detalhe .= '<div class="mb-2"><div class="text-muted-foreground text-xs font-medium uppercase">Texto</div><div class="text-sm whitespace-pre-line">' . e((string) $json['texto']) . '</div></div>';
         }
     }
-    $detalhe .= '<div class="mb-2"><div class="text-muted-foreground text-xs font-medium uppercase">Entrada enviada</div><pre class="max-h-64 overflow-auto rounded-md border p-2 text-xs whitespace-pre-wrap">' . e((string) $x['entrada']) . '</pre></div>';
+    if ($cabecalhoSquad) {
+        $detalhe .= '<p class="mb-2 text-sm"><a class="underline underline-offset-4" href="' . e(url('/squads/execucoes/' . (int) $x['id'])) . '">Ver andamento das etapas</a></p>';
+    } else {
+        $detalhe .= '<div class="mb-2"><div class="text-muted-foreground text-xs font-medium uppercase">Entrada enviada</div><pre class="max-h-64 overflow-auto rounded-md border p-2 text-xs whitespace-pre-wrap">' . e((string) $x['entrada']) . '</pre></div>';
+    }
     if ($saida !== '') {
         $detalhe .= '<div class="mb-2"><div class="text-muted-foreground text-xs font-medium uppercase">Saída bruta</div><pre class="max-h-64 overflow-auto rounded-md border p-2 text-xs whitespace-pre-wrap">' . e($saida) . '</pre></div>';
     }
@@ -78,7 +86,7 @@ $temFiltro = array_filter($filtros, static fn ($v) => $v !== '') !== [];
 <div class="page-cabecalho">
     <div>
         <h1 class="page-titulo">Execuções</h1>
-        <p class="text-muted-foreground"><?= (int) $resultado['total'] ?> execução(ões). Toda chamada à IA (chat, agentes e testes) fica registrada aqui com modelo, tokens e duração.</p>
+        <p class="text-muted-foreground"><?= (int) $resultado['total'] ?> execução(ões). Toda chamada à IA (chat, agentes, squads e testes) fica registrada aqui com modelo, tokens e duração.</p>
     </div>
 </div>
 

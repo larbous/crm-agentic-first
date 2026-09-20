@@ -119,6 +119,17 @@ final class RespostaChat
         ];
     }
 
+    /** Squad enfileirado pelo chat: o worker executa; o operador acompanha na tela do squad. */
+    public static function squad(string $nome, int $execucaoId, ?array $ref): array
+    {
+        $alvo = $ref['nome'] ?? null;
+        return [
+            'conteudo'   => "✓ Squad {$nome} na fila" . ($alvo !== null ? " para \"{$alvo}\"" : '') . ".\nO worker o executa em até 1 minuto; acompanhe o andamento pelo link.",
+            'payload'    => ['tipo' => 'squad', 'ok' => true, 'execucao_id' => $execucaoId, 'link' => '/squads/execucoes/' . $execucaoId],
+            'ultima_ref' => $ref,
+        ];
+    }
+
     /** Tabela de resultado de "consultar". */
     public static function consulta(array $payload): array
     {

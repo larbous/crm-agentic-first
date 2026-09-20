@@ -97,17 +97,19 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 
 ## Fase 6 — Squads, eventos e worker
 
-- [ ] Migração: `squads`, `agendamentos_execucao`
-- [ ] `AI/SquadRunner`: etapas sequenciais, `condicao`, `parar_se`, `usa_saida_de`, pausa por aprovação
-- [ ] Gatilhos por evento (assinaturas em `Events`) com proteção contra loop
-- [ ] `cron/worker.php` com lock (SPEC §11); agendamentos por expressão cron
-- [ ] Tarefas recorrentes, tarefas vencidas, propostas expiradas, contratos vencendo/vencidos
-- [ ] Tela Squads: editor, importar/exportar, execuções com progresso (polling)
-- [ ] `#slug` no chat; botões de squad no detalhe
-- [ ] Biblioteca inicial de squads (SPEC §7.2)
-- [ ] Documentar configuração do cron em `docs/INSTALACAO.md`
+- [x] Migração: `squads`, `agendamentos_execucao` (e `squads_versoes`, `worker_marcas`)
+- [x] `AI/SquadRunner`: etapas sequenciais, `condicao`, `parar_se`, `usa_saida_de`, pausa por aprovação
+- [x] Gatilhos por evento (assinaturas em `Events`) com proteção contra loop
+- [x] `cron/worker.php` com lock (SPEC §11); agendamentos por expressão cron
+- [x] Tarefas recorrentes, tarefas vencidas, propostas expiradas, contratos vencendo/vencidos
+- [x] Tela Squads: editor, importar/exportar, execuções com progresso (polling)
+- [x] `#slug` no chat; botões de squad no detalhe
+- [x] Biblioteca inicial de squads (SPEC §7.2)
+- [x] Documentar configuração do cron em `docs/INSTALACAO.md`
 
 **Pronto quando:** criar uma empresa dispara `novo-lead` sozinho, e `revisao-semanal` roda pela agenda.
+
+> **Verificado (2026-09-20):** testes automáticos (`tests/SquadsTest.php`, IA simulada) cobrem gatilho por evento → fila → worker → etapas, agenda vencida, pausa/retomada por aprovação, `parar_se`, loop e rotinas. Manualmente, com a API real: `revisao-semanal` executado pela tela e processado por `php cron/worker.php` (1 etapa, ~850 tokens de entrada). O `novo-lead` completo (com `pesquisador`, busca na web, dezenas de milhares de tokens) não foi rodado de ponta a ponta contra a API para não gastar; a lógica de etapas é a mesma testada com IA simulada.
 
 ---
 

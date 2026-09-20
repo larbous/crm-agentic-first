@@ -1,0 +1,12 @@
+{
+  "slug": "negocio-ganho",
+  "nome": "Negócio ganho",
+  "descricao": "Redige o contrato do negócio ganho e cria a tarefa de envio",
+  "versao": 1,
+  "entrada": "negocios",
+  "etapas": [
+    {"agente": "redator-contrato"},
+    {"acao": "tarefa", "dados": {"titulo": "Enviar contrato para assinatura", "tipo": "enviar", "prioridade": "alta", "vencimento_em_dias": 1}}
+  ],
+  "gatilho": {"tipo": "evento", "evento": "negocio.ganho"}
+}

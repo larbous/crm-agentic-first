@@ -1,0 +1,11 @@
+{
+  "slug": "revisao-semanal",
+  "nome": "Revisão semanal do pipeline",
+  "descricao": "Toda segunda, 08:00: negócios parados, previsões vencidas e tarefas atrasadas",
+  "versao": 1,
+  "entrada": "nenhuma",
+  "etapas": [
+    {"agente": "analista-pipeline"}
+  ],
+  "gatilho": {"tipo": "agendado", "cron": "0 8 * * 1"}
+}

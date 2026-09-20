@@ -18,3 +18,4 @@ config.local.php
 .idea/
 .DS_Store
 Thumbs.db
+/storage/worker.lock

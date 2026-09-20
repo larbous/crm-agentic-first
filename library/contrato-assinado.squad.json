@@ -1,0 +1,12 @@
+{
+  "slug": "contrato-assinado",
+  "nome": "Contrato assinado",
+  "descricao": "Converte a empresa em cliente e cria a tarefa de onboarding",
+  "versao": 1,
+  "entrada": "contratos",
+  "etapas": [
+    {"acao": "converter_cliente"},
+    {"acao": "tarefa", "dados": {"titulo": "Onboarding do novo cliente", "tipo": "reuniao", "prioridade": "alta", "vencimento_em_dias": 2}}
+  ],
+  "gatilho": {"tipo": "evento", "evento": "contrato.assinado"}
+}

@@ -1,0 +1,15 @@
+{
+  "slug": "novo-lead",
+  "nome": "Entrada de Novo Lead",
+  "descricao": "Triagem, pesquisa, qualificação e rascunho de primeiro contato para uma empresa recém-criada",
+  "versao": 1,
+  "entrada": "empresas",
+  "etapas": [
+    {"agente": "triagem-formulario", "condicao": "origem == formulario"},
+    {"agente": "pesquisador"},
+    {"agente": "qualificador", "usa_saida_de": ["pesquisador"]},
+    {"agente": "redator-followup", "condicao": "empresa.classificacao in [A,B]"}
+  ],
+  "parar_se": "triagem-formulario.status == spam",
+  "gatilho": {"tipo": "evento", "evento": "empresa.criada"}
+}

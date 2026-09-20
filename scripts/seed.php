@@ -11,6 +11,7 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 
 use App\Core\DB;
 use App\Repositories\AgenteRepository;
+use App\Repositories\SquadRepository;
 use App\Repositories\SeedRepository;
 use App\Services\ActionExecutor;
 
@@ -63,6 +64,20 @@ try {
         $r = $executor->salvarAgente($json);
         if (!$r->ok) {
             throw new RuntimeException(basename($arquivo) . ': ' . $r->mensagem);
+        }
+    }
+
+    // Fase 6: biblioteca inicial de squads (/library/*.squad.json), depois dos agentes que eles citam. Mesma regra: nunca sobrescreve.
+    $squads = new SquadRepository();
+    foreach (glob(dirname(__DIR__) . '/library/*.squad.json') ?: [] as $arquivo) {
+        $json = (string) file_get_contents($arquivo);
+        $definicao = json_decode($json, true);
+        if (is_array($definicao) && isset($definicao['slug']) && $squads->porSlug((string) $definicao['slug']) !== null) {
+            continue;
+        }
+        $r = $executor->salvarSquad($json);
+        if (!$r->ok) {
+            throw new RuntimeException(basename($arquivo) . ': ' . implode(' ', $r->erros ?: [$r->mensagem]));
         }
     }
 

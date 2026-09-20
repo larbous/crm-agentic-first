@@ -1,0 +1,11 @@
+{
+  "slug": "renovacoes",
+  "nome": "Renovação de contrato",
+  "descricao": "Contrato vencendo: tarefa e rascunho de proposta de renovação",
+  "versao": 1,
+  "entrada": "contratos",
+  "etapas": [
+    {"agente": "renovacao"}
+  ],
+  "gatilho": {"tipo": "evento", "evento": "contrato.vencendo"}
+}

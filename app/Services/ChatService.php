@@ -52,7 +52,7 @@ final class ChatService
             $resposta = match ($mensagem[0]) {
                 '/'     => $this->comandos->executar($mensagem, $tela, $ultimaRef),
                 '@'     => $this->agenteDireto($mensagem, $tela, $ultimaRef),
-                '#'     => RespostaChat::texto('A execução direta de squads ainda não está disponível. Ela chega na Fase 6.'),
+                '#'     => $this->agenteDireto($mensagem, $tela, $ultimaRef, 'squad'),
                 default => $this->linguagemNatural($mensagem, $tela, $ultimaRef),
             };
         } catch (IaErro $e) {
@@ -143,16 +143,17 @@ final class ChatService
         return $this->chat->recentes($limite);
     }
 
-    /** "@slug [registro ou texto]": só o agente é chamado (SPEC §3.1); o registro é resolvido pelo servidor. */
-    private function agenteDireto(string $mensagem, ?array $tela, ?array $ultimaRef): array
+    /** "@slug [registro ou texto]" (agente) ou "#slug ..." (squad): só ele é acionado (SPEC §3.1); o registro é resolvido pelo servidor. */
+    private function agenteDireto(string $mensagem, ?array $tela, ?array $ultimaRef, string $tipo = 'agente'): array
     {
-        if (preg_match('/^@([a-z0-9][a-z0-9-]*)(?:\s+(.+))?$/su', $mensagem, $m) !== 1) {
-            return RespostaChat::erro('Use @slug [nome do registro]. Digite /agentes para ver os disponíveis.');
+        $sigla = $tipo === 'squad' ? '#' : '@';
+        if (preg_match('/^' . $sigla . '([a-z0-9][a-z0-9-]*)(?:\s+(.+))?$/su', $mensagem, $m) !== 1) {
+            return RespostaChat::erro("Use {$sigla}slug [nome do registro]. Digite " . ($tipo === 'squad' ? '/squads' : '/agentes') . ' para ver os disponíveis.');
         }
         $texto = trim($m[2] ?? '');
         return $this->acoes->avancar([
             'plano' => [
-                'tipo' => 'agente', 'slug' => $m[1], 'alvo' => $texto !== '' ? ['nome' => $texto] : [], 'entrada' => null,
+                'tipo' => $tipo, 'slug' => $m[1], 'alvo' => $texto !== '' ? ['nome' => $texto] : [], 'entrada' => null,
                 'texto' => $texto !== '' ? $texto : null, 'texto_livre' => true,
             ],
             'resolvidas' => [], 'criadas' => [], 'confirmado' => false, 'execucao_id' => null, 'tela' => $tela, 'ultima_ref' => $ultimaRef,

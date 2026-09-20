@@ -32,7 +32,8 @@ final class Client
     }
 
     /**
-     * @param array $meta agente_id, squad_id, squad_execucao_id, etapa_ordem, entidade, registro_id, simulacao (opcionais)
+     * @param array $meta agente_id, squad_id, squad_execucao_id, etapa_ordem, entidade, registro_id, simulacao (opcionais);
+     *                    execucao_id reaproveita uma linha já criada (execução tirada da fila do worker) em vez de criar outra
      * @param array $opcoes web_search (bool: liga a ferramenta de busca na web), timeout (segundos),
      *                      temperatura (float; null omite o parâmetro — padrão 0, usado pelo roteador)
      * @throws IaErro
@@ -40,7 +41,14 @@ final class Client
     public function chamar(string $modelo, string $sistema, string $usuario, array $meta = [], int $maxTokens = 1024, array $opcoes = []): RespostaIA
     {
         $execucoes = new ExecucaoRepository();
-        $execucaoId = $execucoes->iniciar($meta + ['entrada' => $usuario, 'modelo' => $modelo, 'status' => 'rodando']);
+        $reaproveitar = isset($meta['execucao_id']) ? (int) $meta['execucao_id'] : null;
+        unset($meta['execucao_id']);
+        if ($reaproveitar !== null) {
+            $execucaoId = $reaproveitar;
+            $execucoes->atualizar($execucaoId, ['entrada' => $usuario, 'modelo' => $modelo, 'status' => 'rodando', 'iniciado_em' => agora()]);
+        } else {
+            $execucaoId = $execucoes->iniciar($meta + ['entrada' => $usuario, 'modelo' => $modelo, 'status' => 'rodando']);
+        }
         $inicio = hrtime(true);
         $duracao = static fn (): int => (int) ((hrtime(true) - $inicio) / 1_000_000);
         $falhar = static function (string $paraOperador, string $tecnico) use ($execucoes, $execucaoId, $duracao): never {

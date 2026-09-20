@@ -31,7 +31,7 @@ trait AcoesAgentes
         $nova = $v['definicao'];
         $repo = new AgenteRepository();
 
-        return $this->transacao(function () use ($repo, $nova, $agenteId): Resultado {
+        $r = $this->transacao(function () use ($repo, $nova, $agenteId): Resultado {
             $existente = $agenteId !== null ? $repo->encontrar($agenteId) : $repo->porSlug($nova['slug']);
             if ($agenteId !== null && $existente === null) {
                 return Resultado::erroGeral('Agente não encontrado.');
@@ -54,6 +54,10 @@ trait AcoesAgentes
             $repo->novaVersao((int) $existente['id'], $nova);
             return Resultado::sucesso((int) $existente['id'], "Agente \"{$nova['nome']}\" salvo (versão {$nova['versao']}).");
         });
+        if ($r->ok) {
+            Agendador::sincronizar();
+        }
+        return $r;
     }
 
     /** Volta a uma versão anterior: grava a definição antiga como uma nova versão (o histórico nunca é reescrito). */
@@ -75,6 +79,7 @@ trait AcoesAgentes
             return Resultado::erroGeral('Agente não encontrado.');
         }
         $repo->definirAtivo($agenteId, $ativo);
+        Agendador::sincronizar();
         return Resultado::sucesso($agenteId, 'Agente "' . $agente['nome'] . '" ' . ($ativo ? 'ativado.' : 'desativado.'));
     }
 }

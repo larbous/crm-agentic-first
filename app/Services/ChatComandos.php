@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Repositories\AgenteRepository;
 use App\Repositories\BuscaRepository;
+use App\Repositories\SquadRepository;
 
 /** Comandos "/" do chat (SPEC §3.2): executam direto no servidor, sem IA. Escritas passam pelo ActionExecutor (origem "humano"). */
 final class ChatComandos
@@ -19,6 +20,7 @@ Comandos disponíveis:
 /desfazer — reverte a última ação registrada
 /agentes · /squads — lista os disponíveis
 @agente [nome do registro] — executa um agente (ex.: @pesquisador Padaria Central)
+#squad [nome do registro] — põe um squad na fila do worker (ex.: #novo-lead Padaria Central)
 Ou escreva em linguagem natural, por exemplo: "cria negócio de 8 mil pro site da Padaria Central, contato Ana".
 TXT;
 
@@ -45,7 +47,7 @@ TXT;
             'concluir' => $this->concluir($resto),
             'desfazer' => $this->desfazer(),
             'agentes' => $this->agentes(),
-            'squads'  => RespostaChat::texto('Ainda não há squads cadastrados. Eles chegam na Fase 6.'),
+            'squads'  => $this->squads(),
             default   => RespostaChat::erro("Comando desconhecido: /{$comando}. Use /ajuda."),
         };
     }
@@ -59,6 +61,17 @@ TXT;
         $linhas = array_map(static fn (array $a): string => '@' . $a['slug'] . ' — ' . ($a['descricao'] !== '' ? $a['descricao'] : $a['nome'])
             . ' (' . ($a['def']['entrada'] === 'nenhuma' ? 'sem registro' : mb_strtolower(Schema::entidade($a['def']['entrada'])['plural'])) . ')', $ativos);
         return RespostaChat::texto("Agentes disponíveis:\n" . implode("\n", $linhas));
+    }
+
+    private function squads(): array
+    {
+        $ativos = (new SquadRepository())->todos(true);
+        if ($ativos === []) {
+            return RespostaChat::texto('Não há squads ativos. Cadastre ou importe em Squads.');
+        }
+        $linhas = array_map(static fn (array $s): string => '#' . $s['slug'] . ' — ' . ($s['descricao'] !== '' ? $s['descricao'] : $s['nome'])
+            . ' (' . ($s['def']['entrada'] === 'nenhuma' ? 'sem registro' : mb_strtolower(Schema::entidade($s['def']['entrada'])['plural'])) . ')', $ativos);
+        return RespostaChat::texto("Squads disponíveis:\n" . implode("\n", $linhas));
     }
 
     private function nota(string $texto, ?array $contexto): array

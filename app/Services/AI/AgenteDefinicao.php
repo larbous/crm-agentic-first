@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
+use App\Core\CronExpressao;
 use App\Repositories\ConfiguracaoRepository;
 use App\Services\Events;
 use App\Services\Schema;
@@ -147,7 +148,7 @@ final class AgenteDefinicao
             $erros[] = '"aprovacao" deve ser um de: ' . implode(', ', self::APROVACOES) . '.';
         }
 
-        $gatilho = self::gatilho($entrada['gatilho'] ?? ['tipo' => 'manual'], $erros);
+        $gatilho = self::gatilho($entrada['gatilho'] ?? ['tipo' => 'manual'], $alvo, $erros);
 
         if ($erros !== []) {
             return self::falha($erros);
@@ -190,8 +191,11 @@ final class AgenteDefinicao
         return array_values(array_unique($valor));
     }
 
-    /** @param list<string> $erros */
-    private static function gatilho(mixed $g, array &$erros): array
+    /**
+     * Valida o gatilho de um agente ou squad. Gatilho agendado não tem registro-alvo: só vale com "entrada": "nenhuma".
+     * @param list<string> $erros
+     */
+    public static function gatilho(mixed $g, ?string $entrada, array &$erros): array
     {
         if (!is_array($g) || array_is_list($g) || !is_string($g['tipo'] ?? null)) {
             $erros[] = '"gatilho" deve ser {"tipo":"manual"}, {"tipo":"evento","evento":"..."} ou {"tipo":"agendado","cron":"..."}.';
@@ -208,9 +212,12 @@ final class AgenteDefinicao
                 return ['tipo' => 'evento', 'evento' => $g['evento']];
             case 'agendado':
                 $cron = is_string($g['cron'] ?? null) ? trim($g['cron']) : '';
-                if (preg_match('/^\S+ \S+ \S+ \S+ \S+$/', $cron) !== 1 || preg_match('/^[0-9*\/,\-]+( [0-9*\/,\-]+){4}$/', $cron) !== 1) {
-                    $erros[] = '"gatilho.cron" deve ter 5 campos (minuto hora dia mês dia-da-semana), ex.: "0 8 * * 1".';
+                if (CronExpressao::analisar($cron) === null) {
+                    $erros[] = '"gatilho.cron" deve ter 5 campos válidos (minuto hora dia mês dia-da-semana), ex.: "0 8 * * 1".';
                     return ['tipo' => 'manual'];
+                }
+                if ($entrada !== null && $entrada !== 'nenhuma') {
+                    $erros[] = 'O gatilho agendado não tem registro de entrada: use "entrada": "nenhuma".';
                 }
                 return ['tipo' => 'agendado', 'cron' => $cron];
         }

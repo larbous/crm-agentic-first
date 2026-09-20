@@ -98,7 +98,9 @@ teste('agentes: definição inválida é recusada com mensagens claras', functio
     verdadeiro(AgenteDefinicao::validar('não é json')['ok'] === false);
     verdadeiro(AgenteDefinicao::validar('[1,2]')['ok'] === false);
     verdadeiro(AgenteDefinicao::validar(defAgente(['gatilho' => ['tipo' => 'evento', 'evento' => 'negocio.ganho']]))['ok'], 'evento conhecido é aceito');
-    verdadeiro(AgenteDefinicao::validar(defAgente(['gatilho' => ['tipo' => 'agendado', 'cron' => '0 8 * * 1']]))['ok'], 'cron de 5 campos é aceito');
+    verdadeiro(AgenteDefinicao::validar(defAgente(['entrada' => 'nenhuma', 'contexto' => [], 'gatilho' => ['tipo' => 'agendado', 'cron' => '0 8 * * 1']]))['ok'], 'cron de 5 campos é aceito (sem registro de entrada)');
+    verdadeiro(AgenteDefinicao::validar(defAgente(['gatilho' => ['tipo' => 'agendado', 'cron' => '0 8 * * 1']]))['ok'] === false, 'agenda exige entrada nenhuma');
+    verdadeiro(AgenteDefinicao::validar(defAgente(['entrada' => 'nenhuma', 'contexto' => [], 'gatilho' => ['tipo' => 'agendado', 'cron' => '61 8 * * 1']]))['ok'] === false, 'cron fora da faixa é recusado');
 });
 
 teste('agentes: salvar cria versões, ignora salvamento sem mudança, restaura e não deixa mudar o slug', function () {

@@ -22,6 +22,7 @@ use App\Controllers\PaginaController;
 use App\Controllers\PropostaController;
 use App\Controllers\PublicoController;
 use App\Controllers\ServicoController;
+use App\Controllers\SquadController;
 use App\Controllers\TagController;
 use App\Controllers\TarefaController;
 use App\Core\Auth;
@@ -59,8 +60,9 @@ return static function (Router $r): void {
         CrudController::registrar($r, '/contratos', ContratoController::class);
         ContratoController::registrarExtras($r);
 
-        // Agentes de IA, ações pendentes de aprovação e execuções
+        // Agentes e squads de IA, ações pendentes de aprovação e execuções
         AgenteController::registrar($r);
+        SquadController::registrar($r);
         AcaoPendenteController::registrar($r);
         ExecucaoController::registrar($r);
 

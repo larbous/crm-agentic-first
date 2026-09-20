@@ -22,6 +22,7 @@ function chat_mensagem(array $m): string
         $html .= match ($tipo) {
             'acao'      => chat_extra_acao($id, $p),
             'agente'    => chat_extra_agente($p),
+            'squad'     => chat_extra_squad($p),
             'consulta'  => chat_extra_consulta($p),
             'busca'     => chat_extra_busca($p),
             'escolha'   => chat_extra_escolha($id, $p),
@@ -69,6 +70,12 @@ function chat_extra_agente(array $p): string
         $partes[] = '<a class="btn" data-variant="ghost" data-size="sm" href="' . e(url('/execucoes')) . '">execuções</a>';
     }
     return $partes === [] ? '' : '<div class="chat-acoes">' . implode('', $partes) . '</div>';
+}
+
+/** Squad na fila: botão para acompanhar a execução. */
+function chat_extra_squad(array $p): string
+{
+    return empty($p['link']) ? '' : '<div class="chat-acoes"><a class="btn" data-variant="default" data-size="sm" href="' . e(url((string) $p['link'])) . '">acompanhar</a></div>';
 }
 
 /** Tabela de "consultar": primeira coluna com link para o registro. */

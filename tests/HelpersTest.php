@@ -66,10 +66,11 @@ teste('iniciais() gera até duas letras', function () {
 teste('url() e asset() respeitam base_url', function () {
     igual('/login', url('/login'));
     igual('/assets/css/app.css', asset('css/app.css'));
+    $original = \App\Core\Config::obter('caminhos');
     \App\Core\Config::definir(['app' => ['base_url' => '/crm/']]);
     igual('/crm/login', url('login'));
     igual('/crm/assets/x.js', asset('/x.js'));
-    \App\Core\Config::definir(['app' => ['base_url' => '']]);
+    \App\Core\Config::definir(['app' => ['base_url' => ''], 'caminhos' => $original]);
 });
 
 teste('Validator valida regras e devolve mensagens em português', function () {

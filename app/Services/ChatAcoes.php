@@ -7,8 +7,10 @@ namespace App\Services;
 use App\Repositories\AgenteRepository;
 use App\Repositories\BuscaRepository;
 use App\Repositories\Repositorios;
+use App\Repositories\SquadRepository;
 use App\Services\AI\AgentRunner;
 use App\Services\AI\ContextBuilder;
+use App\Services\AI\SquadRunner;
 
 /**
  * Processa um plano já validado (ContratoRoteador): resolve referências por busca no banco (SPEC §3.5),
@@ -39,6 +41,8 @@ final class ChatAcoes
         private readonly BuscaRepository $busca = new BuscaRepository(),
         private readonly AgenteRepository $agentes = new AgenteRepository(),
         private readonly AgentRunner $runner = new AgentRunner(),
+        private readonly SquadRepository $squads = new SquadRepository(),
+        private readonly SquadRunner $squadRunner = new SquadRunner(),
     ) {
     }
 
@@ -98,7 +102,7 @@ final class ChatAcoes
             case 'agente':
                 return $this->agente($estado);
             case 'squad':
-                return RespostaChat::texto('A execução de squads ainda não está disponível. Ela chega na Fase 6.');
+                return $this->agente($estado, 'squad');
         }
 
         $acao = $plano['acao'];
@@ -257,12 +261,14 @@ final class ChatAcoes
      * Plano: slug, alvo (refs), entrada (texto de apoio) e, no atalho "@slug texto", texto_livre = true
      * (o texto é o nome do registro ou, se nenhum registro tiver esse nome, o texto de apoio para o registro aberto).
      */
-    private function agente(array $estado): array
+    /** "@slug" (agente, executa na hora) ou "#slug" (squad, vai para a fila do worker): mesma resolução do registro-alvo. */
+    private function agente(array $estado, string $tipo = 'agente'): array
     {
         $plano = $estado['plano'];
-        $agente = $this->agentes->porSlug((string) $plano['slug']);
+        $sigla = $tipo === 'squad' ? '#' : '@';
+        $agente = $tipo === 'squad' ? $this->squads->porSlug((string) $plano['slug']) : $this->agentes->porSlug((string) $plano['slug']);
         if ($agente === null || (int) $agente['ativo'] !== 1) {
-            return RespostaChat::erro('Não encontrei o agente "' . $plano['slug'] . '" ativo. Use /agentes para ver os disponíveis.');
+            return RespostaChat::erro("Não encontrei o {$tipo} \"" . $plano['slug'] . '" ativo. Use ' . ($tipo === 'squad' ? '/squads' : '/agentes') . ' para ver os disponíveis.');
         }
         $def = $agente['def'];
         $entidade = (string) $def['entrada'];
@@ -285,7 +291,7 @@ final class ChatAcoes
                 if ($valor !== null && ctype_digit((string) $valor)) {
                     $registroId = (int) $valor;
                 } else {
-                    return RespostaChat::erro("Este agente trabalha sobre {$entidade}. Abra o registro e use o botão Agentes, ou informe o id: @{$agente['slug']} 12.");
+                    return RespostaChat::erro("Este {$tipo} trabalha sobre {$entidade}. Abra o registro e use o botão Agentes, ou informe o id: {$sigla}{$agente['slug']} 12.");
                 }
             } elseif (isset($estado['resolvidas'][$chave])) {
                 $registroId = (int) $estado['resolvidas'][$chave];
@@ -297,7 +303,7 @@ final class ChatAcoes
                     }
                 }
                 if ($registroId === null) {
-                    return RespostaChat::texto("Sobre qual {$singular}? Informe o nome (@{$agente['slug']} Nome) ou abra o registro e repita.");
+                    return RespostaChat::texto("Sobre qual {$singular}? Informe o nome ({$sigla}{$agente['slug']} Nome) ou abra o registro e repita.");
                 }
             } elseif (is_int($valor)) {
                 $registroId = $valor;
@@ -319,12 +325,20 @@ final class ChatAcoes
             }
         }
 
+        $ref = $entidade !== 'nenhuma' && $registroId !== null ? ContextBuilder::ref($entidade, $registroId) : null;
+        if ($tipo === 'squad') {
+            try {
+                $execucaoId = $this->squadRunner->enfileirar($agente, $registroId, $entrada, 'ia');
+            } catch (\InvalidArgumentException $e) {
+                return RespostaChat::erro($e->getMessage());
+            }
+            return RespostaChat::squad((string) $agente['nome'], $execucaoId, $ref);
+        }
         try {
             $resultado = $this->runner->executar($agente, $registroId, $entrada);
         } catch (\InvalidArgumentException $e) {
             return RespostaChat::erro($e->getMessage());
         }
-        $ref = $entidade !== 'nenhuma' && $registroId !== null ? ContextBuilder::ref($entidade, $registroId) : null;
         return RespostaChat::agente((string) $agente['nome'], $resultado, $entidade !== 'nenhuma' ? $entidade : null, $registroId, $ref);
     }
 

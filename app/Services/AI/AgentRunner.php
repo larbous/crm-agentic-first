@@ -34,7 +34,7 @@ final class AgentRunner
 
     /**
      * @param array $agente linha de AgenteRepository (com `def`)
-     * @param array $meta campos extras de `execucoes` (ex.: squad_id na Fase 6)
+     * @param array $meta campos extras de `execucoes` (squad_id, squad_execucao_id, etapa_ordem; execucao_id reaproveita a linha da fila)
      * @return array{ok:bool,execucao_id:int,simulacao:bool,resumo:string,texto:string,status:?string,
      *               aplicadas:list<array>,pendentes:list<array>,previas:list<array>,recusadas:list<string>,erro:?string}
      * @throws InvalidArgumentException agente desativado, registro inexistente ou de outra entidade
@@ -188,6 +188,8 @@ final class AgentRunner
     {
         if ($this->execucoes->pendentesDaExecucao($execucaoId) === 0) {
             $this->execucoes->atualizar($execucaoId, ['status' => 'concluida']);
+            // Etapa de squad decidida por completo: o squad que a esperava volta para a fila do worker.
+            $this->execucoes->retomarSquadDaEtapa($execucaoId);
         }
     }
 

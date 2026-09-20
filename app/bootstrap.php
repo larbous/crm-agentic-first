@@ -29,3 +29,6 @@ $config = require dirname(__DIR__) . '/config.php';
 
 date_default_timezone_set((string) \App\Core\Config::obter('app.fuso', 'America/Sao_Paulo'));
 mb_internal_encoding('UTF-8');
+
+// Gatilhos por evento de agentes e squads (Fase 6): só enfileiram; quem executa é o worker.
+\App\Services\Gatilhos::registrar();

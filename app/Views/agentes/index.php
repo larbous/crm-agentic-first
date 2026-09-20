@@ -61,7 +61,7 @@ $corpoImportar = '<form id="form-importar" method="post" action="' . e(url('/age
     $linhas,
     ['id' => 'tabela-agentes', 'vazio_html' => vazio('Nenhum agente', 'Rode "php scripts/seed.php" para importar a biblioteca inicial ou crie um agente.', ['icone' => 'bot'])],
 ) ?>
-<p class="text-muted-foreground mt-3 text-sm">Gatilhos por evento e por agenda são guardados na definição, mas só passam a disparar sozinhos com o worker (Fase 6). Por enquanto todos rodam pelo botão do registro, por <code>@slug</code> no chat ou pelo teste.</p>
+<p class="text-muted-foreground mt-3 text-sm">Gatilhos por evento e por agenda disparam pelo worker (cron a cada minuto): a execução entra na fila e roda em segundo plano. Os agentes da biblioteca são manuais; quem os dispara sozinho são os <a class="underline underline-offset-4" href="<?= e(url('/squads')) ?>">squads</a>. Manualmente: botão do registro, <code>@slug</code> no chat ou o teste.</p>
 
 <?= modal('modal-importar', [
     'titulo' => 'Importar agente',

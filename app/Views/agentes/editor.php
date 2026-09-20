@@ -79,7 +79,7 @@ $ref = '<dl class="grid gap-2 text-sm">'
     . '<div><dt class="font-medium">acoes_permitidas</dt><dd class="text-muted-foreground">' . e(implode(', ', AcaoAgente::ACOES)) . '. O texto longo do agente vira nota no registro.</dd></div>'
     . '<div><dt class="font-medium">campos_gravaveis</dt><dd class="text-muted-foreground">Campos que atualizar/criar podem gravar, além de: ' . e(implode(', ', AcaoAgente::PSEUDOS)) . ' (a IA informa o nome, o servidor acha o registro).</dd></div>'
     . '<div><dt class="font-medium">aprovacao</dt><dd class="text-muted-foreground"><b>sempre</b>: nada é gravado sem sua aprovação, nem a nota de texto; <b>escritas</b>: as ações aguardam aprovação e o texto vira nota direto; <b>nunca</b>: tudo é gravado na hora.</dd></div>'
-    . '<div><dt class="font-medium">gatilho</dt><dd class="text-muted-foreground">manual, evento ou agendado (só o manual funciona até a Fase 6).</dd></div>'
+    . '<div><dt class="font-medium">gatilho</dt><dd class="text-muted-foreground">manual, evento (roda no worker quando o evento acontece) ou agendado (cron de 5 campos; exige entrada "nenhuma"). Um agente não é re-disparado por eventos causados por ele mesmo.</dd></div>'
     . '</dl>';
 ?>
 <div class="page-cabecalho">

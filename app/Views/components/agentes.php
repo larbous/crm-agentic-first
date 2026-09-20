@@ -3,16 +3,18 @@
 declare(strict_types=1);
 
 use App\Repositories\AgenteRepository;
+use App\Repositories\SquadRepository;
 use App\Services\AI\AcaoAgente;
 
 /**
- * Botões de agentes no detalhe de um registro: menu "Agentes" com os agentes ativos que trabalham sobre a entidade e
- * um diálogo para o texto de apoio opcional. O comportamento vem de /assets/js/agentes.js.
+ * Botões de agentes e squads no detalhe de um registro: menu "Agentes" com os agentes e squads ativos que trabalham sobre a
+ * entidade e um diálogo para o texto de apoio opcional (squads vão para a fila do worker e não têm simulação). O comportamento vem de /assets/js/agentes.js.
  */
 function agentes_botoes(string $entidade, int $registroId): string
 {
     $agentes = (new AgenteRepository())->ativosDaEntrada($entidade);
-    if ($agentes === []) {
+    $squads = (new SquadRepository())->ativosDaEntrada($entidade);
+    if ($agentes === [] && $squads === []) {
         return '';
     }
     $itens = [['grupo' => 'Executar agente']];
@@ -22,6 +24,15 @@ function agentes_botoes(string $entidade, int $registroId): string
             'data-agente-descricao' => (string) $a['descricao'], 'data-registro' => $registroId,
         ]];
     }
+    if ($squads !== []) {
+        $itens[] = ['grupo' => 'Executar squad (em segundo plano)'];
+        foreach ($squads as $s) {
+            $itens[] = ['rotulo' => $s['nome'], 'icone' => 'workflow', 'attrs' => [
+                'data-agente-executar' => (int) $s['id'], 'data-agente-nome' => $s['nome'], 'data-executar-url' => url('/api/squads/' . (int) $s['id'] . '/executar'),
+                'data-agente-descricao' => (string) $s['descricao'], 'data-registro' => $registroId, 'data-sem-simulacao' => 1,
+            ]];
+        }
+    }
     $itens[] = ['separador' => true];
     $itens[] = ['rotulo' => 'Ações pendentes', 'icone' => 'inbox', 'href' => url('/acoes-pendentes')];
 
@@ -29,7 +40,7 @@ function agentes_botoes(string $entidade, int $registroId): string
         . '<p class="text-muted-foreground text-sm" data-agente-descricao-texto></p>'
         . campo(['nome' => 'entrada', 'id' => 'agente-entrada', 'rotulo' => 'Texto de apoio (opcional)', 'tipo' => 'textarea', 'linhas' => 5,
             'ajuda' => 'Notas de reunião, uma instrução extra… Alguns agentes usam este texto.', 'attrs' => ['maxlength' => 2000]])
-        . '<label class="flex items-center gap-2 text-sm"><input type="checkbox" class="input" name="simulacao" value="1"> Só simular (não grava nada)</label>'
+        . '<label class="flex items-center gap-2 text-sm" data-agente-simulacao><input type="checkbox" class="input" name="simulacao" value="1"> Só simular (não grava nada)</label>'
         . '</form><div data-agente-saida></div>';
     return menu('menu-agentes', icone('bot') . '<span>Agentes</span>', $itens, ['alinhar' => 'end'])
         . modal('modal-agente', [
