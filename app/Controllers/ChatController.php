@@ -36,7 +36,11 @@ final class ChatController
         } catch (InvalidArgumentException $e) {
             return Response::json(['ok' => false, 'erro' => $e->getMessage()], 422);
         }
-        return Response::json(['ok' => true, 'resposta' => ['id' => $r['resposta']['id'], 'html' => chat_mensagem($r['resposta'])]]);
+        return Response::json([
+            'ok'       => true,
+            'alterou'  => !empty($r['resposta']['payload']['alterou']),
+            'resposta' => ['id' => $r['resposta']['id'], 'html' => chat_mensagem($r['resposta'])],
+        ]);
     }
 
     /** POST /api/chat/acao {mensagem_id, acao, opcao?} — botões das respostas. */
@@ -57,6 +61,7 @@ final class ChatController
         }
         return Response::json([
             'ok'         => true,
+            'alterou'    => !empty($r['resposta']['payload']['alterou']),
             'atualizada' => $r['atualizada'] !== null ? ['id' => $r['atualizada']['id'], 'html' => chat_mensagem($r['atualizada'])] : null,
             'resposta'   => $r['resposta'] !== null ? ['id' => $r['resposta']['id'], 'html' => chat_mensagem($r['resposta'])] : null,
         ]);

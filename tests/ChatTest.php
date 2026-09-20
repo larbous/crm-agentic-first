@@ -467,3 +467,15 @@ teste('IA: negócio citado pelo nome da empresa é encontrado (ganho/perda "do c
     igual('perdido', Repositorios::negocios()->encontrar($n)['status']);
 });
 
+teste('chat: só respostas que gravam ou desfazem marcam "alterou" (a tela recarrega)', function () {
+    $chat = chatComSeed();
+    $emp = novaEmpresa(new ActionExecutor());
+    $nota = $chat->enviar('/nota anotação', "/empresas/{$emp}");
+    verdadeiro($nota['resposta']['payload']['alterou'] === true, 'nota altera');
+    verdadeiro(!isset($chat->enviar('/ajuda', null)['resposta']['payload']['alterou']), 'ajuda não altera');
+    verdadeiro(!isset($chat->enviar('/buscar x', null)['resposta']['payload']['alterou']), 'busca não altera');
+    $u = $chat->acionar((int) $nota['resposta']['id'], 'desfazer', null);
+    verdadeiro($u['resposta']['payload']['alterou'] === true, 'desfazer altera');
+    verdadeiro(!isset($chat->enviar('/xyz', null)['resposta']['payload']['alterou']), 'erro não altera');
+});
+

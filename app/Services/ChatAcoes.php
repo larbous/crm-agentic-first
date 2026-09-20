@@ -102,7 +102,7 @@ final class ChatAcoes
         }
         if ($acao === 'desfazer') {
             $r = $this->executor->desfazer(null, 'ia');
-            return $r->ok ? RespostaChat::texto('✓ ' . $r->mensagem) : RespostaChat::erro($r->mensagem);
+            return $r->ok ? RespostaChat::desfeito($r->mensagem) : RespostaChat::erro($r->mensagem);
         }
         $entidade = $plano['entidade'];
         if ($entidade === 'atividades' && in_array($acao, ['atualizar', 'arquivar'], true)) {

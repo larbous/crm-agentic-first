@@ -104,6 +104,25 @@ function anexarErroLocal(log, texto) {
     rolarParaOFim(log);
 }
 
+// ---- Atualização da tela após o chat alterar dados ------------------------------------
+
+let formularioSujo = false;
+document.addEventListener('input', (ev) => {
+    if (ev.target instanceof Element && ev.target.closest('#conteudo form:not([data-chat-form])')) formularioSujo = true;
+});
+
+/**
+ * Depois que o chat grava algo, recarrega a página para a tela refletir a alteração (timeline, listas, totais).
+ * Se há um formulário editado na tela, não recarrega (evita perder o que foi digitado) e avisa.
+ */
+function atualizarTela() {
+    if (formularioSujo) {
+        toast('info', 'Alteração feita pelo chat', 'Salve ou descarte o formulário e atualize a página para ver.');
+        return;
+    }
+    setTimeout(() => window.location.reload(), 700);
+}
+
 async function api(caminho, corpo) {
     const resp = await fetch(caminho, {
         method: corpo ? 'POST' : 'GET',
@@ -147,6 +166,7 @@ async function enviar(caixa, texto) {
         const dados = await api('/api/chat', { mensagem: texto, tela: window.location.pathname });
         pensando.remove();
         anexarHtml(log, dados.resposta.html);
+        if (dados.alterou) atualizarTela();
     } catch (e) {
         pensando.remove();
         anexarErroLocal(log, e.message);
@@ -176,6 +196,7 @@ async function acionar(botao) {
             msg.replaceWith(t.content);
         }
         if (dados.resposta) anexarHtml(log, dados.resposta.html);
+        if (dados.alterou) atualizarTela();
     } catch (e) {
         botoes.forEach((b) => { b.disabled = false; });
         toast('error', 'Não foi possível concluir', e.message);

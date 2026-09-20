@@ -135,7 +135,7 @@ TXT;
     private function desfazer(): array
     {
         $r = $this->executor->desfazer(null, 'humano');
-        return $r->ok ? RespostaChat::texto('✓ ' . $r->mensagem) : RespostaChat::erro($r->mensagem);
+        return $r->ok ? RespostaChat::desfeito($r->mensagem) : RespostaChat::erro($r->mensagem);
     }
 
     /** Campo de vínculo (empresa_id, contato_id ou negocio_id) para o registro em contexto. */

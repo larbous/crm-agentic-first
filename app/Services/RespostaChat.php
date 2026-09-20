@@ -18,6 +18,12 @@ final class RespostaChat
         return ['conteudo' => $conteudo, 'payload' => ['tipo' => 'texto'], 'ultima_ref' => $ultimaRef];
     }
 
+    /** Desfazer concluído: texto simples, mas dados mudaram (a tela aberta precisa atualizar). */
+    public static function desfeito(string $mensagem): array
+    {
+        return ['conteudo' => '✓ ' . $mensagem, 'payload' => ['tipo' => 'texto', 'alterou' => true], 'ultima_ref' => null];
+    }
+
     public static function erro(string $conteudo): array
     {
         return ['conteudo' => '✗ ' . $conteudo, 'payload' => ['tipo' => 'erro'], 'ultima_ref' => null];
@@ -64,7 +70,7 @@ final class RespostaChat
             'conteudo'   => $texto,
             'payload'    => [
                 'tipo' => 'acao', 'ok' => true, 'link' => self::link($entidade, $registro, $pai, $acao),
-                'log_id' => $r->logId, 'desfeito' => false,
+                'log_id' => $r->logId, 'desfeito' => false, 'alterou' => true,
             ],
             'ultima_ref' => null,
         ];

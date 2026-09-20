@@ -90,7 +90,7 @@ final class ChatService
                 }
                 $p['desfeito'] = true;
                 $this->chat->atualizarPayload($mensagemId, $p);
-                return ['atualizada' => $this->chat->encontrar($mensagemId), 'resposta' => $this->salvar(RespostaChat::texto('✓ ' . $r->mensagem))];
+                return ['atualizada' => $this->chat->encontrar($mensagemId), 'resposta' => $this->salvar(RespostaChat::desfeito($r->mensagem))];
             }
 
             if (!in_array($tipo, ['escolha', 'criar_ref', 'confirmar'], true)) {
