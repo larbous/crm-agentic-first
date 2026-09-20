@@ -234,6 +234,96 @@ function cep_formatado(?string $cep): string
     return strlen($d) === 8 ? substr($d, 0, 5) . '-' . substr($d, 5) : (string) $cep;
 }
 
+/** Número inteiro (0 a 999.999.999.999) por extenso em português: 1234 → "mil duzentos e trinta e quatro". */
+function numero_por_extenso(int $n): string
+{
+    if ($n === 0) {
+        return 'zero';
+    }
+    $unidades = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze',
+        'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
+    $dezenas = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
+    $centenas = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
+
+    $ate999 = static function (int $v) use ($unidades, $dezenas, $centenas): string {
+        if ($v === 100) {
+            return 'cem';
+        }
+        $partes = [];
+        if ($v >= 100) {
+            $partes[] = $centenas[intdiv($v, 100)];
+            $v %= 100;
+        }
+        if ($v > 0) {
+            $partes[] = $v < 20 ? $unidades[$v] : $dezenas[intdiv($v, 10)] . ($v % 10 ? ' e ' . $unidades[$v % 10] : '');
+        }
+        return implode(' e ', $partes);
+    };
+
+    $escalas = [[1_000_000_000, 'bilhão', 'bilhões'], [1_000_000, 'milhão', 'milhões'], [1_000, 'mil', 'mil']];
+    $grupos = [];
+    foreach ($escalas as [$valor, $singular, $plural]) {
+        $q = intdiv($n, $valor);
+        $n %= $valor;
+        if ($q > 0) {
+            $grupos[] = ($valor === 1_000 && $q === 1) ? 'mil' : $ate999($q) . ' ' . ($q === 1 ? $singular : $plural);
+        }
+    }
+    $resto = $n > 0 ? $ate999($n) : '';
+    if ($resto !== '') {
+        $grupos[] = $resto;
+    }
+    if (count($grupos) === 1) {
+        return $grupos[0];
+    }
+    $ultimo = array_pop($grupos);
+    // "e" antes do último grupo quando ele é menor que 100 ou múltiplo de 100
+    $liga = ($n > 0 ? ($n < 100 || $n % 100 === 0) : true) ? ' e ' : ' ';
+    return implode(' ', $grupos) . $liga . $ultimo;
+}
+
+/** Valor em centavos por extenso: 150020 → "mil e quinhentos reais e vinte centavos". */
+function valor_por_extenso(?int $centavos): string
+{
+    if ($centavos === null) {
+        return '';
+    }
+    $centavos = abs($centavos);
+    $reais = intdiv($centavos, 100);
+    $cents = $centavos % 100;
+    $partes = [];
+    if ($reais > 0 || $cents === 0) {
+        $partes[] = numero_por_extenso($reais) . ($reais > 0 && $reais % 1_000_000 === 0 ? ' de' : '') . ($reais === 1 ? ' real' : ' reais');
+    }
+    if ($cents > 0) {
+        $partes[] = numero_por_extenso($cents) . ($cents === 1 ? ' centavo' : ' centavos');
+    }
+    return implode(' e ', $partes);
+}
+
+/** "2026-09-20" → "20 de setembro de 2026". */
+function data_por_extenso(?string $iso): string
+{
+    $meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    if ($iso === null || data_br($iso) === '') {
+        return '';
+    }
+    [$a, $m, $d] = array_map('intval', explode('-', substr($iso, 0, 10)));
+    return $d . ' de ' . $meses[$m - 1] . ' de ' . $a;
+}
+
+/** Percentual armazenado em centésimos (750 → "7,50%"). */
+function percentual_br(?int $centesimos): string
+{
+    return $centesimos === null ? '' : number_format($centesimos / 100, 2, ',', '.') . '%';
+}
+
+/** Token aleatório para links públicos (40 caracteres hexadecimais). */
+function token_publico(): string
+{
+    return bin2hex(random_bytes(20));
+}
+
 /** Aceita apenas caminhos internos (evita open redirect). Devolve $padrao se inválido. */
 function caminho_seguro(?string $caminho, string $padrao = '/'): string
 {
@@ -254,4 +344,33 @@ function dias_entre(?string $a, ?string $b): ?int
     } catch (Throwable) {
         return null;
     }
+}
+
+/** Proposta enviada/visualizada cuja validade já passou. */
+function proposta_expirada(array $proposta): bool
+{
+    return in_array($proposta['status'] ?? '', ['enviada', 'visualizada'], true)
+        && !empty($proposta['validade']) && $proposta['validade'] < hoje();
+}
+
+/** URL absoluta para links públicos (app.url_publica, ou o host da requisição). */
+function url_publica(string $caminho): string
+{
+    $base = rtrim((string) Config::obter('app.url_publica', ''), '/');
+    if ($base === '') {
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+        $host = preg_replace('/[^A-Za-z0-9.:\-\[\]]/', '', (string) ($_SERVER['HTTP_HOST'] ?? 'localhost')) ?: 'localhost';
+        $base = ($https ? 'https' : 'http') . '://' . $host . rtrim((string) Config::obter('app.base_url', ''), '/');
+    }
+    return $base . '/' . ltrim($caminho, '/');
+}
+
+/** CPF (000.000.000-00) ou CNPJ (00.000.000/0000-00) formatado a partir dos dígitos; outro formato volta como veio. */
+function documento_formatado(?string $doc): string
+{
+    $d = so_digitos($doc);
+    if (strlen($d) === 11) {
+        return substr($d, 0, 3) . '.' . substr($d, 3, 3) . '.' . substr($d, 6, 3) . '-' . substr($d, 9);
+    }
+    return strlen($d) === 14 ? cnpj_formatado($d) : (string) $doc;
 }

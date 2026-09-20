@@ -4,6 +4,8 @@
  * @var array $registro
  * @var list<array> $contatos
  * @var list<array> $negocios
+ * @var list<array> $propostas
+ * @var list<array> $contratos
  * @var list<array> $tarefas
  * @var list<array> $atividades
  * @var list<array> $anexos
@@ -50,6 +52,8 @@ $abas = [
     ['rotulo' => 'Negócios', 'contagem' => count($negocios), 'html' =>
         '<div class="mb-2 flex justify-end">' . botao('Novo negócio', ['href' => url('/negocios/nova?empresa_id=' . $id . '&voltar=' . rawurlencode($voltar)), 'variante' => 'outline', 'tamanho' => 'sm', 'icone' => 'plus']) . '</div>'
         . ($colNegocios ? tabela(['codigo' => 'Código', 'titulo' => 'Negócio', 'etapa' => 'Etapa', 'valor' => 'Valor', 'status' => 'Status'], $colNegocios) : vazio('Sem negócios', 'Nenhum negócio para esta empresa.', ['icone' => 'handshake']))],
+    ['rotulo' => 'Propostas', 'contagem' => count($propostas), 'html' => tabela_propostas($propostas, 'Crie propostas a partir de um negócio desta empresa.')],
+    ['rotulo' => 'Contratos', 'contagem' => count($contratos), 'html' => tabela_contratos($contratos)],
     ['rotulo' => 'Tarefas', 'contagem' => count(array_filter($tarefas, 'tarefa_aberta')), 'html' => tarefas_mini($tarefas, 'empresa_id', $id, $voltar)],
     ['rotulo' => 'Anexos', 'contagem' => count($anexos), 'html' => anexos_painel($anexos, 'empresas', $id, $voltar)],
 ];
@@ -82,7 +86,7 @@ $abas = [
             'CNPJ' => cnpj_formatado($r['cnpj']), 'Porte' => $op('porte', $r['porte']), 'Segmento' => (string) $r['segmento'],
             'Origem' => (string) $r['origem_nome'], 'Indicado por' => (string) $r['indicado_por'],
             'Ticket potencial' => $r['ticket_potencial'] !== null ? moeda((int) $r['ticket_potencial']) : '',
-            'LTV (negócios ganhos)' => moeda((int) $r['ltv']), 'Cliente desde' => data_br($r['cliente_desde']),
+            'LTV (negócios ganhos)' => moeda((int) $r['ltv']), 'MRR (contratos vigentes)' => (int) $r['mrr'] > 0 ? moeda((int) $r['mrr']) : '', 'Cliente desde' => data_br($r['cliente_desde']),
             'Fundação' => data_br($r['data_fundacao']), 'Faturamento' => (string) $r['faixa_faturamento'], 'Funcionários' => (string) $r['faixa_funcionarios'],
         ])]) ?>
         <?= card(['tamanho' => 'sm', 'titulo' => 'Contato e endereço', 'corpo_html' => ficha([

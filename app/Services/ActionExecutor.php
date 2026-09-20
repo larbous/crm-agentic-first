@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Core\DB;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\ConfiguracaoRepository;
+use App\Repositories\ItemPropostaRepository;
 use App\Repositories\Repositorios;
 use InvalidArgumentException;
 use PDOException;
@@ -19,21 +20,32 @@ use Throwable;
  */
 final class ActionExecutor
 {
+    use AcoesDocumentos;
+
     private const PADROES = [
         'empresas' => ['status' => 'lead'],
         'contatos' => ['status' => 'ativo'],
         'tarefas'  => ['tipo' => 'outro', 'prioridade' => 'media', 'status' => 'pendente', 'recorrencia' => 'nenhuma'],
         'etapas'   => ['tipo' => 'aberta', 'probabilidade_padrao' => 0],
+        'servicos' => ['categoria' => 'outro', 'unidade' => 'projeto'],
+        'propostas' => ['desconto_tipo' => 'valor'],
+        'contratos' => ['recorrencia' => 'unica', 'indice_reajuste' => 'nenhum'],
     ];
 
     /** Atividades que contam como contato com a pessoa (atualizam contatos.ultimo_contato_em). */
     private const TIPOS_CONTATO = ['ligacao', 'whatsapp', 'email', 'reuniao', 'visita'];
 
     /** Entidades cujo nome deve ser único entre os registros ativos (com escopo opcional). */
-    private const NOME_UNICO = ['origens' => [], 'motivos_perda' => [], 'tags' => [], 'pipelines' => [], 'etapas' => ['pipeline_id']];
+    private const NOME_UNICO = ['origens' => [], 'motivos_perda' => [], 'tags' => [], 'pipelines' => [], 'etapas' => ['pipeline_id'], 'contrato_tipos' => []];
 
     /** @var list<array{0:string,1:array}> */
     private array $eventos = [];
+
+    /** Itens de proposta normalizados na operação corrente (null = não informados). */
+    private ?array $itensPendentes = null;
+
+    /** Itens que devem ser gravados ao final da operação corrente (null = manter). */
+    private ?array $itensGravar = null;
 
     // =====================================================================================
     // API pública
@@ -65,7 +77,16 @@ final class ActionExecutor
         return $this->transacao(function () use ($entidade, $schema, $dados, $origem): Resultado {
             $erros = [];
             $dados += self::PADROES[$entidade] ?? [];
+            $this->itensPendentes = $this->itensGravar = null;
+            $itensBrutos = null;
+            if ($entidade === 'propostas' && array_key_exists('itens', $dados)) {
+                $itensBrutos = $dados['itens'];
+                unset($dados['itens']);
+            }
             $novos = $this->normalizar($entidade, $dados, true, $erros);
+            if ($entidade === 'propostas') {
+                $this->itensPendentes = $this->normalizarItens($itensBrutos ?? [], $erros);
+            }
             if ($erros !== []) {
                 return Resultado::falha($erros);
             }
@@ -83,7 +104,14 @@ final class ActionExecutor
             $repo = Repositorios::para($entidade);
             $id = $repo->inserir($linha);
             $registro = $repo->encontrar($id);
-            $logId = Audit::registrar($origem, $entidade, $id, 'criar', null, array_intersect_key($registro, array_flip($repo->colunas())));
+            $depois = array_intersect_key($registro, array_flip($repo->colunas()));
+            if ($entidade === 'propostas') {
+                (new ItemPropostaRepository())->substituir($id, $this->itensGravar ?? []);
+                if ($this->itensGravar) {
+                    $depois['_itens'] = $this->snapshotItens($this->itensGravar);
+                }
+            }
+            $logId = Audit::registrar($origem, $entidade, $id, 'criar', null, $depois);
             $this->aposCriar($entidade, $registro, $origem);
 
             return Resultado::sucesso($id, $this->mensagem($schema, $registro, 'criar'), $registro, $logId);
@@ -106,7 +134,16 @@ final class ActionExecutor
             }
 
             $erros = [];
+            $this->itensPendentes = $this->itensGravar = null;
+            $itensBrutos = null;
+            if ($entidade === 'propostas' && array_key_exists('itens', $dados)) {
+                $itensBrutos = $dados['itens'];
+                unset($dados['itens']);
+            }
             $novos = $this->normalizar($entidade, $dados, false, $erros);
+            if ($itensBrutos !== null) {
+                $this->itensPendentes = $this->normalizarItens($itensBrutos, $erros);
+            }
             if ($erros !== []) {
                 return Resultado::falha($erros);
             }
@@ -122,14 +159,26 @@ final class ActionExecutor
                     $alterados[$campo] = $valor;
                 }
             }
-            if ($alterados === []) {
+            if ($alterados === [] && $this->itensGravar === null) {
                 return Resultado::sucesso($id, 'Nada a alterar.', $atual);
             }
 
             $antes = array_intersect_key($atual, $alterados);
-            $repo->atualizar($id, $alterados + ['atualizado_em' => agora()]);
+            $depois = $alterados;
+            if ($alterados !== []) {
+                $repo->atualizar($id, $alterados + ['atualizado_em' => agora()]);
+            }
+            if ($this->itensGravar !== null) {
+                $itensRepo = new ItemPropostaRepository();
+                $antes['_itens'] = $this->snapshotItens($itensRepo->porProposta($id));
+                $depois['_itens'] = $this->snapshotItens($this->itensGravar);
+                $itensRepo->substituir($id, $this->itensGravar);
+                if ($alterados === []) {
+                    $repo->atualizar($id, ['atualizado_em' => agora()]);
+                }
+            }
             $registro = $repo->encontrar($id);
-            $logId = Audit::registrar($origem, $entidade, $id, $acao, $antes, $alterados);
+            $logId = Audit::registrar($origem, $entidade, $id, $acao, $antes, $depois);
             $this->aposAtualizar($entidade, $atual, $registro, $alterados, $origem);
 
             return Resultado::sucesso($id, $this->mensagem($schema, $registro, 'atualizar'), $registro, $logId);
@@ -325,9 +374,17 @@ final class ActionExecutor
                         if ($registro === null || $antes === null) {
                             return Resultado::erroGeral('Não é possível desfazer esta ação.');
                         }
+                        $itensAntes = $antes['_itens'] ?? null;
+                        unset($antes['_itens']);
                         $anterior = array_intersect_key($registro, $antes);
                         $revertido = $antes;
-                        $repo->atualizar($id, $revertido + ['atualizado_em' => $agora]);
+                        if ($itensAntes !== null) {
+                            $itensRepo = new ItemPropostaRepository();
+                            $anterior['_itens'] = $this->snapshotItens($itensRepo->porProposta($id));
+                            $itensRepo->substituir($id, $itensAntes);
+                            $revertido['_itens'] = $itensAntes;
+                        }
+                        $repo->atualizar($id, $antes + ['atualizado_em' => $agora]);
                 }
             } catch (PDOException $e) {
                 return Resultado::erroGeral('Não foi possível desfazer: o estado atual conflita com o registro anterior.');
@@ -519,6 +576,21 @@ final class ActionExecutor
                 return strlen(so_digitos((string) $valor)) === 8 ? so_digitos((string) $valor) : $this->falhar($erro, 'CEP inválido.');
             case 'uf':
                 return preg_match('/^[A-Za-z]{2}$/', (string) $valor) ? strtoupper((string) $valor) : $this->falhar($erro, 'UF inválida.');
+            case 'decimal':
+                $t = (string) $valor;
+                if (str_contains($t, ',')) {
+                    $t = str_replace(',', '.', str_replace('.', '', $t));
+                }
+                if (!is_numeric($t) || (float) $t < 0 || (float) $t > 1000000) {
+                    return $this->falhar($erro, "O campo {$def['r']} deve ser um número válido.");
+                }
+                return round((float) $t, 3);
+            case 'html':
+                $texto = (string) $valor;
+                if (mb_strlen($texto) > ($def['max'] ?? 200000)) {
+                    return $this->falhar($erro, "O campo {$def['r']} é grande demais.");
+                }
+                return Html::sanitizar($texto);
             case 'cor':
                 return preg_match('/^#[0-9a-fA-F]{6}$/', (string) $valor) ? strtolower((string) $valor) : $this->falhar($erro, 'Cor inválida (use #rrggbb).');
         }
@@ -625,6 +697,21 @@ final class ActionExecutor
             case 'pipelines':
                 $extra['padrao'] = Repositorios::pipelines()->padrao() === null ? 1 : 0;
                 break;
+
+            case 'propostas':
+                $erros += $this->regrasCriarProposta($v, $extra);
+                break;
+
+            case 'contratos':
+                $erros += $this->regrasCriarContrato($v, $extra);
+                break;
+
+            case 'modelos_documento':
+                $v['conteudo'] ??= '';
+                if (($v['tipo'] ?? '') === 'contrato') {
+                    $v['conteudo'] = Html::sanitizar($v['conteudo']);
+                }
+                break;
         }
 
         return $erros + $this->nomeUnico($entidade, $v, null);
@@ -666,6 +753,23 @@ final class ActionExecutor
 
             case 'anexos':
                 $erros['_'] = 'Anexos não podem ser editados; envie um novo arquivo.';
+                break;
+
+            case 'modelos_documento':
+                if (array_key_exists('conteudo', $novos)) {
+                    $novos['conteudo'] ??= '';
+                    if (($novos['tipo'] ?? $atual['tipo']) === 'contrato') {
+                        $novos['conteudo'] = Html::sanitizar($novos['conteudo']);
+                    }
+                }
+                break;
+
+            case 'propostas':
+                $erros += $this->regrasAtualizarProposta($atual, $novos, $derivados);
+                break;
+
+            case 'contratos':
+                $erros += $this->regrasAtualizarContrato($atual, $novos);
                 break;
         }
 

@@ -51,6 +51,21 @@ abstract class BaseRepository
         return [];
     }
 
+    /** Condições SQL sempre aplicadas na listagem (além de arquivado_em IS NULL). */
+    protected function condicoesBase(): array
+    {
+        return [];
+    }
+
+    /**
+     * Filtro que não é simples igualdade (ex.: intervalo de datas). Devolve a condição SQL, usando o array de
+     * parâmetros por referência, ou null para ignorar o filtro.
+     */
+    protected function filtroEspecial(string $chave, mixed $valor, array &$params): ?string
+    {
+        return null;
+    }
+
     /** Ordenação padrão quando nenhuma é pedida. */
     protected function ordemPadrao(): string
     {
@@ -106,7 +121,7 @@ abstract class BaseRepository
      */
     public function listar(array $opts = []): array
     {
-        $onde = ["{$this->alias}.arquivado_em IS NULL"];
+        $onde = array_merge(["{$this->alias}.arquivado_em IS NULL"], $this->condicoesBase());
         $params = [];
 
         $busca = trim((string) ($opts['busca'] ?? ''));
@@ -121,7 +136,14 @@ abstract class BaseRepository
 
         $filtraveis = $this->filtraveis();
         foreach ((array) ($opts['filtros'] ?? []) as $chave => $valor) {
-            if ($valor === null || $valor === '' || !isset($filtraveis[$chave])) {
+            if ($valor === null || $valor === '') {
+                continue;
+            }
+            if (!isset($filtraveis[$chave])) {
+                $especial = $this->filtroEspecial((string) $chave, $valor, $params);
+                if ($especial !== null) {
+                    $onde[] = $especial;
+                }
                 continue;
             }
             $onde[] = "{$filtraveis[$chave]} = :f_{$chave}";

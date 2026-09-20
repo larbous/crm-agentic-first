@@ -40,7 +40,7 @@ teste('migrações criam o banco do zero com todas as tabelas da Fase 1', functi
 teste('migrações são idempotentes e registradas em migracoes', function () {
     $pdo = bancoDeTeste();
     $repo = new MigracaoRepository($pdo);
-    igual(['0001_nucleo.sql'], $repo->aplicadas());
+    igual(['0001_nucleo.sql', '0002_comercial.sql'], $repo->aplicadas());
 });
 
 teste('tabelas de negócio têm colunas padrão e valores monetários em INTEGER', function () {

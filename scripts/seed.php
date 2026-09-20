@@ -40,6 +40,14 @@ try {
 
     $seed->garantirConfiguracao('fuso', 'America/Sao_Paulo');
 
+    // Fase 3: tipos de contrato, modelos de exemplo, dados da agência e validade padrão das propostas
+    $seed->garantirNomes('contrato_tipos', ['Desenvolvimento', 'Manutenção', 'Hospedagem', 'Consultoria', 'Tráfego']);
+    foreach (require dirname(__DIR__) . '/library/modelos.php' as [$tipo, $nome, $assunto, $conteudo]) {
+        $seed->garantirModelo($tipo, $nome, $assunto, $conteudo);
+    }
+    $seed->garantirConfiguracao('empresa.nome', 'Lárbous');
+    $seed->garantirConfiguracao('proposta.validade_dias', '15');
+
     $pdo->commit();
 } catch (Throwable $e) {
     $pdo->rollBack();

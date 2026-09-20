@@ -7,6 +7,8 @@
  * @var list<array> $origens
  * @var list<array> $motivos
  * @var list<array> $tags
+ * @var list<array> $tiposContrato
+ * @var array $agencia
  */
 use App\Services\Schema;
 
@@ -109,11 +111,25 @@ $painelPipelines .= '<form method="post" action="' . e(url('/configuracoes/pipel
     . botao('Criar pipeline', ['tipo' => 'submit', 'icone' => 'plus']) . '</form>'
     . '<p class="text-muted-foreground mt-3 text-xs">Uma etapa do tipo "ganho" exige o valor fechado e uma do tipo "perdido" exige o motivo ao mover o negócio. Etapas com negócios ativos não podem ser arquivadas.</p>';
 
+// ---- Dados da agência (variáveis {larbous.*}) e validade padrão das propostas
+$campoAg = "";
+foreach (\App\Services\Variaveis::CAMPOS_AGENCIA as $chave => $rotuloAg) {
+    $campoAg .= '<div' . (in_array($chave, ['endereco'], true) ? ' class="md:col-span-2"' : '') . '>'
+        . campo(['nome' => $chave, 'id' => 'ag-' . $chave, 'rotulo' => $rotuloAg, 'valor' => $agencia[$chave] ?? '', 'attrs' => ['maxlength' => 300]]) . '</div>';
+}
+$painelAgencia = '<form method="post" action="' . e(url('/configuracoes/agencia')) . '" class="grid gap-4">' . csrf_field()
+    . '<p class="text-muted-foreground text-sm">Usados no cabeçalho de propostas e contratos e nas variáveis <code>{larbous.nome}</code>, <code>{larbous.cnpj}</code> etc.</p>'
+    . '<div class="grid gap-4 md:grid-cols-2">' . $campoAg
+    . campo(['nome' => 'validade_dias', 'id' => 'ag-validade', 'rotulo' => 'Validade padrão das propostas (dias)', 'tipo' => 'number', 'valor' => $agencia['validade_dias'] ?? '15', 'attrs' => ['min' => 1, 'max' => 365]])
+    . '</div><div>' . botao('Salvar dados da agência', ['tipo' => 'submit', 'icone' => 'check']) . '</div></form>';
+
 $paineis = [
     'pipelines' => ['Pipelines e etapas', $painelPipelines],
     'origens'   => ['Origens', $listaSimples('origens', $origens, 'Nova origem')],
     'motivos'   => ['Motivos de perda', $listaSimples('motivos-perda', $motivos, 'Novo motivo de perda')],
     'tags'      => ['Tags', $painelTags],
+    'contratos' => ['Tipos de contrato', $listaSimples('contrato-tipos', $tiposContrato, 'Novo tipo de contrato')],
+    'agencia'   => ['Dados da agência', $painelAgencia],
 ];
 $abasHtml = [];
 $ativa = 0;

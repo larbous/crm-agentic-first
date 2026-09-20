@@ -27,7 +27,7 @@ final class AuditoriaController
         $resultado = $repo->listar($filtros, (int) ($_GET['pagina'] ?? 1));
         $ultima = $repo->ultimaDesfazivel();
         $entidades = [];
-        foreach (Schema::nomes() as $nome) {
+        foreach (array_diff(Schema::nomes(), ['proposta_itens']) as $nome) {
             $entidades[$nome] = Schema::entidade($nome)['plural'];
         }
 

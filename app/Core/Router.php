@@ -128,14 +128,30 @@ final class Router
         return '/' . trim(preg_replace('#/+#', '/', $caminho) ?? '', '/');
     }
 
+    /**
+     * Converte "/x/{id:\d+}/{token:[a-f0-9]{40}}" em regex. Aceita chaves aninhadas dentro do regex
+     * do parâmetro (quantificadores como {40}); as demais partes literais não são escapadas.
+     */
     private static function compilar(string $padrao): string
     {
-        $regex = preg_replace_callback(
-            '/\{(\w+)(?::([^}]+))?\}/',
-            static fn (array $m): string => '(?P<' . $m[1] . '>' . ($m[2] ?? '[^/]+') . ')',
-            $padrao,
-        );
-        // Partes literais não são escapadas: os padrões usam apenas [a-z0-9/_-].
-        return '#^' . $regex . '$#u';
+        $saida = '';
+        $n = strlen($padrao);
+        for ($i = 0; $i < $n; $i++) {
+            if ($padrao[$i] !== '{') {
+                $saida .= $padrao[$i];
+                continue;
+            }
+            $profundidade = 1;
+            $j = $i + 1;
+            while ($j < $n && $profundidade > 0) {
+                $profundidade += $padrao[$j] === '{' ? 1 : ($padrao[$j] === '}' ? -1 : 0);
+                $j++;
+            }
+            $miolo = substr($padrao, $i + 1, $j - $i - 2);
+            [$nome, $regex] = array_pad(explode(':', $miolo, 2), 2, null);
+            $saida .= '(?P<' . $nome . '>' . ($regex ?? '[^/]+') . ')';
+            $i = $j - 1;
+        }
+        return '#^' . $saida . '$#u';
     }
 }

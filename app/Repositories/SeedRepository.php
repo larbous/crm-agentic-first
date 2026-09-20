@@ -57,7 +57,7 @@ final class SeedRepository
     /** @param list<string> $nomes */
     public function garantirNomes(string $tabela, array $nomes): void
     {
-        if (!in_array($tabela, ['origens', 'motivos_perda'], true)) {
+        if (!in_array($tabela, ['origens', 'motivos_perda', 'contrato_tipos'], true)) {
             throw new \InvalidArgumentException("Tabela não permitida no seed: {$tabela}");
         }
         $existe = $this->pdo->prepare("SELECT 1 FROM {$tabela} WHERE nome = :nome");
@@ -70,6 +70,21 @@ final class SeedRepository
                 $ins->execute(['nome' => $nome, 'agora' => agora(), 'por' => self::CRIADO_POR]);
             }
         }
+    }
+
+    /** Cria o modelo de documento se ainda não houver um do mesmo tipo e nome (não sobrescreve edições). */
+    public function garantirModelo(string $tipo, string $nome, ?string $assunto, string $conteudo): void
+    {
+        $existe = $this->pdo->prepare('SELECT 1 FROM modelos_documento WHERE tipo = :t AND nome = :n');
+        $existe->execute(['t' => $tipo, 'n' => $nome]);
+        if ($existe->fetchColumn() !== false) {
+            return;
+        }
+        $agora = agora();
+        $this->pdo->prepare(
+            'INSERT INTO modelos_documento (tipo, nome, assunto, conteudo, ativo, criado_em, atualizado_em, criado_por)
+             VALUES (:tipo, :nome, :assunto, :conteudo, 1, :agora, :agora, :por)'
+        )->execute(['tipo' => $tipo, 'nome' => $nome, 'assunto' => $assunto, 'conteudo' => $conteudo, 'agora' => $agora, 'por' => self::CRIADO_POR]);
     }
 
     /** Insere a configuração apenas se a chave ainda não existir. */

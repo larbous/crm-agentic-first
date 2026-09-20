@@ -53,7 +53,7 @@ function tarefa_linha(array $t, string $voltar, bool $vinculos = true): string
         $html .= '<span>' . icone('rotate-ccw', 'inline size-3 align-[-1px]') . ' ' . e(Schema::opcoes('recorrencia')[$t['recorrencia']]) . '</span>';
     }
     if ($vinculos) {
-        foreach ([['empresa_id', 'empresa_nome', '/empresas/'], ['contato_id', 'contato_nome', '/contatos/'], ['negocio_id', 'negocio_titulo', '/negocios/']] as [$id, $nome, $base]) {
+        foreach ([['empresa_id', 'empresa_nome', '/empresas/'], ['contato_id', 'contato_nome', '/contatos/'], ['negocio_id', 'negocio_titulo', '/negocios/'], ['contrato_id', 'contrato_numero', '/contratos/']] as [$id, $nome, $base]) {
             if (!empty($t[$id]) && !empty($t[$nome])) {
                 $html .= '<a class="underline-offset-4 hover:underline" href="' . e(url($base . (int) $t[$id])) . '">' . e($t[$nome]) . '</a>';
             }

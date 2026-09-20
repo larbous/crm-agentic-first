@@ -41,6 +41,7 @@ final class EmpresaController extends CrudController
             'email_geral'      => ['rotulo' => 'E-mail', 'ordenavel' => true, 'render' => $simples('email_geral')],
             'origem_nome'      => ['rotulo' => 'Origem', 'ordenavel' => true, 'padrao' => true, 'render' => $simples('origem_nome')],
             'tags'             => ['rotulo' => 'Tags', 'padrao' => true, 'render' => static fn (array $l, array $ctx): array => ['html' => chips_tags($ctx['tags'][(int) $l['id']] ?? [])]],
+            'mrr'              => ['rotulo' => 'MRR', 'ordenavel' => true, 'alinhar' => 'direita', 'render' => static fn (array $l): array => ['html' => e(moeda((int) $l['mrr'])), 'valor' => (int) $l['mrr']]],
             'ltv'              => ['rotulo' => 'LTV', 'ordenavel' => true, 'padrao' => true, 'alinhar' => 'direita', 'render' => static fn (array $l): array => ['html' => e(moeda((int) $l['ltv'])), 'valor' => (int) $l['ltv']]],
             'ticket_potencial' => ['rotulo' => 'Ticket potencial', 'ordenavel' => true, 'alinhar' => 'direita', 'render' => static fn (array $l): string => $l['ticket_potencial'] !== null ? moeda((int) $l['ticket_potencial']) : ''],
             'criado_em'        => ['rotulo' => 'Criada em', 'ordenavel' => true, 'render' => static fn (array $l): string => data_br($l['criado_em'])],
@@ -74,6 +75,8 @@ final class EmpresaController extends CrudController
             'negocios'   => Repositorios::negocios()->porEmpresa($id),
             'tarefas'    => Repositorios::tarefas()->porVinculo('empresa_id', $id),
             'atividades' => Repositorios::atividades()->timeline('empresa_id', $id),
+            'propostas'  => Repositorios::propostas()->ultimasPor('empresa_id', $id),
+            'contratos'  => Repositorios::contratos()->por('empresa_id', $id),
         ];
     }
 

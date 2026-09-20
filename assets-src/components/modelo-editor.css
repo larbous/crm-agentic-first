@@ -1,0 +1,61 @@
+/* Editor de modelos (variáveis e pré-visualização) e totais do editor de itens da proposta */
+@layer components {
+  .modelo-preview {
+    @apply max-h-[28rem] overflow-y-auto rounded-md border p-3 text-sm leading-relaxed;
+    background: #fff;
+    color: #111827;
+    border-color: #e5e7eb;
+  }
+
+  .modelo-preview p {
+    @apply my-2;
+  }
+
+  .modelo-preview:not(.documento-corpo) {
+    @apply whitespace-normal;
+  }
+
+  .variaveis-catalogo {
+    @apply max-h-[26rem] overflow-y-auto;
+  }
+
+  .variavel-grupo {
+    @apply border-b py-1;
+  }
+
+  .variavel-grupo summary {
+    @apply cursor-pointer py-1 text-sm font-medium;
+  }
+
+  .variavel-lista {
+    @apply grid gap-0.5 pb-2;
+  }
+
+  .variavel-item {
+    @apply hover:bg-accent flex w-full flex-col rounded-md px-2 py-1 text-left;
+  }
+
+  .variavel-item code {
+    @apply text-xs;
+  }
+
+  .variavel-item small {
+    @apply text-muted-foreground text-xs;
+  }
+
+  .totais-proposta {
+    @apply mt-4 ml-auto grid max-w-sm gap-1 text-sm;
+  }
+
+  .totais-proposta > div {
+    @apply flex justify-between gap-6;
+  }
+
+  .totais-proposta dd {
+    @apply tabular-nums;
+  }
+
+  .totais-proposta .total {
+    @apply border-t pt-1 text-base font-semibold;
+  }
+}

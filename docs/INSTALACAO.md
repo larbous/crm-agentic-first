@@ -2,7 +2,7 @@
 
 ## Requisitos
 
-- PHP 8.2+ com extensões `pdo_sqlite`, `curl`, `mbstring`, `json`, `fileinfo`.
+- PHP 8.2+ com extensões `pdo_sqlite`, `curl`, `mbstring`, `json`, `fileinfo`. A extensão `dom` (padrão na maioria das hospedagens) é usada para sanitizar o HTML dos contratos; sem ela o conteúdo é tratado como texto.
 - Sem Composer e sem Node. O servidor de hospedagem nunca executa build: recebe o CSS pronto.
 
 ## Primeira execução
@@ -60,3 +60,8 @@ e `--temp-*`. Para trocar o tema, gere um no editor de temas do shadcn/ui e cole
 
 Aponte o document root para `/public`. `storage/`, `app/`, `migrations/` e `config*.php` ficam fora dele.
 O cron do worker será documentado na Fase 6.
+
+## Links públicos e banco de testes
+
+- `app.url_publica` (em `config.local.php`) define a URL absoluta usada nos links de proposta/contrato copiados na tela (ex.: `https://crm.larbous.com.br`). Vazio = host da requisição.
+- Para testar sem tocar no banco de uso: `CRM_DB_CAMINHO=/caminho/teste.sqlite php scripts/migrate.php` (idem `seed.php`, `criar-usuario.php` e `php -S`).

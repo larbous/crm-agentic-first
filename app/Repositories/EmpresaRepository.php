@@ -15,7 +15,9 @@ final class EmpresaRepository extends BaseRepository
     {
         return "SELECT a.*, o.nome AS origem_nome,
                     (SELECT COALESCE(SUM(n.valor_fechado), 0) FROM negocios n
-                      WHERE n.empresa_id = a.id AND n.status = 'ganho' AND n.arquivado_em IS NULL) AS ltv
+                      WHERE n.empresa_id = a.id AND n.status = 'ganho' AND n.arquivado_em IS NULL) AS ltv,
+                    (SELECT COALESCE(SUM(c.valor_mensal), 0) FROM contratos c
+                      WHERE c.empresa_id = a.id AND c.status IN ('assinado', 'ativo') AND c.arquivado_em IS NULL) AS mrr
                 FROM empresas a LEFT JOIN origens o ON o.id = a.origem_id";
     }
 
@@ -24,7 +26,7 @@ final class EmpresaRepository extends BaseRepository
         return [
             'nome_fantasia' => 'a.nome_fantasia COLLATE pt_br', 'status' => 'a.status', 'classificacao' => 'a.classificacao',
             'cidade' => 'a.cidade COLLATE pt_br', 'segmento' => 'a.segmento COLLATE pt_br', 'origem_nome' => 'o.nome COLLATE pt_br',
-            'ltv' => 'ltv', 'criado_em' => 'a.criado_em', 'telefone' => 'a.telefone', 'email_geral' => 'a.email_geral',
+            'ltv' => 'ltv', 'mrr' => 'mrr', 'criado_em' => 'a.criado_em', 'telefone' => 'a.telefone', 'email_geral' => 'a.email_geral',
             'ticket_potencial' => 'a.ticket_potencial',
         ];
     }

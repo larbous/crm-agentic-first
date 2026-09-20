@@ -122,6 +122,8 @@ final class NegocioController extends CrudController
             'vinculados'  => Repositorios::negocios()->contatosVinculados($id),
             'tarefas'     => Repositorios::tarefas()->porVinculo('negocio_id', $id),
             'atividades'  => Repositorios::atividades()->timeline('negocio_id', $id),
+            'propostas'   => Repositorios::propostas()->ultimasPor('negocio_id', $id),
+            'contratos'   => Repositorios::contratos()->por('negocio_id', $id),
             'diasNaEtapa' => dias_entre($registro['entrou_etapa_em'], hoje()),
             'contatosOpcoes' => Opcoes::para('contatos'),
             'motivosPerda'   => Opcoes::para('motivos_perda'),

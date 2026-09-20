@@ -57,6 +57,12 @@ final class Schema
             'motivos_perda' => self::nomeSimples('motivos_perda', 'Motivo de perda', 'Motivos de perda', 'm'),
             'pipelines'     => self::pipelines(),
             'etapas'        => self::etapas(),
+            'servicos'      => self::servicos(),
+            'modelos_documento' => self::modelos(),
+            'contrato_tipos' => self::nomeSimples('contrato_tipos', 'Tipo de contrato', 'Tipos de contrato', 'm'),
+            'propostas'     => self::propostas(),
+            'proposta_itens' => self::propostaItens(),
+            'contratos'     => self::contratos(),
         ];
     }
 
@@ -88,7 +94,15 @@ final class Schema
             'status_tarefa'   => ['pendente' => 'Pendente', 'andamento' => 'Em andamento', 'concluida' => 'Concluída', 'cancelada' => 'Cancelada'],
             'recorrencia'     => ['nenhuma' => 'Nenhuma', 'diaria' => 'Diária', 'semanal' => 'Semanal', 'mensal' => 'Mensal', 'anual' => 'Anual'],
             'tipo_etapa'      => ['aberta' => 'Aberta', 'ganho' => 'Ganho', 'perdido' => 'Perdido'],
-            'entidade_anexo'  => ['empresas' => 'Empresa', 'contatos' => 'Contato', 'negocios' => 'Negócio'],
+            'categoria_servico' => ['site' => 'Site', 'ecommerce' => 'E-commerce', 'consultoria' => 'Consultoria', 'manutencao' => 'Manutenção', 'hospedagem' => 'Hospedagem', 'trafego' => 'Tráfego pago', 'outro' => 'Outro'],
+            'unidade_servico'  => ['projeto' => 'Projeto', 'hora' => 'Hora', 'mes' => 'Mês', 'ano' => 'Ano'],
+            'tipo_modelo'      => ['contrato' => 'Contrato', 'proposta' => 'Proposta', 'email' => 'E-mail', 'whatsapp' => 'WhatsApp'],
+            'status_proposta'  => ['rascunho' => 'Rascunho', 'enviada' => 'Enviada', 'visualizada' => 'Visualizada', 'aceita' => 'Aceita', 'recusada' => 'Recusada', 'expirada' => 'Expirada'],
+            'desconto_tipo'    => ['valor' => 'Valor (R$)', 'percentual' => 'Percentual (%)'],
+            'status_contrato'  => ['rascunho' => 'Rascunho', 'enviado' => 'Enviado', 'assinado' => 'Assinado', 'ativo' => 'Ativo', 'vencido' => 'Vencido', 'cancelado' => 'Cancelado', 'renovado' => 'Renovado'],
+            'recorrencia_contrato' => ['unica' => 'Única', 'mensal' => 'Mensal', 'anual' => 'Anual'],
+            'indice_reajuste'  => ['nenhum' => 'Nenhum', 'ipca' => 'IPCA', 'igpm' => 'IGP-M', 'fixo' => 'Fixo'],
+            'entidade_anexo'  => ['empresas' => 'Empresa', 'contatos' => 'Contato', 'negocios' => 'Negócio', 'propostas' => 'Proposta', 'contratos' => 'Contrato'],
         ][$nome];
     }
 
@@ -270,6 +284,7 @@ final class Schema
             'empresa_id'  => $f('fk', 'Empresa', 'vinculos', ['fk' => 'empresas']),
             'contato_id'  => $f('fk', 'Contato', 'vinculos', ['fk' => 'contatos']),
             'negocio_id'  => $f('fk', 'Negócio', 'vinculos', ['fk' => 'negocios']),
+            'contrato_id' => $f('fk', 'Contrato', 'vinculos', ['fk' => 'contratos']),
         ]];
     }
 
@@ -320,6 +335,133 @@ final class Schema
             'probabilidade_padrao' => $f('int', 'Probabilidade padrão (%)', 'dados', ['min' => 0, 'max' => 100, 'req' => true]),
             'cor'         => $f('cor', 'Cor', 'dados'),
             'tipo'        => $f('enum', 'Tipo', 'dados', ['op' => 'tipo_etapa', 'req' => true]),
+        ]];
+    }
+
+    private static function servicos(): array
+    {
+        $f = self::f(...);
+        return ['tabela' => 'servicos', 'singular' => 'Serviço', 'plural' => 'Serviços', 'genero' => 'm', 'campos' => [
+            'nome'              => $f('texto', 'Nome', 'dados', ['req' => true, 'max' => 160]),
+            'categoria'         => $f('enum', 'Categoria', 'dados', ['op' => 'categoria_servico', 'req' => true]),
+            'unidade'           => $f('enum', 'Unidade de cobrança', 'dados', ['op' => 'unidade_servico', 'req' => true]),
+            'preco_base'        => $f('money', 'Preço base (R$)', 'dados'),
+            'preco_minimo'      => $f('money', 'Preço mínimo (R$)', 'dados'),
+            'prazo_padrao_dias' => $f('int', 'Prazo padrão (dias)', 'dados', ['min' => 0, 'max' => 3650]),
+            'recorrente'        => $f('bool', 'Cobrança recorrente', 'dados'),
+            'ativo'             => $f('bool', 'Ativo', 'dados'),
+            'descricao'         => $f('textarea', 'Descrição', 'dados', ['l' => 2]),
+            'entregaveis'       => $f('textarea', 'Entregáveis', 'dados', ['l' => 2]),
+        ]];
+    }
+
+    private static function modelos(): array
+    {
+        $f = self::f(...);
+        return ['tabela' => 'modelos_documento', 'singular' => 'Modelo', 'plural' => 'Modelos', 'genero' => 'm', 'campos' => [
+            'tipo'     => $f('enum', 'Tipo', 'dados', ['op' => 'tipo_modelo', 'req' => true]),
+            'nome'     => $f('texto', 'Nome', 'dados', ['req' => true, 'max' => 160]),
+            'assunto'  => $f('texto', 'Assunto (e-mail)', 'dados', ['max' => 200]),
+            'ativo'    => $f('bool', 'Ativo', 'dados'),
+            'conteudo' => $f('textarea', 'Conteúdo', 'dados', ['l' => 2, 'max' => 200000]),
+        ]];
+    }
+
+    private static function propostas(): array
+    {
+        $f = self::f(...);
+        return ['tabela' => 'propostas', 'singular' => 'Proposta', 'plural' => 'Propostas', 'genero' => 'f', 'campos' => [
+            'titulo'        => $f('texto', 'Título', 'basico', ['req' => true, 'max' => 200, 'l' => 2]),
+            'negocio_id'    => $f('fk', 'Negócio', 'basico', ['fk' => 'negocios']),
+            'empresa_id'    => $f('fk', 'Empresa', 'basico', ['fk' => 'empresas']),
+            'contato_id'    => $f('fk', 'Contato', 'basico', ['fk' => 'contatos']),
+            'modelo_id'     => $f('fk', 'Modelo', 'basico', ['fk' => 'modelos_documento']),
+            'data_emissao'  => $f('data', 'Data de emissão', 'basico'),
+            'validade'      => $f('data', 'Validade', 'basico'),
+            'numero'        => $f('texto', 'Número', 'basico', ['sis' => true]),
+            'versao'        => $f('int', 'Versão', 'basico', ['sis' => true]),
+            'status'        => $f('enum', 'Status', 'basico', ['op' => 'status_proposta', 'sis' => true]),
+            'enviada_em'    => $f('datahora', 'Enviada em', 'basico', ['sis' => true]),
+            'visualizada_em' => $f('datahora', 'Visualizada em', 'basico', ['sis' => true]),
+            'respondida_em' => $f('datahora', 'Respondida em', 'basico', ['sis' => true]),
+            'subtotal'      => $f('money', 'Subtotal', 'itens', ['sis' => true]),
+            'total'         => $f('money', 'Total', 'itens', ['sis' => true]),
+            'total_recorrente' => $f('money', 'Total recorrente', 'itens', ['sis' => true]),
+            'desconto_tipo' => $f('enum', 'Tipo de desconto', 'condicoes', ['op' => 'desconto_tipo', 'req' => true]),
+            'desconto_valor' => $f('money', 'Desconto', 'condicoes'),
+            'forma_pagamento'     => $f('texto', 'Forma de pagamento', 'condicoes', ['max' => 160]),
+            'parcelas'            => $f('int', 'Parcelas', 'condicoes', ['min' => 1, 'max' => 120]),
+            'entrada_percentual'  => $f('int', 'Entrada (%)', 'condicoes', ['min' => 0, 'max' => 100]),
+            'prazo_entrega_dias'  => $f('int', 'Prazo de entrega (dias)', 'condicoes', ['min' => 0, 'max' => 3650]),
+            'condicoes_pagamento' => $f('textarea', 'Condições de pagamento', 'condicoes', ['l' => 2]),
+            'apresentacao'  => $f('textarea', 'Apresentação', 'conteudo', ['l' => 2]),
+            'escopo'        => $f('textarea', 'Escopo', 'conteudo', ['l' => 2]),
+            'fora_escopo'   => $f('textarea', 'Fora do escopo', 'conteudo', ['l' => 2]),
+            'cronograma'    => $f('textarea', 'Cronograma', 'conteudo', ['l' => 2]),
+            'garantia'      => $f('textarea', 'Garantia', 'conteudo', ['l' => 2]),
+            'observacoes'   => $f('textarea', 'Observações', 'conteudo', ['l' => 2]),
+            'token_publico' => $f('texto', 'Token', 'basico', ['sis' => true]),
+            'aceite_nome'   => $f('texto', 'Aceite: nome', 'basico', ['sis' => true]),
+            'aceite_documento' => $f('texto', 'Aceite: documento', 'basico', ['sis' => true]),
+            'aceite_ip'     => $f('texto', 'Aceite: IP', 'basico', ['sis' => true]),
+            'motivo_recusa' => $f('texto', 'Motivo da recusa', 'basico', ['sis' => true]),
+        ]];
+    }
+
+    /** Itens da proposta: só são gravados junto da proposta (chave "itens" do ActionExecutor). */
+    private static function propostaItens(): array
+    {
+        $f = self::f(...);
+        return ['tabela' => 'proposta_itens', 'singular' => 'Item', 'plural' => 'Itens', 'genero' => 'm', 'campos' => [
+            'servico_id'     => $f('fk', 'Serviço', 'dados', ['fk' => 'servicos']),
+            'descricao'      => $f('texto', 'Descrição', 'dados', ['req' => true, 'max' => 300]),
+            'quantidade'     => $f('decimal', 'Quantidade', 'dados'),
+            'unidade'        => $f('texto', 'Unidade', 'dados', ['max' => 30]),
+            'valor_unitario' => $f('money', 'Valor unitário', 'dados'),
+            'desconto'       => $f('money', 'Desconto', 'dados'),
+            'recorrente'     => $f('bool', 'Recorrente', 'dados'),
+            'ordem'          => $f('int', 'Ordem', 'dados', ['min' => 0, 'max' => 1000]),
+        ]];
+    }
+
+    private static function contratos(): array
+    {
+        $f = self::f(...);
+        return ['tabela' => 'contratos', 'singular' => 'Contrato', 'plural' => 'Contratos', 'genero' => 'm', 'campos' => [
+            'titulo'      => $f('texto', 'Título', 'basico', ['req' => true, 'max' => 200, 'l' => 2]),
+            'tipo_id'     => $f('fk', 'Tipo de contrato', 'basico', ['fk' => 'contrato_tipos']),
+            'empresa_id'  => $f('fk', 'Empresa', 'basico', ['fk' => 'empresas']),
+            'contato_id'  => $f('fk', 'Contato', 'basico', ['fk' => 'contatos']),
+            'negocio_id'  => $f('fk', 'Negócio', 'basico', ['fk' => 'negocios']),
+            'proposta_id' => $f('fk', 'Proposta', 'basico', ['fk' => 'propostas']),
+            'modelo_id'   => $f('fk', 'Modelo', 'basico', ['fk' => 'modelos_documento']),
+            'numero'      => $f('texto', 'Número', 'basico', ['sis' => true]),
+            'status'      => $f('enum', 'Status', 'basico', ['op' => 'status_contrato', 'sis' => true]),
+            'valor_total' => $f('money', 'Valor total (R$)', 'valores'),
+            'valor_mensal' => $f('money', 'Valor mensal (R$)', 'valores'),
+            'recorrencia' => $f('enum', 'Recorrência', 'valores', ['op' => 'recorrencia_contrato', 'req' => true]),
+            'dia_vencimento_pagamento' => $f('int', 'Dia de vencimento do pagamento', 'valores', ['min' => 1, 'max' => 31]),
+            'forma_pagamento' => $f('texto', 'Forma de pagamento', 'valores', ['max' => 160]),
+            'data_inicio' => $f('data', 'Início', 'vigencia'),
+            'data_fim'    => $f('data', 'Fim', 'vigencia'),
+            'renovacao_automatica' => $f('bool', 'Renovação automática', 'vigencia'),
+            'aviso_renovacao_dias' => $f('int', 'Aviso de renovação (dias)', 'vigencia', ['min' => 0, 'max' => 365]),
+            'contrato_origem_id' => $f('fk', 'Contrato de origem', 'vigencia', ['fk' => 'contratos', 'sis' => true]),
+            'indice_reajuste' => $f('enum', 'Índice de reajuste', 'vigencia', ['op' => 'indice_reajuste', 'req' => true]),
+            'percentual_reajuste' => $f('money', 'Reajuste fixo (%)', 'vigencia', ['pct' => true]),
+            'data_proximo_reajuste' => $f('data', 'Próximo reajuste', 'vigencia'),
+            'multa_rescisoria' => $f('money', 'Multa rescisória (%)', 'vigencia', ['pct' => true]),
+            'aviso_previo_dias' => $f('int', 'Aviso prévio (dias)', 'vigencia', ['min' => 0, 'max' => 365]),
+            'conteudo'    => $f('html', 'Conteúdo do contrato (HTML)', 'conteudo', ['l' => 2, 'max' => 200000]),
+            'clausulas_especiais' => $f('textarea', 'Cláusulas especiais', 'conteudo', ['l' => 2]),
+            'notas'       => $f('textarea', 'Notas', 'extras', ['l' => 2]),
+            'token_publico' => $f('texto', 'Token', 'basico', ['sis' => true]),
+            'enviado_em'  => $f('datahora', 'Enviado em', 'basico', ['sis' => true]),
+            'visualizado_em' => $f('datahora', 'Visualizado em', 'basico', ['sis' => true]),
+            'assinado_em' => $f('datahora', 'Assinado em', 'basico', ['sis' => true]),
+            'assinatura_nome' => $f('texto', 'Assinatura: nome', 'basico', ['sis' => true]),
+            'assinatura_documento' => $f('texto', 'Assinatura: documento', 'basico', ['sis' => true]),
+            'assinatura_ip' => $f('texto', 'Assinatura: IP', 'basico', ['sis' => true]),
         ]];
     }
 }

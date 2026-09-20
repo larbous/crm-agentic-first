@@ -110,3 +110,14 @@ teste('Response.json e redirecionar montam status e cabeçalhos', function () {
     igual(303, $r->status);
     igual('/x', $r->cabecalhos['Location']);
 });
+
+teste('Router aceita quantificadores com chaves no regex do parâmetro ({token:[a-f0-9]{40}})', function () {
+    $r = new Router();
+    $r->get('/p/{token:[a-f0-9]{40}}', fn (array $p) => 'ok:' . substr($p['token'], 0, 4));
+    $r->get('/n/{a:\d{2}}/{b:\d+}', fn (array $p) => $p['a'] . '-' . $p['b']);
+    igual('ok:abcd', $r->despachar('GET', '/p/' . str_repeat('abcd', 10))->corpo);
+    igual(404, $r->despachar('GET', '/p/abc')->status, 'curto demais');
+    igual(404, $r->despachar('GET', '/p/' . str_repeat('g', 40))->status, 'fora do alfabeto');
+    igual('12-345', $r->despachar('GET', '/n/12/345')->corpo);
+    igual(404, $r->despachar('GET', '/n/123/4')->status);
+});

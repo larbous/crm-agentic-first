@@ -19,6 +19,12 @@ $navegacao = [
     ['/negocios', 'Negócios', 'handshake'],
     ['/tarefas', 'Tarefas', 'list-checks'],
 ];
+$comercial = [
+    ['/propostas', 'Propostas', 'file-text'],
+    ['/contratos', 'Contratos', 'file-pen'],
+    ['/servicos', 'Serviços', 'package'],
+    ['/modelos', 'Modelos', 'layout-template'],
+];
 $sistema = [
     ['/auditoria', 'Auditoria', 'scroll-text'],
     ['/configuracoes', 'Configurações', 'settings'],
@@ -50,6 +56,10 @@ $item = static function (array $n) use ($ativo): string {
             <div role="group" aria-labelledby="nav-crm">
                 <h3 id="nav-crm">CRM</h3>
                 <ul><?php foreach ($navegacao as $n) { echo $item($n); } ?></ul>
+            </div>
+            <div role="group" aria-labelledby="nav-comercial">
+                <h3 id="nav-comercial">Comercial</h3>
+                <ul><?php foreach ($comercial as $n) { echo $item($n); } ?></ul>
             </div>
             <div role="group" aria-labelledby="nav-sistema">
                 <h3 id="nav-sistema">Sistema</h3>
@@ -141,5 +151,7 @@ $item = static function (array $n) use ($ativo): string {
 <script type="module" src="<?= e(asset('js/busca.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/forms.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/kanban.js')) ?>"></script>
+<script type="module" src="<?= e(asset('js/propostas.js')) ?>"></script>
+<script type="module" src="<?= e(asset('js/modelos.js')) ?>"></script>
 </body>
 </html>

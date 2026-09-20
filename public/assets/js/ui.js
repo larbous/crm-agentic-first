@@ -46,6 +46,19 @@ document.addEventListener('click', (ev) => {
         document.getElementById(enviar.getAttribute('data-enviar-form'))?.requestSubmit();
         return;
     }
+    if (alvo.closest('[data-imprimir]')) {
+        window.print();
+        return;
+    }
+    const copiar = alvo.closest('[data-copiar]');
+    if (copiar) {
+        const texto = copiar.getAttribute('data-copiar') ?? '';
+        navigator.clipboard.writeText(texto).then(
+            () => toast('success', 'Link copiado', texto),
+            () => toast('error', 'Não foi possível copiar', 'Copie o link manualmente.'),
+        );
+        return;
+    }
     const demo = alvo.closest('[data-toast-demo]');
     if (demo) {
         toast(demo.getAttribute('data-toast-demo'), 'Título do toast', 'Descrição da notificação.');

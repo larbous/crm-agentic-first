@@ -21,6 +21,7 @@ final class ConfiguracaoController
         'origens'       => ['origens', 'origens'],
         'motivos-perda' => ['motivos_perda', 'motivos'],
         'tags'          => ['tags', 'tags'],
+        'contrato-tipos' => ['contrato_tipos', 'contratos'],
     ];
 
     public function index(): Response
@@ -31,13 +32,34 @@ final class ConfiguracaoController
         }
         return View::pagina('configuracoes/index', [
             'titulo'    => 'Configurações',
-            'aba'       => in_array($_GET['aba'] ?? '', ['pipelines', 'origens', 'motivos', 'tags'], true) ? $_GET['aba'] : 'pipelines',
+            'aba'       => in_array($_GET['aba'] ?? '', ['pipelines', 'origens', 'motivos', 'tags', 'contratos', 'agencia'], true) ? $_GET['aba'] : 'pipelines',
             'pipelines' => Repositorios::pipelines()->todas(),
             'etapas'    => $etapasPorPipeline,
             'origens'   => Repositorios::para('origens')->todas(),
             'motivos'   => Repositorios::para('motivos_perda')->todas(),
             'tags'      => Repositorios::tags()->todas(),
+            'tiposContrato' => Repositorios::para('contrato_tipos')->todas(),
+            'agencia'   => DocumentoDados::agencia() + ['validade_dias' => (new \App\Repositories\ConfiguracaoRepository())->obter('proposta.validade_dias', '15')],
         ]);
+    }
+
+    /** Dados da agência (usados nas variáveis {larbous.*} e nos documentos) e validade padrão das propostas. */
+    public function salvarAgencia(): Response
+    {
+        $x = new ActionExecutor();
+        foreach (array_keys(\App\Services\Variaveis::CAMPOS_AGENCIA) as $campo) {
+            $valor = trim((string) ($_POST[$campo] ?? ''));
+            if (mb_strlen($valor) > 300 || !mb_check_encoding($valor, 'UTF-8')) {
+                return $this->responder(false, "O campo {$campo} é inválido ou muito longo.", 'agencia');
+            }
+            $x->definirConfiguracao('empresa.' . $campo, $valor === '' ? null : $valor);
+        }
+        $dias = trim((string) ($_POST['validade_dias'] ?? '15'));
+        if (!ctype_digit($dias) || (int) $dias < 1 || (int) $dias > 365) {
+            return $this->responder(false, 'A validade padrão deve ficar entre 1 e 365 dias.', 'agencia');
+        }
+        $x->definirConfiguracao('proposta.validade_dias', $dias);
+        return $this->responder(true, 'Dados da agência salvos.', 'agencia');
     }
 
     public function criar(array $p): Response

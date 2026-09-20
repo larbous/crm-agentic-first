@@ -47,13 +47,13 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 
 ## Fase 3 — Serviços, Propostas, Contratos e Modelos
 
-- [ ] Migração: `servicos`, `propostas`, `proposta_itens`, `contratos`, `contrato_tipos`, `modelos_documento` (SPEC §4.6–4.9)
-- [ ] Catálogo de serviços
-- [ ] Motor de variáveis `{entidade.campo}` com formatação pt-BR
-- [ ] Modelos: editor, lista de variáveis, pré-visualização
-- [ ] Propostas: editor com itens e totais em tempo real, versões, view de impressão, link público com aceite/recusa, eventos
-- [ ] Contratos: criação a partir de modelo, view de impressão, link público com assinatura, renovação, eventos
-- [ ] Seed: tipos de contrato padrão; 1 modelo de proposta e 1 de contrato de exemplo
+- [x] Migração: `servicos`, `propostas`, `proposta_itens`, `contratos`, `contrato_tipos`, `modelos_documento` (SPEC §4.6–4.9)
+- [x] Catálogo de serviços
+- [x] Motor de variáveis `{entidade.campo}` com formatação pt-BR
+- [x] Modelos: editor, lista de variáveis, pré-visualização
+- [x] Propostas: editor com itens e totais em tempo real, versões, view de impressão, link público com aceite/recusa, eventos
+- [x] Contratos: criação a partir de modelo, view de impressão, link público com assinatura, renovação, eventos
+- [x] Seed: tipos de contrato padrão; 1 modelo de proposta e 1 de contrato de exemplo
 
 **Pronto quando:** do negócio sai uma proposta aceita pelo link público e dela um contrato assinado pelo link público, tudo registrado na timeline.
 

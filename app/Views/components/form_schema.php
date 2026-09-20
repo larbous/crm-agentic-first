@@ -46,6 +46,10 @@ function campos_do_schema(string $entidade, string $grupo, array $valores, array
             case 'textarea':
                 $campo = $base + ['tipo' => 'textarea'];
                 break;
+            case 'html':
+                $campo = $base + ['tipo' => 'textarea', 'linhas' => 22];
+                $attrs = ['class' => 'textarea font-mono text-[13px]', 'spellcheck' => 'false'];
+                break;
             case 'bool':
                 $campo = ['valor' => (int) ($valores[$nome] ?? 0) === 1, 'tipo' => 'switch'] + $base;
                 break;

@@ -18,11 +18,12 @@ final class TarefaRepository extends BaseRepository
     protected function selectBase(): string
     {
         return "SELECT a.*, e.nome_fantasia AS empresa_nome, TRIM(c.nome || ' ' || COALESCE(c.sobrenome, '')) AS contato_nome,
-                    n.titulo AS negocio_titulo
+                    n.titulo AS negocio_titulo, ct.numero AS contrato_numero
                 FROM tarefas a
                 LEFT JOIN empresas e ON e.id = a.empresa_id
                 LEFT JOIN contatos c ON c.id = a.contato_id
-                LEFT JOIN negocios n ON n.id = a.negocio_id";
+                LEFT JOIN negocios n ON n.id = a.negocio_id
+                LEFT JOIN contratos ct ON ct.id = a.contrato_id";
     }
 
     protected function ordemPadrao(): string
@@ -73,7 +74,7 @@ final class TarefaRepository extends BaseRepository
     /** Tarefas ligadas a um registro (empresa_id, contato_id ou negocio_id); abertas primeiro. */
     public function porVinculo(string $campo, int $id, int $limite = 50): array
     {
-        if (!in_array($campo, ['empresa_id', 'contato_id', 'negocio_id'], true)) {
+        if (!in_array($campo, ['empresa_id', 'contato_id', 'negocio_id', 'contrato_id'], true)) {
             throw new InvalidArgumentException("Campo de vínculo inválido: {$campo}");
         }
         $limite = max(1, min(200, $limite));

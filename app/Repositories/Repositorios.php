@@ -26,6 +26,11 @@ final class Repositorios
             'motivos_perda' => new SimplesRepository('motivos_perda'),
             'pipelines'     => new PipelineRepository(),
             'etapas'        => new EtapaRepository(),
+            'servicos'      => new ServicoRepository(),
+            'modelos_documento' => new ModeloRepository(),
+            'contrato_tipos' => new SimplesRepository('contrato_tipos'),
+            'propostas'     => new PropostaRepository(),
+            'contratos'     => new ContratoRepository(),
             default         => throw new InvalidArgumentException("Entidade desconhecida: {$entidade}"),
         };
     }
@@ -39,4 +44,8 @@ final class Repositorios
     public static function tags(): TagRepository { return self::para('tags'); }
     public static function pipelines(): PipelineRepository { return self::para('pipelines'); }
     public static function etapas(): EtapaRepository { return self::para('etapas'); }
+    public static function servicos(): ServicoRepository { return self::para('servicos'); }
+    public static function modelos(): ModeloRepository { return self::para('modelos_documento'); }
+    public static function propostas(): PropostaRepository { return self::para('propostas'); }
+    public static function contratos(): ContratoRepository { return self::para('contratos'); }
 }

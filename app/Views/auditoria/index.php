@@ -9,10 +9,13 @@
 $acoes = [
     'criar' => 'Criar', 'atualizar' => 'Atualizar', 'arquivar' => 'Arquivar', 'mover_etapa' => 'Mover etapa', 'concluir' => 'Concluir',
     'converter_cliente' => 'Converter em cliente', 'definir_tags' => 'Definir tags', 'vincular_contato' => 'Vincular contato',
-    'desvincular_contato' => 'Desvincular contato', 'desfazer' => 'Desfazer',
+    'desvincular_contato' => 'Desvincular contato', 'enviar_proposta' => 'Enviar proposta', 'visualizar_proposta' => 'Proposta visualizada',
+    'aceitar_proposta' => 'Aceite de proposta', 'recusar_proposta' => 'Recusa de proposta', 'nova_versao' => 'Nova versão', 'enviar_contrato' => 'Enviar contrato',
+    'visualizar_contrato' => 'Contrato visualizado', 'assinar_contrato' => 'Assinatura de contrato', 'cancelar_contrato' => 'Cancelar contrato',
+    'renovar_contrato' => 'Renovar contrato', 'desfazer' => 'Desfazer',
 ];
 $origens = ['humano' => 'Humano', 'ia' => 'IA', 'agente' => 'Agente', 'formulario' => 'Formulário', 'sistema' => 'Sistema'];
-$linksEntidade = ['empresas' => '/empresas/', 'contatos' => '/contatos/', 'negocios' => '/negocios/'];
+$linksEntidade = ['empresas' => '/empresas/', 'contatos' => '/contatos/', 'negocios' => '/negocios/', 'propostas' => '/propostas/', 'contratos' => '/contratos/'];
 $voltar = $_SERVER['REQUEST_URI'] ?? '/auditoria';
 $variantesAcao = ['criar' => 'success', 'arquivar' => 'destructive', 'desfazer' => 'warning'];
 

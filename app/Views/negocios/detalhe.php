@@ -4,6 +4,8 @@
  * @var array $registro
  * @var list<array> $etapas
  * @var list<array> $vinculados
+ * @var list<array> $propostas
+ * @var list<array> $contratos
  * @var list<array> $tarefas
  * @var list<array> $atividades
  * @var list<array> $anexos
@@ -47,6 +49,12 @@ $formVinc = '<form method="post" action="' . e(url('/negocios/' . $id . '/contat
 $abas = [
     ['rotulo' => 'Timeline', 'html' => atividade_form(['negocio_id' => $id, 'empresa_id' => (int) $r['empresa_id']], $voltar) . timeline($atividades, ['voltar' => $voltar, 'contexto' => true])],
     ['rotulo' => 'Contatos', 'contagem' => count($vinculados), 'html' => $formVinc . ($linhasVinc !== '' ? '<ul>' . $linhasVinc . '</ul>' : vazio('Nenhum contato vinculado', 'Além do contato principal, vincule quem participa da decisão.', ['icone' => 'users']))],
+    ['rotulo' => 'Propostas', 'contagem' => count($propostas), 'html' =>
+        '<div class="mb-2 flex justify-end">' . botao('Nova proposta', ['href' => url('/propostas/nova?negocio_id=' . $id), 'variante' => 'outline', 'tamanho' => 'sm', 'icone' => 'plus']) . '</div>'
+        . tabela_propostas($propostas)],
+    ['rotulo' => 'Contratos', 'contagem' => count($contratos), 'html' =>
+        '<div class="mb-2 flex justify-end">' . botao('Novo contrato', ['href' => url('/contratos/nova?negocio_id=' . $id), 'variante' => 'outline', 'tamanho' => 'sm', 'icone' => 'plus']) . '</div>'
+        . tabela_contratos($contratos)],
     ['rotulo' => 'Tarefas', 'contagem' => count(array_filter($tarefas, 'tarefa_aberta')), 'html' => tarefas_mini($tarefas, 'negocio_id', $id, $voltar)],
     ['rotulo' => 'Anexos', 'contagem' => count($anexos), 'html' => anexos_painel($anexos, 'negocios', $id, $voltar)],
 ];

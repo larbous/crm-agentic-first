@@ -1,0 +1,244 @@
+/*
+ * documento: proposta e contrato como "papel" A4 — na tela (link público e pré-visualização) e na impressão
+ * (SPEC §12.10). O papel é sempre claro, independente do tema. Cores fixas de propósito.
+ */
+@layer components {
+  .pagina-impressao {
+    @apply bg-muted/50 min-h-svh pb-10;
+  }
+
+  .documento-barra {
+    @apply mx-auto flex max-w-[210mm] flex-wrap items-center justify-between gap-2 px-4 py-3;
+  }
+
+  .documento-avisos {
+    @apply mx-auto max-w-[210mm] px-4 pb-3;
+  }
+
+  .documento {
+    @apply mx-auto max-w-[210mm] rounded-md border p-6 text-[13.5px] leading-relaxed shadow-sm sm:p-[16mm];
+    background: #fff;
+    color: #111827;
+    border-color: #e5e7eb;
+  }
+
+  .documento-cabecalho {
+    @apply mb-6 flex flex-wrap items-start justify-between gap-4 border-b pb-4;
+    border-color: #d1d5db;
+  }
+
+  .documento-cabecalho > div:first-child {
+    @apply min-w-0 flex-[1_1_16rem];
+  }
+
+  .documento-marca {
+    @apply text-xl font-bold tracking-tight;
+  }
+
+  .documento-tipo {
+    @apply text-xs font-semibold tracking-widest uppercase;
+    color: #4f46e5;
+  }
+
+  .documento-lado {
+    @apply text-right;
+  }
+
+  .documento-mini {
+    @apply text-xs;
+    color: #6b7280;
+  }
+
+  .documento-rotulo {
+    @apply text-[11px] font-semibold tracking-wider uppercase;
+    color: #6b7280;
+  }
+
+  .documento-partes {
+    @apply mb-5 grid gap-6 sm:grid-cols-2;
+  }
+
+  .documento-titulo {
+    @apply mb-4 text-2xl font-bold tracking-tight;
+  }
+
+  .documento h2 {
+    @apply mt-5 mb-2 text-base font-semibold;
+  }
+
+  .documento p {
+    @apply my-2;
+  }
+
+  .documento-secao {
+    @apply mb-2;
+  }
+
+  .documento-tabela,
+  .documento-corpo table {
+    @apply my-3 w-full border-collapse text-[13px];
+  }
+
+  .documento-tabela th,
+  .documento-tabela td,
+  .documento-corpo th,
+  .documento-corpo td {
+    @apply px-2 py-1.5 text-left align-top;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .documento-tabela thead th,
+  .documento-corpo thead th {
+    @apply text-[11px] font-semibold tracking-wide uppercase;
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  .documento-tabela .num {
+    @apply text-right whitespace-nowrap tabular-nums;
+  }
+
+  .documento-tabela tfoot td {
+    @apply font-medium;
+    border-bottom: 0;
+  }
+
+  .documento-tabela tfoot tr.total td {
+    @apply text-base font-bold;
+    border-top: 2px solid #111827;
+  }
+
+  .documento-lista {
+    @apply my-2 grid gap-x-8 gap-y-1 sm:grid-cols-2;
+  }
+
+  .documento-lista > div {
+    @apply flex gap-2;
+  }
+
+  .documento-lista dt {
+    @apply shrink-0;
+    color: #6b7280;
+  }
+
+  .documento-lista dt::after {
+    content: ':';
+  }
+
+  .documento-aceite {
+    @apply mt-6 rounded-md border p-3 text-sm;
+    border-color: #a7f3d0;
+    background: #ecfdf5;
+    color: #065f46;
+  }
+
+  /* Texto do contrato (HTML sanitizado) */
+  .documento-corpo h1,
+  .documento-corpo h2,
+  .documento-corpo h3,
+  .documento-corpo h4 {
+    @apply mt-5 mb-2 font-semibold;
+  }
+
+  .documento-corpo h1 {
+    @apply text-lg;
+  }
+
+  .documento-corpo h2 {
+    @apply text-base;
+  }
+
+  .documento-corpo p {
+    @apply my-2 text-justify;
+  }
+
+  .documento-corpo ul {
+    @apply my-2 list-disc ps-6;
+  }
+
+  .documento-corpo ol {
+    @apply my-2 list-decimal ps-6;
+  }
+
+  .documento-corpo blockquote {
+    @apply my-3 border-s-4 ps-4 italic;
+    border-color: #d1d5db;
+  }
+
+  .documento-corpo a {
+    @apply underline;
+  }
+
+  .documento-assinaturas {
+    @apply mt-10 grid gap-10 sm:grid-cols-2;
+  }
+
+  .documento-linha-assinatura {
+    @apply pt-10 text-center text-sm;
+  }
+
+  .documento-linha-assinatura .linha {
+    @apply mb-1 border-t;
+    border-color: #111827;
+  }
+
+  /* Bloco de resposta do cliente (só na tela) */
+  .documento-acao {
+    @apply bg-card text-card-foreground mx-auto mt-4 max-w-[210mm] rounded-md border p-5;
+  }
+
+  .documento-recusa summary {
+    @apply text-muted-foreground mt-4 cursor-pointer text-sm underline underline-offset-4;
+  }
+}
+
+/* Impressão: A4, margens, quebras de página; some tudo que não é o documento */
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+@media print {
+  html,
+  body,
+  .pagina-impressao {
+    background: #fff !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+
+  .no-print,
+  .toaster,
+  .sidebar,
+  .topbar,
+  .chat-painel {
+    display: none !important;
+  }
+
+  .documento {
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    font-size: 11.5pt;
+  }
+
+  .documento-secao,
+  .documento-tabela tr,
+  .documento-aceite,
+  .documento-linha-assinatura {
+    break-inside: avoid;
+  }
+
+  .documento h1,
+  .documento h2,
+  .documento-corpo h3 {
+    break-after: avoid;
+  }
+
+  .documento a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+}

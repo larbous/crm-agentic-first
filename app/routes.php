@@ -9,10 +9,15 @@ use App\Controllers\AuthController;
 use App\Controllers\BuscaController;
 use App\Controllers\ConfiguracaoController;
 use App\Controllers\ContatoController;
+use App\Controllers\ContratoController;
 use App\Controllers\CrudController;
 use App\Controllers\EmpresaController;
 use App\Controllers\NegocioController;
+use App\Controllers\ModeloController;
 use App\Controllers\PaginaController;
+use App\Controllers\PropostaController;
+use App\Controllers\PublicoController;
+use App\Controllers\ServicoController;
 use App\Controllers\TagController;
 use App\Controllers\TarefaController;
 use App\Core\Auth;
@@ -23,6 +28,9 @@ return static function (Router $r): void {
     // Públicas
     $r->get('/login', [AuthController::class, 'formLogin']);
     $r->post('/login', [AuthController::class, 'login']);
+
+    // Links públicos de proposta e contrato (só por token)
+    PublicoController::registrar($r);
 
     // Autenticadas
     $r->grupo('', static function (Router $r): void {
@@ -38,6 +46,15 @@ return static function (Router $r): void {
         NegocioController::registrarExtras($r);
         TarefaController::registrarRotas($r);
 
+        // Comercial: catálogo, modelos, propostas e contratos
+        CrudController::registrar($r, '/servicos', ServicoController::class);
+        CrudController::registrar($r, '/modelos', ModeloController::class);
+        ModeloController::registrarExtras($r);
+        CrudController::registrar($r, '/propostas', PropostaController::class);
+        PropostaController::registrarExtras($r);
+        CrudController::registrar($r, '/contratos', ContratoController::class);
+        ContratoController::registrarExtras($r);
+
         // Timeline, anexos e tags
         $r->post('/atividades', [AtividadeController::class, 'criar']);
         $r->post('/atividades/{id:\d+}/arquivar', [AtividadeController::class, 'arquivar']);
@@ -52,8 +69,9 @@ return static function (Router $r): void {
         $r->post('/desfazer', [AuditoriaController::class, 'desfazerUltima']);
 
         // Configurações
-        $tipos = 'pipelines|etapas|origens|motivos-perda|tags';
+        $tipos = 'pipelines|etapas|origens|motivos-perda|tags|contrato-tipos';
         $r->get('/configuracoes', [ConfiguracaoController::class, 'index']);
+        $r->post('/configuracoes/agencia', [ConfiguracaoController::class, 'salvarAgencia']);
         $r->post("/configuracoes/{tipo:{$tipos}}", [ConfiguracaoController::class, 'criar']);
         $r->post("/configuracoes/{tipo:{$tipos}}/{id:\\d+}", [ConfiguracaoController::class, 'atualizar']);
         $r->post("/configuracoes/{tipo:{$tipos}}/{id:\\d+}/arquivar", [ConfiguracaoController::class, 'arquivar']);

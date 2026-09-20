@@ -13,9 +13,11 @@ $padrao = [
         'debug'    => false,
         'fuso'     => 'America/Sao_Paulo',
         'base_url' => '', // vazio = raiz do domínio; ex.: '/crm' se estiver em subpasta
+        'url_publica' => '', // URL absoluta dos links públicos (propostas/contratos); vazio = host da requisição
     ],
     'db' => [
-        'caminho' => __DIR__ . '/storage/db/crm.sqlite',
+        // CRM_DB_CAMINHO permite apontar outro arquivo (ex.: banco descartável para testes manuais).
+        'caminho' => getenv('CRM_DB_CAMINHO') ?: __DIR__ . '/storage/db/crm.sqlite',
     ],
     'sessao' => [
         'nome'      => 'crm_sessao',

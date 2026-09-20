@@ -23,6 +23,11 @@ final class Opcoes
             'pipelines'     => Repositorios::pipelines()->opcoes(),
             'etapas'        => Repositorios::etapas()->opcoes(),
             'tags'          => Repositorios::tags()->opcoes(),
+            'servicos'      => Repositorios::servicos()->opcoes(),
+            'contrato_tipos' => Repositorios::para('contrato_tipos')->opcoes(),
+            'modelos_documento' => array_column(Repositorios::modelos()->todas(), 'nome', 'id'),
+            'propostas'     => Repositorios::propostas()->opcoesAceitas(),
+            'contratos'     => array_column(Repositorios::contratos()->todas(), 'numero', 'id'),
             default         => [],
         };
     }

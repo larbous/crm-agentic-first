@@ -31,7 +31,7 @@ function campo(array $o): string
     if (isset($o['controle_html'])) {
         $controle = $o['controle_html'];
     } elseif ($tipo === 'textarea') {
-        $controle = '<textarea class="textarea"' . attrs_html(array_merge($comum, ['rows' => $o['linhas'] ?? 4], $extras)) . '>'
+        $controle = '<textarea' . attrs_html(array_merge(['class' => 'textarea'], $comum, ['rows' => $o['linhas'] ?? 4], $extras)) . '>'
             . e($valor) . '</textarea>';
     } elseif ($tipo === 'checkbox' || $tipo === 'switch') {
         $attrs = array_merge($comum, [
