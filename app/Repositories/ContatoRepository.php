@@ -61,6 +61,30 @@ final class ContatoRepository extends BaseRepository
         return $out;
     }
 
+    /** Contato ativo com este e-mail (principal ou secundário); o mais antigo. */
+    public function porEmail(string $email): ?array
+    {
+        $st = $this->pdo()->prepare(
+            $this->selectBase() . ' WHERE a.arquivado_em IS NULL AND (a.email = :e OR a.email_secundario = :e) ORDER BY a.id LIMIT 1'
+        );
+        $st->execute(['e' => mb_strtolower(trim($email))]);
+        return $st->fetch() ?: null;
+    }
+
+    /** Contato ativo cujo WhatsApp ou telefone tem estes dígitos (com ou sem o DDI 55). */
+    public function porTelefone(string $digitos): ?array
+    {
+        $digitos = preg_replace('/^55(?=\d{10,11}$)/', '', $digitos) ?? $digitos;
+        if (strlen($digitos) < 8) {
+            return null;
+        }
+        $st = $this->pdo()->prepare(
+            $this->selectBase() . ' WHERE a.arquivado_em IS NULL AND (so_digitos(a.whatsapp) IN (:d, :d55) OR so_digitos(a.telefone) IN (:d, :d55)) ORDER BY a.id LIMIT 1'
+        );
+        $st->execute(['d' => $digitos, 'd55' => '55' . $digitos]);
+        return $st->fetch() ?: null;
+    }
+
     public function atualizarUltimoContato(int $id, string $quando): void
     {
         $st = $this->pdo()->prepare(

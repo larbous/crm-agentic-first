@@ -26,6 +26,7 @@ $comercial = [
     ['/contratos', 'Contratos', 'file-pen'],
     ['/servicos', 'Serviços', 'package'],
     ['/modelos', 'Modelos', 'layout-template'],
+    ['/formularios', 'Formulários', 'clipboard-list'],
 ];
 $ia = [
     ['/agentes', 'Agentes', 'bot'],
@@ -163,5 +164,6 @@ $item = static function (array $n) use ($ativo, $acoesPendentes): string {
 <script type="module" src="<?= e(asset('js/modelos.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/agentes.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/squads.js')) ?>"></script>
+<script type="module" src="<?= e(asset('js/formularios.js')) ?>"></script>
 </body>
 </html>

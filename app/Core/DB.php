@@ -34,6 +34,8 @@ final class DB
         $pdo->exec('PRAGMA busy_timeout = 5000');
         // Busca sem acento/caixa: WHERE busca_norm(coluna) LIKE :termo (termo já normalizado)
         $pdo->sqliteCreateFunction('busca_norm', static fn (?string $s): string => normalizar_busca($s), 1);
+        // Comparação de telefones e documentos: só os dígitos
+        $pdo->sqliteCreateFunction('so_digitos', static fn (?string $s): string => so_digitos($s), 1);
         // Ordenação sem acento/caixa: ORDER BY coluna COLLATE pt_br
         $pdo->sqliteCreateCollation('pt_br', static fn (string $a, string $b): int => strcmp(normalizar_busca($a), normalizar_busca($b)));
         return $pdo;

@@ -40,6 +40,9 @@ final class Gatilhos
         if ($evento === '') {
             return;
         }
+        if ($evento === 'formulario.submetido') {
+            self::squadDoFormulario($payload);
+        }
 
         foreach ((new AgenteRepository())->todos(true) as $agente) {
             $g = (array) ($agente['def']['gatilho'] ?? []);
@@ -61,6 +64,20 @@ final class Gatilhos
             if ($alvo !== false) {
                 self::enfileirar('squad', $squad, $alvo, null, $origem, 'evento:' . $evento);
             }
+        }
+    }
+
+    /** Squad escolhido no próprio formulário (`squad_disparado`): entra na fila a cada envio, além dos gatilhos por evento. */
+    private static function squadDoFormulario(array $payload): void
+    {
+        $slug = (string) ($payload['squad'] ?? '');
+        $squad = $slug !== '' ? (new SquadRepository())->porSlug($slug) : null;
+        if ($squad === null || (int) $squad['ativo'] !== 1) {
+            return;
+        }
+        $alvo = self::alvo($payload, (string) $squad['def']['entrada']);
+        if ($alvo !== false) {
+            self::enfileirar('squad', $squad, $alvo, null, (string) ($payload['origem'] ?? 'sistema'), 'formulario:' . ($payload['formulario_id'] ?? ''));
         }
     }
 

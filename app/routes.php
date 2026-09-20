@@ -16,6 +16,8 @@ use App\Controllers\ContratoController;
 use App\Controllers\CrudController;
 use App\Controllers\EmpresaController;
 use App\Controllers\ExecucaoController;
+use App\Controllers\FormularioController;
+use App\Controllers\FormularioPublicoController;
 use App\Controllers\NegocioController;
 use App\Controllers\ModeloController;
 use App\Controllers\PaginaController;
@@ -36,6 +38,9 @@ return static function (Router $r): void {
 
     // Links públicos de proposta e contrato (só por token)
     PublicoController::registrar($r);
+
+    // Formulários de captação públicos (/f/{chave}), só por chave aleatória
+    FormularioPublicoController::registrar($r);
 
     // Autenticadas
     $r->grupo('', static function (Router $r): void {
@@ -65,6 +70,9 @@ return static function (Router $r): void {
         SquadController::registrar($r);
         AcaoPendenteController::registrar($r);
         ExecucaoController::registrar($r);
+
+        // Formulários de captação (construtor e submissões)
+        FormularioController::registrar($r);
 
         // Timeline, anexos e tags
         $r->post('/atividades', [AtividadeController::class, 'criar']);

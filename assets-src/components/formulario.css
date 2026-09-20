@@ -1,0 +1,86 @@
+/* Formulários de captação: construtor (fb-*) e página pública (fp-*). SPEC §4.10. */
+@layer components {
+  /* Grade de 12 colunas; cada campo declara --span (largura). No celular, todos ocupam a linha inteira. */
+  .fp-grade {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .fp-campo {
+    grid-column: span var(--span, 12) / span var(--span, 12);
+    min-width: 0;
+  }
+  @media (max-width: 40rem) {
+    .fp-campo {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /* Página pública: sempre no tema claro e sem "casca" (pode estar em um iframe). */
+  .fp-corpo {
+    background: var(--background);
+    color: var(--foreground);
+    margin: 0;
+  }
+  .fp-pagina {
+    margin-inline: auto;
+    max-width: 40rem;
+    padding: 1.5rem 1rem;
+  }
+  .fp-embed .fp-pagina {
+    padding: 0.5rem;
+  }
+  .fp-form {
+    display: grid;
+    gap: 1rem;
+  }
+  .fp-titulo {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .fp-acoes {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* Construtor */
+  .fb-lista {
+    display: grid;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fb-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .fb-item.fb-arrastando {
+    opacity: 0.5;
+  }
+  .fb-cab {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+  .fb-alca {
+    color: var(--muted-foreground);
+    cursor: grab;
+    font-weight: 700;
+    letter-spacing: -0.15em;
+    padding: 0.25rem 0.5rem;
+    user-select: none;
+  }
+  .fb-corpo {
+    border-top: 1px solid var(--border);
+    padding: 0.75rem;
+  }
+  .fb-previa {
+    background: var(--muted);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+  }
+}

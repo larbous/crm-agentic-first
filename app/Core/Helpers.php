@@ -177,6 +177,19 @@ function so_digitos(?string $texto): string
 }
 
 /** Valida CNPJ (14 dígitos, com dígitos verificadores). */
+/** Domínio de um site ou endereço ("https://www.Exemplo.com.br/x" → "exemplo.com.br"); vazio se não der para extrair. */
+function dominio_de(?string $texto): string
+{
+    $t = mb_strtolower(trim((string) $texto));
+    if ($t === '') {
+        return '';
+    }
+    $t = preg_replace('#^[a-z][a-z0-9+.-]*://#', '', $t) ?? $t;
+    $t = preg_split('#[/?\#:]#', $t, 2)[0];
+    $t = preg_replace('/^www\./', '', $t) ?? $t;
+    return preg_match('/^[a-z0-9-]+(\.[a-z0-9-]+)+$/', $t) === 1 ? $t : '';
+}
+
 function cnpj_valido(string $cnpj): bool
 {
     $d = so_digitos($cnpj);

@@ -128,13 +128,13 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 
 ## Fase 8 — Formulários de captação
 
-- [ ] Migração: `formularios`, `formulario_campos`, `formulario_submissoes` + campos de aquisição em empresas/negócios (SPEC §4.10)
-- [ ] Construtor de formulário (arrastar campos, largura, obrigatório, rótulos, opções)
-- [ ] Páginas públicas `/f/{chave}` e embed; script de incorporação que repassa UTMs
-- [ ] Detecção de duplicado e regras tarefa/mesclar/criar
-- [ ] Honeypot e limite por IP
-- [ ] Evento `formulario.submetido` e disparo do squad configurado
-- [ ] Tela de submissões
+- [x] Migração: `formularios`, `formulario_campos`, `formulario_submissoes` + campos de aquisição em empresas/negócios (SPEC §4.10)
+- [x] Construtor de formulário (arrastar campos, largura, obrigatório, rótulos, opções)
+- [x] Páginas públicas `/f/{chave}` e embed; script de incorporação que repassa UTMs
+- [x] Detecção de duplicado e regras tarefa/mesclar/criar
+- [x] Honeypot e limite por IP
+- [x] Evento `formulario.submetido` e disparo do squad configurado
+- [x] Tela de submissões
 
 **Pronto quando:** um formulário embutido em página externa cria empresa + contato (+ negócio) com UTMs e dispara o squad, sem duplicar contatos existentes.
 

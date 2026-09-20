@@ -55,6 +55,45 @@ final class EmpresaRepository extends BaseRepository
         return $st->fetch() ?: null;
     }
 
+    /** Empresa ativa com este e-mail geral. */
+    public function porEmailGeral(string $email): ?array
+    {
+        $st = $this->pdo()->prepare('SELECT id, nome_fantasia FROM empresas WHERE email_geral = :e AND arquivado_em IS NULL ORDER BY id LIMIT 1');
+        $st->execute(['e' => mb_strtolower(trim($email))]);
+        return $st->fetch() ?: null;
+    }
+
+    /** Empresa ativa cujo WhatsApp ou telefone tem estes dígitos (com ou sem o DDI 55). */
+    public function porTelefone(string $digitos): ?array
+    {
+        $digitos = preg_replace('/^55(?=\d{10,11}$)/', '', $digitos) ?? $digitos;
+        if (strlen($digitos) < 8) {
+            return null;
+        }
+        $st = $this->pdo()->prepare(
+            'SELECT id, nome_fantasia FROM empresas WHERE arquivado_em IS NULL
+                AND (so_digitos(whatsapp) IN (:d, :d55) OR so_digitos(telefone) IN (:d, :d55)) ORDER BY id LIMIT 1'
+        );
+        $st->execute(['d' => $digitos, 'd55' => '55' . $digitos]);
+        return $st->fetch() ?: null;
+    }
+
+    /** Empresa ativa cujo site ou domínio é este domínio (já normalizado por dominio_de()). */
+    public function porDominio(string $dominio): ?array
+    {
+        $st = $this->pdo()->prepare(
+            "SELECT id, nome_fantasia, site, dominio FROM empresas WHERE arquivado_em IS NULL
+                AND (lower(site) LIKE :l ESCAPE '\\' OR lower(dominio) LIKE :l ESCAPE '\\') ORDER BY id"
+        );
+        $st->execute(['l' => '%' . addcslashes($dominio, '%_\\') . '%']);
+        foreach ($st->fetchAll() as $e) {
+            if (dominio_de($e['site']) === $dominio || dominio_de($e['dominio']) === $dominio) {
+                return ['id' => $e['id'], 'nome_fantasia' => $e['nome_fantasia']];
+            }
+        }
+        return null;
+    }
+
     /** Opções para selects: id => nome fantasia. */
     public function opcoes(): array
     {

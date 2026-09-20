@@ -24,6 +24,7 @@ final class ActionExecutor
     use AcoesAgentes;
     use AcoesSquads;
     use AcoesWorker;
+    use AcoesFormularios;
 
     private const PADROES = [
         'empresas' => ['status' => 'lead'],
@@ -97,6 +98,10 @@ final class ActionExecutor
             $erros += $this->regrasCriar($entidade, $novos, $extra, $origem);
             if ($erros !== []) {
                 return Resultado::falha($erros);
+            }
+
+            if ($this->vinculoFormulario !== null && in_array($entidade, ['empresas', 'negocios'], true)) {
+                $extra += $this->vinculoFormulario; // formulario_id / submissao_id (envio de formulário público)
             }
 
             $agora = agora();
