@@ -73,6 +73,12 @@ No Windows, se aparecer `unable to get local issuer certificate`, baixe <https:/
 O modelo do roteador é `claude-haiku-4-5-20251001`; para trocar, grave `ia.modelo_roteador` em `configuracoes`.
 Para medir o acerto do roteador (meta ≥ 90%): `php scripts/avaliar-roteador.php` (`--offline` só valida o fixture; `--verbose` mostra as saídas). A avaliação usa um banco em memória, mas **chama a API real e consome tokens**.
 
+## Agentes de IA
+
+`php scripts/seed.php` importa os agentes da biblioteca (`/library/*.agent.json`) que ainda não existem (nunca sobrescreve os já importados ou editados). Use a chave da API da seção anterior; modelo e `max_tokens` vêm da definição de cada agente (padrão `ia.modelo_agente` em `configuracoes`, senão `claude-sonnet-5`).
+`php scripts/avaliar-agentes.php` roda cada agente sobre dados de exemplo (`--offline` só valida, `agente-slug` roda um; `--verbose` mostra o texto). Usa banco em memória, mas **chama a API real e consome tokens** (o `pesquisador`, com busca na web, usa dezenas de milhares).
+A execução de um agente leva de alguns segundos a ~2 minutos (busca na web): em hospedagem compartilhada, confira o `max_execution_time` do PHP (o código pede 180 s).
+
 ## Hospedagem compartilhada
 
 Aponte o document root para `/public`. `storage/`, `app/`, `migrations/` e `config*.php` ficam fora dele.

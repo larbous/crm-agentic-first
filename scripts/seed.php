@@ -10,7 +10,9 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/app/bootstrap.php';
 
 use App\Core\DB;
+use App\Repositories\AgenteRepository;
 use App\Repositories\SeedRepository;
+use App\Services\ActionExecutor;
 
 $pdo = DB::conexao();
 $seed = new SeedRepository($pdo);
@@ -47,6 +49,22 @@ try {
     }
     $seed->garantirConfiguracao('empresa.nome', 'Lárbous');
     $seed->garantirConfiguracao('proposta.validade_dias', '15');
+
+    // Fase 5: biblioteca inicial de agentes (/library/*.agent.json). Só cria os que ainda não existem:
+    // agentes já importados (e editados pelo operador) nunca são sobrescritos.
+    $agentes = new AgenteRepository();
+    $executor = new ActionExecutor();
+    foreach (glob(dirname(__DIR__) . '/library/*.agent.json') ?: [] as $arquivo) {
+        $json = (string) file_get_contents($arquivo);
+        $definicao = json_decode($json, true);
+        if (is_array($definicao) && isset($definicao['slug']) && $agentes->porSlug((string) $definicao['slug']) !== null) {
+            continue;
+        }
+        $r = $executor->salvarAgente($json);
+        if (!$r->ok) {
+            throw new RuntimeException(basename($arquivo) . ': ' . $r->mensagem);
+        }
+    }
 
     $pdo->commit();
 } catch (Throwable $e) {

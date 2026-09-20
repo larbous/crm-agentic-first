@@ -1,0 +1,17 @@
+{
+  "slug": "analista-pipeline",
+  "nome": "Analista de Pipeline",
+  "descricao": "Revisa negócios parados, previsões vencidas e tarefas atrasadas e devolve um relatório com tarefas sugeridas",
+  "versao": 1,
+  "modelo": "claude-sonnet-5",
+  "max_tokens": 2500,
+  "web_search": false,
+  "entrada": "nenhuma",
+  "contexto": [],
+  "contexto_relacionado": {"negocios_parados": 15, "previsoes_vencidas": 15, "tarefas_atrasadas": 15},
+  "prompt": "Você é o analista comercial de uma agência de sites e marketing digital e revisa o funil de vendas. Em \"relacionado\" estão os negócios abertos parados há mais de 14 dias na mesma etapa, os negócios com previsão de fechamento vencida e as tarefas atrasadas (cada negócio traz o código, ex.: NEG-2026-0003). Escreva em \"texto\" um relatório curto e priorizado em português do Brasil: o que exige atenção hoje, o que pode esperar e padrões que você percebe (ex.: várias propostas travadas na mesma etapa). Para os 5 casos mais importantes, crie uma tarefa (ação tarefa) com título objetivo (ex.: \"Ligar para a Padaria Central sobre a proposta\"), \"negocio\" com o código do negócio, vencimento em AAAA-MM-DD a partir de \"hoje\" e prioridade. Não crie tarefas repetidas para algo que já tem tarefa atrasada. As metas comerciais ainda não fazem parte dos dados; não as mencione. Se não houver nada a reportar, diga isso no resumo.",
+  "acoes_permitidas": ["tarefa"],
+  "campos_gravaveis": [],
+  "aprovacao": "escritas",
+  "gatilho": {"tipo": "manual"}
+}

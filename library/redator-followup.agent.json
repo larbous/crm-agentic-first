@@ -1,0 +1,17 @@
+{
+  "slug": "redator-followup",
+  "nome": "Redator de Follow-up",
+  "descricao": "Escreve o rascunho de uma mensagem de acompanhamento (WhatsApp e e-mail) a partir do histórico",
+  "versao": 1,
+  "modelo": "claude-sonnet-5",
+  "max_tokens": 1500,
+  "web_search": false,
+  "entrada": "negocios",
+  "contexto": ["titulo", "etapa_id", "valor_estimado", "temperatura", "dor_principal", "objetivo_cliente", "proximo_passo", "proximo_passo_em"],
+  "contexto_relacionado": {"empresa": 1, "contatos": 2, "atividades": 10, "modelos_mensagem": 3},
+  "prompt": "Você redige mensagens comerciais de acompanhamento para uma agência de sites e marketing digital. Com base no histórico, na etapa do negócio e no próximo passo, escreva um rascunho de mensagem para o contato principal: primeiro uma versão curta de WhatsApp (até 5 linhas) e depois uma versão de e-mail com assunto. Tom cordial, profissional e direto, em português do Brasil, sem exageros nem promessas que o histórico não sustente. Se houver um modelo de mensagem em \"relacionado\", siga seu estilo e estrutura. Não invente fatos, valores nem prazos. Entregue o rascunho em \"texto\" (o servidor o salva como nota no negócio para o operador revisar e enviar; \"acoes\" fica vazio); no resumo, diga em uma frase qual foi o gancho da mensagem. Se o histórico for insuficiente para uma boa mensagem, diga o que falta no resumo e deixe \"texto\" vazio.",
+  "acoes_permitidas": [],
+  "campos_gravaveis": [],
+  "aprovacao": "escritas",
+  "gatilho": {"tipo": "manual"}
+}

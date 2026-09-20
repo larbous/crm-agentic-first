@@ -76,6 +76,49 @@ final class RespostaChat
         ];
     }
 
+    /**
+     * Resultado de um agente: resumo (saída do agente), contagem de ações aplicadas/pendentes/recusadas e links.
+     * @param array $r retorno de AgentRunner::executar()
+     * @param array{entidade:string,id:int,nome:string}|null $ref registro-alvo (empresas, contatos, negocios)
+     */
+    public static function agente(string $nome, array $r, ?string $entidade, ?int $registroId, ?array $ref): array
+    {
+        if (!$r['ok']) {
+            return self::erro("O agente {$nome} não concluiu: " . $r['erro']);
+        }
+        $alvo = $ref['nome'] ?? null;
+        $linhas = ['✓ ' . $nome . ' executado' . ($alvo !== null ? " em \"{$alvo}\"" : '')];
+        if ($r['resumo'] !== '') {
+            $linhas[] = $r['resumo'];
+        }
+        $aplicadas = count($r['aplicadas']);
+        $pendentes = count($r['pendentes']);
+        if ($aplicadas > 0) {
+            $linhas[] = "• {$aplicadas} alteração(ões) aplicada(s)";
+        }
+        if ($pendentes > 0) {
+            $linhas[] = "• {$pendentes} aguardando sua aprovação";
+        }
+        if ($r['recusadas'] !== []) {
+            $linhas[] = '• ' . count($r['recusadas']) . ' ação(ões) recusada(s) pela validação (detalhes em Execuções)';
+        }
+        if ($aplicadas === 0 && $pendentes === 0 && $r['recusadas'] === []) {
+            $linhas[] = '• nenhuma alteração proposta';
+        }
+        if ($r['texto'] !== '' && $entidade === null) {
+            $linhas[] = 'O relatório completo está em Execuções.';
+        }
+        return [
+            'conteudo'   => implode("\n", $linhas),
+            'payload'    => [
+                'tipo' => 'agente', 'ok' => true, 'execucao_id' => $r['execucao_id'], 'pendentes' => $pendentes,
+                'link' => in_array($entidade, ['empresas', 'contatos', 'negocios', 'propostas', 'contratos'], true) && $registroId !== null ? "/{$entidade}/{$registroId}" : null,
+                'alterou' => $aplicadas > 0 || $pendentes > 0,
+            ],
+            'ultima_ref' => $ref,
+        ];
+    }
+
     /** Tabela de resultado de "consultar". */
     public static function consulta(array $payload): array
     {

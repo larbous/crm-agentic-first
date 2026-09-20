@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Repositories\AgenteRepository;
 use App\Repositories\BuscaRepository;
 
 /** Comandos "/" do chat (SPEC §3.2): executam direto no servidor, sem IA. Escritas passam pelo ActionExecutor (origem "humano"). */
@@ -17,6 +18,7 @@ Comandos disponíveis:
 /concluir <id> — conclui uma tarefa
 /desfazer — reverte a última ação registrada
 /agentes · /squads — lista os disponíveis
+@agente [nome do registro] — executa um agente (ex.: @pesquisador Padaria Central)
 Ou escreva em linguagem natural, por exemplo: "cria negócio de 8 mil pro site da Padaria Central, contato Ana".
 TXT;
 
@@ -42,10 +44,21 @@ TXT;
             'buscar'  => $this->buscar($resto),
             'concluir' => $this->concluir($resto),
             'desfazer' => $this->desfazer(),
-            'agentes' => RespostaChat::texto('Ainda não há agentes cadastrados. Eles chegam na próxima fase.'),
-            'squads'  => RespostaChat::texto('Ainda não há squads cadastrados. Eles chegam em uma fase futura.'),
+            'agentes' => $this->agentes(),
+            'squads'  => RespostaChat::texto('Ainda não há squads cadastrados. Eles chegam na Fase 6.'),
             default   => RespostaChat::erro("Comando desconhecido: /{$comando}. Use /ajuda."),
         };
+    }
+
+    private function agentes(): array
+    {
+        $ativos = (new AgenteRepository())->todos(true);
+        if ($ativos === []) {
+            return RespostaChat::texto('Não há agentes ativos. Cadastre ou importe em Agentes.');
+        }
+        $linhas = array_map(static fn (array $a): string => '@' . $a['slug'] . ' — ' . ($a['descricao'] !== '' ? $a['descricao'] : $a['nome'])
+            . ' (' . ($a['def']['entrada'] === 'nenhuma' ? 'sem registro' : mb_strtolower(Schema::entidade($a['def']['entrada'])['plural'])) . ')', $ativos);
+        return RespostaChat::texto("Agentes disponíveis:\n" . implode("\n", $linhas));
     }
 
     private function nota(string $texto, ?array $contexto): array

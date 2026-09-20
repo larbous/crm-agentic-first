@@ -9,6 +9,7 @@
  */
 use App\Core\Session;
 use App\Core\View;
+use App\Repositories\AcaoPendenteRepository;
 
 $caminho = $caminho ?? '/';
 $usuario = $usuario ?? ['nome' => 'Operador', 'email' => ''];
@@ -26,15 +27,22 @@ $comercial = [
     ['/servicos', 'Serviços', 'package'],
     ['/modelos', 'Modelos', 'layout-template'],
 ];
+$ia = [
+    ['/agentes', 'Agentes', 'bot'],
+    ['/acoes-pendentes', 'Ações pendentes', 'inbox'],
+    ['/execucoes', 'Execuções', 'activity'],
+];
+$acoesPendentes = (new AcaoPendenteRepository())->contarPendentes();
 $sistema = [
     ['/auditoria', 'Auditoria', 'scroll-text'],
     ['/configuracoes', 'Configurações', 'settings'],
     ['/ui', 'Guia de estilo', 'palette'],
 ];
 $ativo = static fn (string $rota): bool => $rota === '/' ? $caminho === '/' : ($caminho === $rota || str_starts_with($caminho, $rota . '/'));
-$item = static function (array $n) use ($ativo): string {
+$item = static function (array $n) use ($ativo, $acoesPendentes): string {
+    $selo = $n[0] === '/acoes-pendentes' && $acoesPendentes > 0 ? '<span class="badge" data-variant="secondary" aria-label="' . $acoesPendentes . ' pendente(s)">' . $acoesPendentes . '</span>' : '';
     return '<li><a href="' . e(url($n[0])) . '"' . ($ativo($n[0]) ? ' aria-current="page"' : '') . '>'
-        . icone($n[2]) . '<span>' . e($n[1]) . '</span></a></li>';
+        . icone($n[2]) . '<span>' . e($n[1]) . '</span>' . $selo . '</a></li>';
 };
 ?>
 <!doctype html>
@@ -61,6 +69,10 @@ $item = static function (array $n) use ($ativo): string {
             <div role="group" aria-labelledby="nav-comercial">
                 <h3 id="nav-comercial">Comercial</h3>
                 <ul><?php foreach ($comercial as $n) { echo $item($n); } ?></ul>
+            </div>
+            <div role="group" aria-labelledby="nav-ia">
+                <h3 id="nav-ia">Inteligência artificial</h3>
+                <ul><?php foreach ($ia as $n) { echo $item($n); } ?></ul>
             </div>
             <div role="group" aria-labelledby="nav-sistema">
                 <h3 id="nav-sistema">Sistema</h3>
@@ -148,5 +160,6 @@ $item = static function (array $n) use ($ativo): string {
 <script type="module" src="<?= e(asset('js/kanban.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/propostas.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/modelos.js')) ?>"></script>
+<script type="module" src="<?= e(asset('js/agentes.js')) ?>"></script>
 </body>
 </html>

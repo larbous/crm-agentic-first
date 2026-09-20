@@ -72,6 +72,7 @@ $temFiltro = array_filter($filtros, static fn ($v) => $v !== '' && $v !== null) 
 </div>
 
 <form method="get" action="<?= e(url('/auditoria')) ?>" class="filter-bar">
+    <?php if (!empty($filtros['execucao_id'])): ?><input type="hidden" name="execucao_id" value="<?= e($filtros['execucao_id']) ?>"><span class="text-muted-foreground text-sm">Execução #<?= e($filtros['execucao_id']) ?></span><?php endif; ?>
     <?= select('entidade', $entidades, $filtros['entidade'] ?: null, ['id' => 'f-entidade', 'placeholder' => 'Entidade: todas', 'attrs' => ['class' => 'select w-auto', 'aria-label' => 'Entidade', 'onchange' => 'this.form.requestSubmit()']]) ?>
     <?= select('origem', $origens, $filtros['origem'] ?: null, ['id' => 'f-origem', 'placeholder' => 'Origem: todas', 'attrs' => ['class' => 'select w-auto', 'aria-label' => 'Origem', 'onchange' => 'this.form.requestSubmit()']]) ?>
     <?= select('acao', $acoes, $filtros['acao'] ?: null, ['id' => 'f-acao', 'placeholder' => 'Ação: todas', 'attrs' => ['class' => 'select w-auto', 'aria-label' => 'Ação', 'onchange' => 'this.form.requestSubmit()']]) ?>

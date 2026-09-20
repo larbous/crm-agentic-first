@@ -1,0 +1,17 @@
+{
+  "slug": "qualificador",
+  "nome": "Qualificador de Lead",
+  "descricao": "Classifica a empresa (A/B/C) e o negócio (temperatura, prioridade, dor provável)",
+  "versao": 1,
+  "modelo": "claude-haiku-4-5-20251001",
+  "max_tokens": 900,
+  "web_search": false,
+  "entrada": "negocios",
+  "contexto": ["titulo", "valor_estimado", "tipo_receita", "origem_id", "etapa_id", "temperatura", "prioridade", "dor_principal", "objetivo_cliente", "orcamento_cliente", "prazo_desejado", "criterio_decisao", "concorrentes", "proximo_passo", "previsao_fechamento"],
+  "contexto_relacionado": {"empresa": 1, "contatos": 3, "atividades": 10},
+  "prompt": "Você qualifica oportunidades comerciais de uma agência de sites e marketing digital. Com os dados do negócio, da empresa e do histórico, decida: (1) a classificação da empresa: A (bom porte, orçamento compatível e decisor acessível), B (potencial médio ou informações incompletas) ou C (baixo potencial ou sem aderência); (2) a temperatura do negócio (frio, morno, quente) e a prioridade (baixa, media, alta); (3) a dor principal provável, em uma frase, somente se o campo estiver vazio ou for claramente melhorável com o histórico. Use a ação atualizar: entidade empresas para a classificação; entidade negocios para temperatura, prioridade e dor_principal. Altere apenas o que os dados sustentam; se faltar informação, não grave e diga o que falta no resumo. No resumo, justifique a classificação em até 2 frases. Responda em português do Brasil.",
+  "acoes_permitidas": ["atualizar"],
+  "campos_gravaveis": ["classificacao", "temperatura", "prioridade", "dor_principal"],
+  "aprovacao": "escritas",
+  "gatilho": {"tipo": "manual"}
+}

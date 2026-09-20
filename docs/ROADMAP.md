@@ -79,17 +79,19 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 
 ## Fase 5 — Agentes
 
-- [ ] Migração: `agentes`, `acoes_pendentes`
-- [ ] `AI/ContextBuilder` (campos de `contexto` + `contexto_relacionado`)
-- [ ] `AI/AgentRunner`: execução, validação de `acoes_permitidas` e `campos_gravaveis`, aprovação, saída `texto` → nota
-- [ ] Suporte a `web_search` na chamada da API quando habilitado no agente
-- [ ] Tela Agentes: lista, editor JSON com validação, Testar (simulação), importar/exportar, versões
-- [ ] Tela Ações pendentes com diff e aprovação em lote
-- [ ] Botões de agentes no detalhe dos registros; `@slug` no chat
-- [ ] Tela Execuções com tokens e totais do mês
-- [ ] Biblioteca inicial em `/library` (SPEC §6.2) e importação no seed
+- [x] Migração: `agentes`, `acoes_pendentes` (e `agentes_versoes`, `execucoes.simulacao`)
+- [x] `AI/ContextBuilder` (campos de `contexto` + `contexto_relacionado`)
+- [x] `AI/AgentRunner`: execução, validação de `acoes_permitidas` e `campos_gravaveis`, aprovação, saída `texto` → nota
+- [x] Suporte a `web_search` na chamada da API quando habilitado no agente
+- [x] Tela Agentes: lista, editor JSON com validação, Testar (simulação), importar/exportar, versões
+- [x] Tela Ações pendentes com diff e aprovação em lote
+- [x] Botões de agentes no detalhe dos registros; `@slug` no chat
+- [x] Tela Execuções com tokens e totais do mês
+- [x] Biblioteca inicial em `/library` (SPEC §6.2) e importação no seed
 
 **Pronto quando:** cada agente da biblioteca roda em um registro real, respeita whitelist e aprovação, e registra tokens.
+
+> **Medido (2026-09-20, `php scripts/avaliar-agentes.php`, API real):** os 9 agentes da biblioteca rodaram sobre dados de exemplo (banco em memória, aprovação "nunca" só nesse teste) e passaram: JSON válido, nenhuma ação recusada, tokens registrados em `execucoes`. Na primeira rodada `montador-proposta` estourou `max_tokens` (3500 → 6000, prompt mais enxuto), `redator-followup` gravou a nota duas vezes (agora `acoes_permitidas` vazio: o `texto` já vira nota) e `redator-contrato` recusou por já existir contrato no negócio de exemplo (dados de teste ajustados). Ressalva: o `pesquisador` (busca na web) consome ~50 mil tokens de entrada por execução e a whitelist é por campo, não por valor: o `triagem-formulario` chegou a propor `status = cliente` contra o prompt (a aprovação "escritas" é a proteção).
 
 ---
 

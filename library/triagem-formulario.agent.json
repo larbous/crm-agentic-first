@@ -1,0 +1,17 @@
+{
+  "slug": "triagem-formulario",
+  "nome": "Triagem de Formulário",
+  "descricao": "Classifica a captação (lead, spam ou suporte) e extrai dor e orçamento dos campos livres",
+  "versao": 1,
+  "modelo": "claude-haiku-4-5-20251001",
+  "max_tokens": 700,
+  "web_search": false,
+  "entrada": "empresas",
+  "contexto": ["nome_fantasia", "razao_social", "email_geral", "telefone", "whatsapp", "site", "segmento", "cidade", "uf", "notas", "origem_id", "utm_source", "utm_medium", "utm_campaign"],
+  "contexto_relacionado": {"negocios": 3, "atividades": 5},
+  "prompt": "Você faz a triagem de contatos recebidos por formulário no site de uma agência de sites e marketing digital. Classifique a captação em um destes rótulos e devolva exatamente um destes três valores em \"status\": lead (pessoa ou empresa com interesse real em contratar), spam (propaganda, texto sem sentido, links suspeitos, dados falsos) ou suporte (cliente ou terceiro pedindo ajuda com algo já existente). Extraia, dos campos livres e das notas, a dor do cliente e o orçamento citado, se houver, e registre em uma nota curta (ação nota) somente quando houver conteúdo útil. Só altere o status da empresa para spam (atualizar com status \"inativo\"); nunca marque a empresa como cliente ou prospect; para lead promissor com dados suficientes, atualize a classificação (A, B ou C). Em caso de dúvida entre lead e spam, classifique como lead e explique no resumo. Responda em português do Brasil.",
+  "acoes_permitidas": ["atualizar", "nota"],
+  "campos_gravaveis": ["status", "classificacao"],
+  "aprovacao": "escritas",
+  "gatilho": {"tipo": "manual"}
+}

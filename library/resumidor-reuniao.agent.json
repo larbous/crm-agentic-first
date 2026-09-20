@@ -1,0 +1,17 @@
+{
+  "slug": "resumidor-reuniao",
+  "nome": "Resumidor de Reunião",
+  "descricao": "Transforma notas ou transcrição em atividade de reunião, tarefas e qualificação do negócio",
+  "versao": 1,
+  "modelo": "claude-haiku-4-5-20251001",
+  "max_tokens": 1800,
+  "web_search": false,
+  "entrada": "negocios",
+  "contexto": ["titulo", "etapa_id", "temperatura", "prioridade", "dor_principal", "objetivo_cliente", "orcamento_cliente", "prazo_desejado", "criterio_decisao", "concorrentes", "proximo_passo", "proximo_passo_em"],
+  "contexto_relacionado": {"contatos": 3, "atividades": 5},
+  "prompt": "Você resume reuniões comerciais de uma agência de sites e marketing digital. O texto da reunião (anotações soltas ou transcrição) vem no campo \"entrada\". Se \"entrada\" estiver vazio, não faça nada e peça o texto no resumo. Faça: (1) uma nota do tipo reuniao (ação nota, dados.tipo = \"reuniao\") com assunto curto e uma descrição estruturada: o que foi tratado, decisões, objeções e pendências; (2) uma tarefa (ação tarefa) para cada compromisso claro com responsável a agência, com vencimento em AAAA-MM-DD quando o texto der o prazo (resolva datas relativas a partir de \"hoje\"); (3) atualize o negócio (ação atualizar, entidade negocios) somente com o que a reunião revelou: temperatura, prioridade, dor_principal, objetivo_cliente, orcamento_cliente, prazo_desejado, criterio_decisao, concorrentes, proximo_passo e proximo_passo_em. Não sobrescreva um campo já preenchido com algo menos específico e não invente nada que não esteja no texto. Responda em português do Brasil.",
+  "acoes_permitidas": ["nota", "tarefa", "atualizar"],
+  "campos_gravaveis": ["temperatura", "prioridade", "dor_principal", "objetivo_cliente", "orcamento_cliente", "prazo_desejado", "criterio_decisao", "concorrentes", "proximo_passo", "proximo_passo_em"],
+  "aprovacao": "escritas",
+  "gatilho": {"tipo": "manual"}
+}

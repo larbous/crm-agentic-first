@@ -49,6 +49,7 @@ $abas = [
         </p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
+        <?= agentes_botoes('contratos', $id) ?>
         <?php if ($rascunho): ?>
             <form method="post" action="<?= e(url('/contratos/' . $id . '/enviar')) ?>" data-confirmar="Marcar como enviado? O link de assinatura passa a funcionar.">
                 <?= csrf_field() ?><?= botao('Marcar como enviado', ['tipo' => 'submit', 'icone' => 'send']) ?>

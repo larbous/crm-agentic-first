@@ -47,14 +47,14 @@ final class AuditoriaRepository
     }
 
     /**
-     * Listagem filtrável e paginada. Filtros: entidade, origem, acao, registro_id.
+     * Listagem filtrável e paginada. Filtros: entidade, origem, acao, registro_id, execucao_id.
      * @return array{linhas:list<array>,total:int,pagina:int,por_pagina:int,paginas:int}
      */
     public function listar(array $filtros = [], int $pagina = 1, int $porPagina = 30): array
     {
         $onde = ['1 = 1'];
         $params = [];
-        foreach (['entidade', 'acao', 'registro_id'] as $campo) {
+        foreach (['entidade', 'acao', 'registro_id', 'execucao_id'] as $campo) {
             if (($filtros[$campo] ?? '') !== '') {
                 $onde[] = "{$campo} = :{$campo}";
                 $params[$campo] = $filtros[$campo];

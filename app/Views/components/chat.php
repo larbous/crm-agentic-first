@@ -21,6 +21,7 @@ function chat_mensagem(array $m): string
     if ($sistema) {
         $html .= match ($tipo) {
             'acao'      => chat_extra_acao($id, $p),
+            'agente'    => chat_extra_agente($p),
             'consulta'  => chat_extra_consulta($p),
             'busca'     => chat_extra_busca($p),
             'escolha'   => chat_extra_escolha($id, $p),
@@ -50,6 +51,22 @@ function chat_extra_acao(int $id, array $p): string
         $partes[] = !empty($p['desfeito'])
             ? '<span class="text-muted-foreground text-xs">desfeito</span>'
             : chat_botao_acao($id, 'desfazer', 'Desfazer', 'ghost');
+    }
+    return $partes === [] ? '' : '<div class="chat-acoes">' . implode('', $partes) . '</div>';
+}
+
+/** Resultado de agente: abrir o registro, revisar pendentes e ver a execução. */
+function chat_extra_agente(array $p): string
+{
+    $partes = [];
+    if (!empty($p['link'])) {
+        $partes[] = '<a class="btn" data-variant="outline" data-size="sm" href="' . e(url((string) $p['link'])) . '">abrir</a>';
+    }
+    if (!empty($p['pendentes'])) {
+        $partes[] = '<a class="btn" data-variant="default" data-size="sm" href="' . e(url('/acoes-pendentes')) . '">revisar pendentes</a>';
+    }
+    if (!empty($p['execucao_id'])) {
+        $partes[] = '<a class="btn" data-variant="ghost" data-size="sm" href="' . e(url('/execucoes')) . '">execuções</a>';
     }
     return $partes === [] ? '' : '<div class="chat-acoes">' . implode('', $partes) . '</div>';
 }

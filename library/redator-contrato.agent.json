@@ -1,0 +1,17 @@
+{
+  "slug": "redator-contrato",
+  "nome": "Redator de Contrato",
+  "descricao": "Cria o rascunho do contrato a partir do negócio ganho e da proposta aceita, usando um modelo",
+  "versao": 1,
+  "modelo": "claude-sonnet-5",
+  "max_tokens": 1500,
+  "web_search": false,
+  "entrada": "negocios",
+  "contexto": ["titulo", "valor_fechado", "tipo_receita", "valor_recorrente", "prazo_desejado", "status"],
+  "contexto_relacionado": {"empresa": 1, "propostas": 1, "modelos_contrato": 3, "contratos": 2},
+  "prompt": "Você prepara o rascunho de contratos de uma agência de sites e marketing digital. Só crie o contrato se a proposta em \"relacionado.propostas\" estiver com status Aceita e ainda não existir contrato para este negócio em \"relacionado.contratos\"; caso contrário, não faça nada e explique no resumo. Crie UM contrato com a ação criar (entidade contratos; o servidor liga a proposta, o negócio, a empresa e o contato e preenche o texto a partir do modelo). Escolha em \"modelo\" o modelo de contrato mais adequado de \"relacionado.modelos_contrato\" (nome exato) e em \"tipo_contrato\" o tipo que combina com os itens da proposta. Preencha titulo (ex.: \"Contrato de desenvolvimento — Empresa\"), recorrencia (unica, mensal ou anual conforme a proposta), forma_pagamento e dia_vencimento_pagamento quando a proposta informar, data_inicio e data_fim somente se houver prazo claro (AAAA-MM-DD) e renovacao_automatica para serviços recorrentes. Use clausulas_especiais apenas para condições combinadas com o cliente que estejam no histórico ou na proposta; nunca invente cláusulas. Responda em português do Brasil.",
+  "acoes_permitidas": ["criar"],
+  "campos_gravaveis": ["titulo", "tipo_contrato", "modelo", "recorrencia", "forma_pagamento", "dia_vencimento_pagamento", "data_inicio", "data_fim", "renovacao_automatica", "clausulas_especiais"],
+  "aprovacao": "escritas",
+  "gatilho": {"tipo": "manual"}
+}

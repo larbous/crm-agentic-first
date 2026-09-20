@@ -20,8 +20,10 @@ final class AuditoriaController
         foreach (['entidade', 'origem', 'acao'] as $campo) {
             $filtros[$campo] = trim((string) ($_GET[$campo] ?? ''));
         }
-        if (ctype_digit((string) ($_GET['registro_id'] ?? ''))) {
-            $filtros['registro_id'] = (string) $_GET['registro_id'];
+        foreach (['registro_id', 'execucao_id'] as $campo) {
+            if (ctype_digit((string) ($_GET[$campo] ?? ''))) {
+                $filtros[$campo] = (string) $_GET[$campo];
+            }
         }
         $repo = new AuditoriaRepository();
         $resultado = $repo->listar($filtros, (int) ($_GET['pagina'] ?? 1));

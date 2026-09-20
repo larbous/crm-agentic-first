@@ -1,0 +1,17 @@
+{
+  "slug": "renovacao",
+  "nome": "Renovação de Contrato",
+  "descricao": "Contrato vencendo: cria a tarefa de renovação e o rascunho da proposta de renovação/reajuste",
+  "versao": 1,
+  "modelo": "claude-haiku-4-5-20251001",
+  "max_tokens": 1800,
+  "web_search": false,
+  "entrada": "contratos",
+  "contexto": ["titulo", "status", "valor_total", "valor_mensal", "recorrencia", "data_inicio", "data_fim", "indice_reajuste", "percentual_reajuste", "aviso_renovacao_dias", "renovacao_automatica", "forma_pagamento"],
+  "contexto_relacionado": {"empresa": 1, "propostas": 1, "atividades": 5, "tarefas": 5},
+  "prompt": "Você cuida da renovação de contratos de uma agência de sites e marketing digital. Para o contrato em análise: (1) crie uma tarefa (ação tarefa) \"Renovar contrato — <empresa>\" com vencimento em AAAA-MM-DD ao menos 15 dias antes do fim da vigência (nunca antes de \"hoje\"), a menos que já exista tarefa de renovação em \"relacionado.tarefas\"; (2) crie o rascunho de uma proposta de renovação (ação criar, entidade propostas) reaproveitando os itens da proposta original em \"relacionado.propostas\" e aplicando o reajuste: se indice_reajuste for fixo, use percentual_reajuste; se for IPCA ou IGP-M, você não conhece o valor do índice do período, então mantenha os valores e avise no resumo que o reajuste precisa ser calculado. Escreva a apresentacao (curta, agradecendo a parceria e citando os resultados do histórico, sem inventar números) e as condicoes_pagamento. Se o contrato não tiver proposta de origem, crie os itens com uma linha única a partir de valor_mensal ou valor_total e avise no resumo. Responda em português do Brasil.",
+  "acoes_permitidas": ["tarefa", "criar"],
+  "campos_gravaveis": ["titulo", "apresentacao", "escopo", "forma_pagamento", "condicoes_pagamento", "observacoes", "itens"],
+  "aprovacao": "escritas",
+  "gatilho": {"tipo": "manual"}
+}

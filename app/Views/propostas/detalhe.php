@@ -80,6 +80,7 @@ $abas = [
         </p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
+        <?= agentes_botoes('propostas', $id) ?>
         <?php if ($rascunho): ?>
             <form method="post" action="<?= e(url('/propostas/' . $id . '/enviar')) ?>" data-confirmar="Marcar como enviada? O link público passa a funcionar.">
                 <?= csrf_field() ?><?= botao('Marcar como enviada', ['tipo' => 'submit', 'icone' => 'send']) ?>

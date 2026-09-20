@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Controllers\AcaoPendenteController;
+use App\Controllers\AgenteController;
 use App\Controllers\AnexoController;
 use App\Controllers\AtividadeController;
 use App\Controllers\AuditoriaController;
@@ -13,6 +15,7 @@ use App\Controllers\ContatoController;
 use App\Controllers\ContratoController;
 use App\Controllers\CrudController;
 use App\Controllers\EmpresaController;
+use App\Controllers\ExecucaoController;
 use App\Controllers\NegocioController;
 use App\Controllers\ModeloController;
 use App\Controllers\PaginaController;
@@ -55,6 +58,11 @@ return static function (Router $r): void {
         PropostaController::registrarExtras($r);
         CrudController::registrar($r, '/contratos', ContratoController::class);
         ContratoController::registrarExtras($r);
+
+        // Agentes de IA, ações pendentes de aprovação e execuções
+        AgenteController::registrar($r);
+        AcaoPendenteController::registrar($r);
+        ExecucaoController::registrar($r);
 
         // Timeline, anexos e tags
         $r->post('/atividades', [AtividadeController::class, 'criar']);

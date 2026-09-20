@@ -32,10 +32,12 @@ final class Client
     }
 
     /**
-     * @param array $meta agente_id, squad_id, squad_execucao_id, etapa_ordem, entidade, registro_id (opcionais)
+     * @param array $meta agente_id, squad_id, squad_execucao_id, etapa_ordem, entidade, registro_id, simulacao (opcionais)
+     * @param array $opcoes web_search (bool: liga a ferramenta de busca na web), timeout (segundos),
+     *                      temperatura (float; null omite o parâmetro — padrão 0, usado pelo roteador)
      * @throws IaErro
      */
-    public function chamar(string $modelo, string $sistema, string $usuario, array $meta = [], int $maxTokens = 1024): RespostaIA
+    public function chamar(string $modelo, string $sistema, string $usuario, array $meta = [], int $maxTokens = 1024, array $opcoes = []): RespostaIA
     {
         $execucoes = new ExecucaoRepository();
         $execucaoId = $execucoes->iniciar($meta + ['entrada' => $usuario, 'modelo' => $modelo, 'status' => 'rodando']);
@@ -52,14 +54,20 @@ final class Client
         }
 
         $corpo = [
-            'model'       => $modelo,
-            'max_tokens'  => $maxTokens,
-            'temperature' => 0,
-            'system'      => [['type' => 'text', 'text' => $sistema, 'cache_control' => ['type' => 'ephemeral']]],
-            'messages'    => [['role' => 'user', 'content' => $usuario]],
+            'model'      => $modelo,
+            'max_tokens' => $maxTokens,
+            'system'     => [['type' => 'text', 'text' => $sistema, 'cache_control' => ['type' => 'ephemeral']]],
+            'messages'   => [['role' => 'user', 'content' => $usuario]],
         ];
+        $temperatura = array_key_exists('temperatura', $opcoes) ? $opcoes['temperatura'] : 0;
+        if ($temperatura !== null) {
+            $corpo['temperature'] = $temperatura;
+        }
+        if (!empty($opcoes['web_search'])) {
+            $corpo['tools'] = [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 5]];
+        }
 
-        $resposta = $this->enviar($corpo, $chave);
+        $resposta = $this->enviar($corpo, $chave, isset($opcoes['timeout']) ? (int) $opcoes['timeout'] : null);
         if ($resposta['status'] === 0) {
             $falhar('A IA não respondeu a tempo. Tente novamente ou use um comando com / (digite /ajuda).', (string) $resposta['erro']);
         }
@@ -89,22 +97,22 @@ final class Client
             'status' => 'concluida', 'saida' => $texto, 'tokens_entrada' => $tokensEntrada, 'tokens_saida' => $tokensSaida,
             'duracao_ms' => $ms, 'concluido_em' => agora(),
         ]);
-        return new RespostaIA($texto, $execucaoId, $modelo, $tokensEntrada, $tokensSaida, $ms);
+        return new RespostaIA($texto, $execucaoId, $modelo, $tokensEntrada, $tokensSaida, $ms, isset($dados['stop_reason']) ? (string) $dados['stop_reason'] : null);
     }
 
     /** Uma tentativa extra em 429/529/5xx. Timeout não é repetido (dobraria a espera do operador). */
-    private function enviar(array $corpo, string $chave): array
+    private function enviar(array $corpo, string $chave, ?int $timeout): array
     {
-        $resposta = $this->requisitar($corpo, $chave);
+        $resposta = $this->requisitar($corpo, $chave, $timeout);
         if ($resposta['status'] === 429 || $resposta['status'] === 529 || $resposta['status'] >= 500) {
             usleep(800_000);
-            $resposta = $this->requisitar($corpo, $chave);
+            $resposta = $this->requisitar($corpo, $chave, $timeout);
         }
         return $resposta;
     }
 
     /** @return array{status:int,corpo:string,erro:?string} status 0 = falha de rede/timeout */
-    private function requisitar(array $corpo, string $chave): array
+    private function requisitar(array $corpo, string $chave, ?int $timeout): array
     {
         if (self::$transporte !== null) {
             return (self::$transporte)(['corpo' => $corpo, 'chave' => $chave]);
@@ -121,7 +129,7 @@ final class Client
             ],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_TIMEOUT        => max(5, (int) Config::obter('anthropic.timeout', 30)),
+            CURLOPT_TIMEOUT        => max(5, $timeout ?? (int) Config::obter('anthropic.timeout', 30)),
         ];
         // Hospedagens/Windows sem bundle de certificados: caminho do cacert.pem em anthropic.cacert.
         $cacert = (string) Config::obter('anthropic.cacert', '');

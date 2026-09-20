@@ -50,7 +50,8 @@ function diff_html(?array $antes, ?array $depois, ?string $entidade = null): str
     $html = '<dl class="diff">';
     foreach ($campos as $campo) {
         $rotulo = Schema::entidade((string) $entidade)['campos'][$campo]['r']
-            ?? ['_itens' => 'Itens', 'arquivado_em' => 'Arquivado em', 'tags' => 'Tags (ids)', 'contato_id' => 'Contato', 'papel' => 'Papel'][$campo] ?? $campo;
+            ?? ['_itens' => 'Itens', 'arquivado_em' => 'Arquivado em', 'tags' => 'Tags (ids)', 'contato_id' => 'Contato', 'papel' => 'Papel',
+                'origem' => 'Origem', 'etapa' => 'Etapa', 'motivo_perda' => 'Motivo da perda', 'modelo' => 'Modelo', 'tipo_contrato' => 'Tipo de contrato', 'negocio' => 'Negócio'][$campo] ?? $campo;
         $html .= '<div class="diff-linha"><dt>' . e($rotulo) . '</dt><dd>';
         if ($antes !== null && array_key_exists($campo, $antes)) {
             $html .= '<span class="diff-antes">' . e(formatar_valor_campo($entidade, $campo, $antes[$campo])) . '</span>';

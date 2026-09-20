@@ -47,6 +47,7 @@ $abas = [
         <div class="mt-2"><?= tags_painel($tags, $tagsOpcoes, 'contatos', $id, $voltar) ?></div>
     </div>
     <div class="flex flex-wrap items-center gap-2">
+        <?= agentes_botoes('contatos', $id) ?>
         <?= botao('Novo negócio', ['href' => url('/negocios/nova?contato_principal_id=' . $id . ($r['empresa_id'] ? '&empresa_id=' . (int) $r['empresa_id'] : '') . '&voltar=' . rawurlencode($voltar)), 'variante' => 'secondary', 'icone' => 'handshake']) ?>
         <?= botao('Editar', ['href' => url('/contatos/' . $id . '/editar'), 'variante' => 'outline', 'icone' => 'pencil']) ?>
         <?= botao_arquivar(url('/contatos/' . $id . '/arquivar'), 'Arquivar este contato? Você poderá desfazer pela Auditoria.') ?>

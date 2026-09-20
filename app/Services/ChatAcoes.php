@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Repositories\AgenteRepository;
 use App\Repositories\BuscaRepository;
 use App\Repositories\Repositorios;
+use App\Services\AI\AgentRunner;
 use App\Services\AI\ContextBuilder;
 
 /**
@@ -35,6 +37,8 @@ final class ChatAcoes
     public function __construct(
         private readonly ActionExecutor $executor = new ActionExecutor(),
         private readonly BuscaRepository $busca = new BuscaRepository(),
+        private readonly AgenteRepository $agentes = new AgenteRepository(),
+        private readonly AgentRunner $runner = new AgentRunner(),
     ) {
     }
 
@@ -92,8 +96,9 @@ final class ChatAcoes
             case 'indefinido':
                 return RespostaChat::texto($plano['pergunta']);
             case 'agente':
+                return $this->agente($estado);
             case 'squad':
-                return RespostaChat::texto('A execução de agentes e squads ainda não está disponível. Ela chega na próxima fase.');
+                return RespostaChat::texto('A execução de squads ainda não está disponível. Ela chega na Fase 6.');
         }
 
         $acao = $plano['acao'];
@@ -239,6 +244,88 @@ final class ChatAcoes
             'payload'    => ['tipo' => 'escolha', 'estado' => 'aberta', 'ref' => $chave, 'opcoes' => $opcoes, 'pendente' => $estado],
             'ultima_ref' => null,
         ]];
+    }
+
+    // ---- Agentes (@slug) -------------------------------------------------------------------
+
+    /** Chave de ref do registro que cada agente recebe (só as entidades que o chat sabe resolver por nome). */
+    private const REF_DO_AGENTE = ['empresas' => 'empresa', 'contatos' => 'contato', 'negocios' => 'negocio'];
+
+    /**
+     * Executa um agente sobre o registro citado (ou a tela aberta). O registro é resolvido pelo servidor, com os mesmos
+     * botões de desambiguação das demais ações; uma chamada de IA por execução, feita pelo AgentRunner.
+     * Plano: slug, alvo (refs), entrada (texto de apoio) e, no atalho "@slug texto", texto_livre = true
+     * (o texto é o nome do registro ou, se nenhum registro tiver esse nome, o texto de apoio para o registro aberto).
+     */
+    private function agente(array $estado): array
+    {
+        $plano = $estado['plano'];
+        $agente = $this->agentes->porSlug((string) $plano['slug']);
+        if ($agente === null || (int) $agente['ativo'] !== 1) {
+            return RespostaChat::erro('Não encontrei o agente "' . $plano['slug'] . '" ativo. Use /agentes para ver os disponíveis.');
+        }
+        $def = $agente['def'];
+        $entidade = (string) $def['entrada'];
+        $entrada = $plano['entrada'] ?? null;
+        $registroId = null;
+
+        if ($entidade === 'nenhuma') {
+            $entrada ??= $plano['texto'] ?? null;
+        } else {
+            $tela = $estado['tela'] ?? null;
+            $ultima = $estado['ultima_ref'] ?? null;
+            $chave = self::REF_DO_AGENTE[$entidade] ?? null;
+            $alvo = (array) ($plano['alvo'] ?? []);
+            $valor = $chave !== null ? ($alvo[$chave] ?? null) : null;
+            $valor ??= $alvo !== [] ? reset($alvo) : null;
+            $singular = mb_strtolower(Schema::entidade($entidade)['singular']);
+
+            if ($chave === null) {
+                // Propostas e contratos não são resolvidos por nome: aceita o id ("@agente 12") ou o botão do registro.
+                if ($valor !== null && ctype_digit((string) $valor)) {
+                    $registroId = (int) $valor;
+                } else {
+                    return RespostaChat::erro("Este agente trabalha sobre {$entidade}. Abra o registro e use o botão Agentes, ou informe o id: @{$agente['slug']} 12.");
+                }
+            } elseif (isset($estado['resolvidas'][$chave])) {
+                $registroId = (int) $estado['resolvidas'][$chave];
+            } elseif ($valor === null) {
+                foreach ([$tela, $ultima] as $contexto) {
+                    if ($contexto !== null && $contexto['entidade'] === $entidade) {
+                        $registroId = (int) $contexto['id'];
+                        break;
+                    }
+                }
+                if ($registroId === null) {
+                    return RespostaChat::texto("Sobre qual {$singular}? Informe o nome (@{$agente['slug']} Nome) ou abra o registro e repita.");
+                }
+            } elseif (is_int($valor)) {
+                $registroId = $valor;
+            } else {
+                $achados = $this->busca->resolver($chave, (string) $valor, null);
+                if ($achados !== []) {
+                    $resolucao = $this->resolverReferencia($chave, (string) $valor, $estado, true);
+                    if (!isset($resolucao['id'])) {
+                        return $resolucao['resposta'];
+                    }
+                    $registroId = (int) $resolucao['id'];
+                } elseif (!empty($plano['texto_livre']) && $tela !== null && $tela['entidade'] === $entidade) {
+                    // Nenhum registro com esse nome: com o registro certo aberto, o texto vira apoio para o agente.
+                    $registroId = (int) $tela['id'];
+                    $entrada = (string) $valor;
+                } else {
+                    return RespostaChat::erro("Não encontrei {$singular} \"{$valor}\".");
+                }
+            }
+        }
+
+        try {
+            $resultado = $this->runner->executar($agente, $registroId, $entrada);
+        } catch (\InvalidArgumentException $e) {
+            return RespostaChat::erro($e->getMessage());
+        }
+        $ref = $entidade !== 'nenhuma' && $registroId !== null ? ContextBuilder::ref($entidade, $registroId) : null;
+        return RespostaChat::agente((string) $agente['nome'], $resultado, $entidade !== 'nenhuma' ? $entidade : null, $registroId, $ref);
     }
 
     // ---- Execução ------------------------------------------------------------------------

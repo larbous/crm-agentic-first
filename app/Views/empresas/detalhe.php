@@ -69,6 +69,7 @@ $abas = [
         <div class="mt-2"><?= tags_painel($tags, $tagsOpcoes, 'empresas', $id, $voltar) ?></div>
     </div>
     <div class="flex flex-wrap items-center gap-2">
+        <?= agentes_botoes('empresas', $id) ?>
         <?php if ($r['status'] !== 'cliente'): ?>
             <form method="post" action="<?= e(url('/empresas/' . $id . '/converter')) ?>" data-confirmar="Converter esta empresa em cliente?">
                 <?= csrf_field() ?><input type="hidden" name="voltar" value="<?= e($voltar) ?>">

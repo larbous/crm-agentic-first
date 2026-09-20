@@ -21,6 +21,7 @@ use Throwable;
 final class ActionExecutor
 {
     use AcoesDocumentos;
+    use AcoesAgentes;
 
     private const PADROES = [
         'empresas' => ['status' => 'lead'],

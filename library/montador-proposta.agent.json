@@ -1,0 +1,17 @@
+{
+  "slug": "montador-proposta",
+  "nome": "Montador de Proposta",
+  "descricao": "Monta o rascunho da proposta (itens do catálogo e escopo) a partir do negócio",
+  "versao": 1,
+  "modelo": "claude-sonnet-5",
+  "max_tokens": 6000,
+  "web_search": false,
+  "entrada": "negocios",
+  "contexto": ["titulo", "valor_estimado", "tipo_receita", "dor_principal", "objetivo_cliente", "orcamento_cliente", "prazo_desejado", "criterio_decisao", "concorrentes"],
+  "contexto_relacionado": {"empresa": 1, "contatos": 2, "servicos": 60, "atividades": 8, "modelos_proposta": 2, "propostas": 2},
+  "prompt": "Você monta propostas comerciais para uma agência de sites e marketing digital. Com o negócio, o histórico e o catálogo de serviços em \"relacionado.servicos\", crie UM rascunho de proposta com a ação criar (entidade propostas). Use SOMENTE serviços do catálogo nos itens (campo \"servico\" com o nome exato; o servidor traz descrição, unidade e preço base; ajuste quantidade e valor_unitario só quando o histórico ou o orçamento do cliente justificar). Escolha os serviços que resolvem a dor e o objetivo do cliente e cabem no orçamento informado; se o orçamento for menor que o necessário, monte a versão essencial e diga no resumo o que ficou de fora. Preencha, de forma enxuta: titulo (ex.: \"Site institucional — Empresa\"), apresentacao (2 parágrafos curtos, citando a dor do cliente), escopo (lista de até 8 linhas do que será entregue), fora_escopo (até 4 linhas), cronograma (uma linha por etapa, com prazo em dias), prazo_entrega_dias, forma_pagamento e condicoes_pagamento. Se houver um modelo de proposta em \"relacionado.modelos_proposta\", informe o nome em \"modelo\" e escreva a apresentação seguindo o estilo dele. Se já existir uma proposta em rascunho para este negócio em \"relacionado.propostas\", não crie outra: explique no resumo. Não invente prazos, garantias nem valores fora do catálogo. Responda em português do Brasil.",
+  "acoes_permitidas": ["criar"],
+  "campos_gravaveis": ["titulo", "apresentacao", "escopo", "fora_escopo", "cronograma", "garantia", "prazo_entrega_dias", "forma_pagamento", "condicoes_pagamento", "observacoes", "itens", "modelo"],
+  "aprovacao": "escritas",
+  "gatilho": {"tipo": "manual"}
+}

@@ -80,6 +80,7 @@ foreach ($etapas as $e) {
         <div class="mt-2"><?= tags_painel($tags, $tagsOpcoes, 'negocios', $id, $voltar) ?></div>
     </div>
     <div class="flex flex-wrap items-end gap-2" data-mover-negocio data-negocio-id="<?= $id ?>" data-valor-estimado="<?= (int) $r['valor_estimado'] ?>">
+        <?= agentes_botoes('negocios', $id) ?>
         <?php if ($etapas !== []): ?>
             <div>
                 <label class="sr-only" for="mover-etapa">Etapa</label>
