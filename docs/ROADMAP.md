@@ -142,8 +142,10 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 
 ## Fase 9 — Ações rápidas de IA e Metas
 
-- [ ] Botões de ações rápidas em campos de texto longos e na timeline (SPEC §8)
-- [ ] Migração: `metas`; cadastro e cálculo de progresso
-- [ ] Metas no dashboard e no contexto do `analista-pipeline`
+- [x] Botões de ações rápidas em campos de texto longos e na timeline (SPEC §8)
+- [x] Migração: `metas`; cadastro e cálculo de progresso
+- [x] Metas no dashboard e no contexto do `analista-pipeline`
 
 **Pronto quando:** as ações rápidas funcionam em qualquer campo longo e o relatório semanal compara realizado × meta.
+
+> **Verificado (2026-09-20):** `tests/MetasTest.php` (fim do período, validação, progresso dos 5 tipos, ritmo, filtros, contexto do analista, card do Início) e `tests/AcoesRapidasTest.php` (prompts, limites, contexto de resumir/responder montado pelo servidor, registro em `execucoes`, botões renderizados) passam. Manualmente (`php -S` com banco descartável via `CRM_DB_CAMINHO`): meta criada pelo formulário com valor em reais e com milhar, detalhe, edição, lista e card do Início; as cinco ações rápidas rodaram contra a API real da Anthropic (Haiku) e aparecem em Execuções como "Ação rápida". **Não verificado em navegador:** o comportamento do `ia-rapida.js` (painel, "Usar este texto", preenchimento do campo Detalhes) só teve a sintaxe checada (`node --check`) e o HTML/endpoint testados; nenhum clique foi exercitado. O agente `analista-pipeline` v2 não rodou contra a API com metas reais (só a montagem do contexto foi testada).

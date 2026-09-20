@@ -45,7 +45,7 @@ foreach ($negocios as $n) {
 }
 
 $abas = [
-    ['rotulo' => 'Timeline', 'html' => atividade_form(['empresa_id' => $id], $voltar) . timeline($atividades, ['voltar' => $voltar, 'contexto' => true])],
+    ['rotulo' => 'Timeline', 'html' => atividade_form(['empresa_id' => $id], $voltar) . timeline_ia('empresas', $id) . timeline($atividades, ['voltar' => $voltar, 'contexto' => true])],
     ['rotulo' => 'Contatos', 'contagem' => count($contatos), 'html' =>
         '<div class="mb-2 flex justify-end">' . botao('Novo contato', ['href' => url('/contatos/nova?empresa_id=' . $id . '&voltar=' . rawurlencode($voltar)), 'variante' => 'outline', 'tamanho' => 'sm', 'icone' => 'plus']) . '</div>'
         . ($colContatos ? tabela(['nome' => 'Nome', 'cargo' => 'Cargo', 'email' => 'E-mail', 'fone' => 'Telefone', 'status' => 'Status'], $colContatos) : vazio('Sem contatos', 'Nenhum contato vinculado a esta empresa.', ['icone' => 'users']))],

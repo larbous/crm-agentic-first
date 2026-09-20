@@ -65,6 +65,7 @@ final class Schema
             'proposta_itens' => self::propostaItens(),
             'contratos'     => self::contratos(),
             'campos_extras_def' => self::camposExtrasDef(),
+            'metas'         => self::metas(),
         ];
     }
 
@@ -118,6 +119,8 @@ final class Schema
             'indice_reajuste'  => ['nenhum' => 'Nenhum', 'ipca' => 'IPCA', 'igpm' => 'IGP-M', 'fixo' => 'Fixo'],
             'entidade_extra'  => ['empresas' => 'Empresa', 'contatos' => 'Contato', 'negocios' => 'Negócio'],
             'tipo_extra'      => ['texto' => 'Texto', 'numero' => 'Número', 'data' => 'Data', 'select' => 'Lista de opções', 'checkbox' => 'Sim/Não', 'url' => 'Link (URL)', 'textarea' => 'Texto longo'],
+            'tipo_meta'       => ['faturamento' => 'Faturamento', 'mrr' => 'MRR', 'novos_clientes' => 'Novos clientes', 'propostas_enviadas' => 'Propostas enviadas', 'negocios_ganhos' => 'Negócios ganhos'],
+            'periodo_meta'    => ['mensal' => 'Mensal', 'trimestral' => 'Trimestral', 'anual' => 'Anual'],
             'entidade_anexo'  => ['empresas' => 'Empresa', 'contatos' => 'Contato', 'negocios' => 'Negócio', 'propostas' => 'Proposta', 'contratos' => 'Contrato'],
         ][$nome];
     }
@@ -342,6 +345,19 @@ final class Schema
             'obrigatorio' => $f('bool', 'Obrigatório', 'dados'),
             'ordem'       => $f('int', 'Ordem', 'dados', ['min' => 0, 'max' => 1000]),
             'ativo'       => $f('bool', 'Ativo', 'dados'),
+        ]];
+    }
+
+    /** Metas (SPEC §4.11). valor_alvo: centavos (faturamento, mrr) ou quantidade; data_fim é derivada (ver Metas). */
+    private static function metas(): array
+    {
+        $f = self::f(...);
+        return ['tabela' => 'metas', 'singular' => 'Meta', 'plural' => 'Metas', 'genero' => 'f', 'campos' => [
+            'tipo'        => $f('enum', 'Tipo', 'dados', ['op' => 'tipo_meta', 'req' => true]),
+            'periodo'     => $f('enum', 'Período', 'dados', ['op' => 'periodo_meta', 'req' => true]),
+            'valor_alvo'  => $f('int', 'Valor alvo', 'dados', ['req' => true, 'min' => 1, 'max' => 100000000000]),
+            'data_inicio' => $f('data', 'Início', 'dados', ['req' => true]),
+            'data_fim'    => $f('data', 'Fim', 'dados', ['sis' => true]),
         ]];
     }
 

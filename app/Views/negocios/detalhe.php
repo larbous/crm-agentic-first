@@ -47,7 +47,7 @@ $formVinc = '<form method="post" action="' . e(url('/negocios/' . $id . '/contat
     . botao('Vincular', ['tipo' => 'submit', 'variante' => 'outline', 'icone' => 'plus']) . '</form>';
 
 $abas = [
-    ['rotulo' => 'Timeline', 'html' => atividade_form(['negocio_id' => $id, 'empresa_id' => (int) $r['empresa_id']], $voltar) . timeline($atividades, ['voltar' => $voltar, 'contexto' => true])],
+    ['rotulo' => 'Timeline', 'html' => atividade_form(['negocio_id' => $id, 'empresa_id' => (int) $r['empresa_id']], $voltar) . timeline_ia('negocios', $id) . timeline($atividades, ['voltar' => $voltar, 'contexto' => true])],
     ['rotulo' => 'Contatos', 'contagem' => count($vinculados), 'html' => $formVinc . ($linhasVinc !== '' ? '<ul>' . $linhasVinc . '</ul>' : vazio('Nenhum contato vinculado', 'Além do contato principal, vincule quem participa da decisão.', ['icone' => 'users']))],
     ['rotulo' => 'Propostas', 'contagem' => count($propostas), 'html' =>
         '<div class="mb-2 flex justify-end">' . botao('Nova proposta', ['href' => url('/propostas/nova?negocio_id=' . $id), 'variante' => 'outline', 'tamanho' => 'sm', 'icone' => 'plus']) . '</div>'

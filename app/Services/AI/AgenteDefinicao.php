@@ -26,7 +26,7 @@ final class AgenteDefinicao
     public const RELACIONADOS = [
         'atividades' => 30, 'tarefas' => 30, 'contatos' => 10, 'negocios' => 10, 'propostas' => 5, 'contratos' => 5,
         'servicos' => 60, 'modelos_proposta' => 5, 'modelos_contrato' => 5, 'modelos_mensagem' => 5, 'empresa' => 1,
-        'negocios_parados' => 50, 'previsoes_vencidas' => 50, 'tarefas_atrasadas' => 50,
+        'negocios_parados' => 50, 'previsoes_vencidas' => 50, 'tarefas_atrasadas' => 50, 'metas' => 10,
     ];
 
     private const CHAVES = [

@@ -12,7 +12,7 @@ final class ExecucaoRepository
     /** Colunas aceitas em iniciar()/atualizar(). */
     private const COLUNAS = [
         'agente_id', 'squad_id', 'squad_execucao_id', 'etapa_ordem', 'entidade', 'registro_id', 'entrada', 'saida',
-        'status', 'modelo', 'tokens_entrada', 'tokens_saida', 'duracao_ms', 'erro', 'iniciado_em', 'concluido_em', 'simulacao',
+        'status', 'modelo', 'tokens_entrada', 'tokens_saida', 'duracao_ms', 'erro', 'iniciado_em', 'concluido_em', 'simulacao', 'acao_rapida',
     ];
 
     public function iniciar(array $dados): int
@@ -42,7 +42,7 @@ final class ExecucaoRepository
     }
 
     /**
-     * Histórico paginado (mais recentes primeiro), com o nome do agente. Filtros: status, agente_id, tipo (agentes|roteador).
+     * Histórico paginado (mais recentes primeiro), com o nome do agente. Filtros: status, agente_id, tipo (agentes|squads|roteador|acoes_rapidas).
      * @return array{linhas:list<array>,total:int,pagina:int,por_pagina:int,paginas:int}
      */
     public function listar(array $filtros = [], int $pagina = 1, int $porPagina = 30): array
@@ -62,7 +62,9 @@ final class ExecucaoRepository
         } elseif (($filtros['tipo'] ?? '') === 'squads') {
             $onde[] = 'x.squad_id IS NOT NULL AND x.squad_execucao_id IS NULL';
         } elseif (($filtros['tipo'] ?? '') === 'roteador') {
-            $onde[] = 'x.agente_id IS NULL AND x.squad_id IS NULL';
+            $onde[] = 'x.agente_id IS NULL AND x.squad_id IS NULL AND x.acao_rapida IS NULL';
+        } elseif (($filtros['tipo'] ?? '') === 'acoes_rapidas') {
+            $onde[] = 'x.acao_rapida IS NOT NULL';
         }
         $where = implode(' AND ', $onde);
 

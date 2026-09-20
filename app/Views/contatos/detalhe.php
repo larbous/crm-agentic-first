@@ -28,7 +28,7 @@ foreach ($negocios as $n) {
     ];
 }
 $abas = [
-    ['rotulo' => 'Timeline', 'html' => atividade_form(['contato_id' => $id], $voltar) . timeline($atividades, ['voltar' => $voltar, 'contexto' => true])],
+    ['rotulo' => 'Timeline', 'html' => atividade_form(['contato_id' => $id], $voltar) . timeline_ia('contatos', $id) . timeline($atividades, ['voltar' => $voltar, 'contexto' => true])],
     ['rotulo' => 'Negócios', 'contagem' => count($negocios), 'html' => $colNegocios
         ? tabela(['codigo' => 'Código', 'titulo' => 'Negócio', 'etapa' => 'Etapa', 'valor' => 'Valor', 'status' => 'Status'], $colNegocios)
         : vazio('Sem negócios', 'Este contato não está ligado a nenhum negócio.', ['icone' => 'handshake'])],

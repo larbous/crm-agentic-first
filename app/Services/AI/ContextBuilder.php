@@ -9,6 +9,7 @@ use App\Repositories\ContextoAgenteRepository;
 use App\Repositories\ItemPropostaRepository;
 use App\Repositories\Repositorios;
 use App\Services\CamposExtras;
+use App\Services\Metas;
 use App\Services\Schema;
 
 /**
@@ -177,6 +178,7 @@ final class ContextBuilder
                 'negocios_parados' => $this->negociosParados($ctx, $n, $hoje),
                 'previsoes_vencidas' => $this->somenteValores($ctx->previsoesVencidas($hoje, $n), ['valor_estimado']),
                 'tarefas_atrasadas' => $ctx->tarefasAtrasadas($hoje, $n),
+                'metas' => $this->metas($hoje, $n),
                 default => [],
             };
             if ($linhas !== []) {
@@ -342,6 +344,26 @@ final class ContextBuilder
             'dias_na_etapa' => (int) floor((strtotime($hoje) - strtotime((string) $l['entrou_etapa_em'])) / 86400),
             'valor_estimado' => $l['valor_estimado'] !== null ? (int) $l['valor_estimado'] / 100 : null,
         ], static fn ($v): bool => $v !== null && $v !== ''), $ctx->negociosParados($limite, $n));
+    }
+
+    /**
+     * Metas vigentes com o realizado calculado pelo servidor (a IA compara, não calcula). Dinheiro em reais; `ritmo_esperado_pct`
+     * (avanço linear do período) só existe em metas acumuladas.
+     */
+    private function metas(string $hoje, int $n): array
+    {
+        return array_map(static function (array $p): array {
+            $dinheiro = Metas::monetaria($p['tipo']);
+            return array_filter([
+                'meta' => Schema::opcoes('tipo_meta')[$p['tipo']] ?? $p['tipo'],
+                'periodo' => Schema::opcoes('periodo_meta')[$p['periodo']] ?? $p['periodo'],
+                'inicio' => $p['inicio'], 'fim' => $p['fim'], 'dias_restantes' => $p['dias_restantes'],
+                'alvo' => $dinheiro ? $p['alvo'] / 100 : $p['alvo'],
+                'realizado' => $dinheiro ? $p['realizado'] / 100 : $p['realizado'],
+                'percentual_atingido' => $p['percentual'], 'ritmo_esperado_pct' => $p['esperado'],
+                'situacao' => Metas::SITUACOES[$p['situacao']][0],
+            ], static fn ($v): bool => $v !== null && $v !== '');
+        }, array_slice(Metas::vigentes($hoje), 0, $n));
     }
 
     /** Converte centavos em reais nas colunas indicadas e remove vazios. */

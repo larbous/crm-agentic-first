@@ -18,6 +18,8 @@ use App\Controllers\EmpresaController;
 use App\Controllers\ExecucaoController;
 use App\Controllers\FormularioController;
 use App\Controllers\FormularioPublicoController;
+use App\Controllers\IaRapidaController;
+use App\Controllers\MetaController;
 use App\Controllers\NegocioController;
 use App\Controllers\ModeloController;
 use App\Controllers\PaginaController;
@@ -64,6 +66,12 @@ return static function (Router $r): void {
         PropostaController::registrarExtras($r);
         CrudController::registrar($r, '/contratos', ContratoController::class);
         ContratoController::registrarExtras($r);
+
+        // Ações rápidas de IA (melhorar texto, tom, resumir histórico, sugerir resposta)
+        IaRapidaController::registrar($r);
+
+        // Metas comerciais
+        CrudController::registrar($r, '/metas', MetaController::class);
 
         // Agentes e squads de IA, ações pendentes de aprovação e execuções
         AgenteController::registrar($r);

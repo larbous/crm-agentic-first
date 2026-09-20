@@ -36,7 +36,7 @@ function campos_extras_celulas(string $entidade, mixed $valores, array $erros = 
 
         switch ($def['tipo']) {
             case 'textarea':
-                $campo = $base + ['tipo' => 'textarea'];
+                $campo = $base + ['tipo' => 'textarea', 'ia' => true];
                 break;
             case 'checkbox':
                 $campo = ['tipo' => 'switch', 'valor' => $valor !== '' && $valor !== '0'] + $base;

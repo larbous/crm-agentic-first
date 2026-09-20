@@ -1,7 +1,6 @@
 <?php
 /**
- * Início (SPEC §9): chat, tarefas de hoje/atrasadas, funil por etapa, negócios parados, contratos vencendo e ações pendentes.
- * As metas entram com a Fase 9.
+ * Início (SPEC §9): chat, tarefas de hoje/atrasadas, funil por etapa, negócios parados, contratos vencendo, ações pendentes e metas.
  * @var array $usuario
  * @var list<array> $atrasadas
  * @var list<array> $hoje
@@ -11,6 +10,7 @@
  * @var array{total:int,linhas:list<array>} $parados
  * @var array{total:int,linhas:list<array>} $contratos
  * @var int $acoesPendentes
+ * @var list<array> $metas metas vigentes com progresso (Metas::vigentes)
  */
 use App\Controllers\PaginaController;
 
@@ -79,6 +79,8 @@ $primeiroNome = explode(' ', trim($usuario['nome']))[0];
     </div>
 
     <div class="grid content-start gap-4">
+        <?= metas_card($metas) ?>
+
         <?php
         $pendentes = $acoesPendentes > 0
             ? '<p class="text-3xl font-semibold">' . $acoesPendentes . '</p><p class="text-muted-foreground pb-3 text-sm">aguardando sua aprovação</p>'

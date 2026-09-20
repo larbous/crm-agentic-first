@@ -27,6 +27,7 @@ $comercial = [
     ['/servicos', 'Serviços', 'package'],
     ['/modelos', 'Modelos', 'layout-template'],
     ['/formularios', 'Formulários', 'clipboard-list'],
+    ['/metas', 'Metas', 'target'],
 ];
 $ia = [
     ['/agentes', 'Agentes', 'bot'],
@@ -159,6 +160,7 @@ $item = static function (array $n) use ($ativo, $acoesPendentes): string {
 <script type="module" src="<?= e(asset('js/chat.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/busca.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/forms.js')) ?>"></script>
+<script type="module" src="<?= e(asset('js/ia-rapida.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/kanban.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/propostas.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/modelos.js')) ?>"></script>

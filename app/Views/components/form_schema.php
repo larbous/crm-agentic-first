@@ -48,7 +48,7 @@ function campos_do_schema(string $entidade, string $grupo, array $valores, array
 
         switch ($def['t']) {
             case 'textarea':
-                $campo = $base + ['tipo' => 'textarea'];
+                $campo = $base + ['tipo' => 'textarea', 'ia' => true];
                 break;
             case 'html':
                 $campo = $base + ['tipo' => 'textarea', 'linhas' => 22];

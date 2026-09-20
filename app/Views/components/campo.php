@@ -5,7 +5,8 @@ declare(strict_types=1);
 /**
  * Campo de formulário: label + controle + ajuda + erro (Basecoat .field).
  * Opções: nome (obrigatório), rotulo, tipo (text|email|password|number|date|search|tel|url|textarea|checkbox|switch),
- * valor, placeholder, ajuda, erro, obrigatorio, desabilitado, attrs (do controle), controle_html (controle pronto, ex.: select()).
+ * valor, placeholder, ajuda, erro, obrigatorio, desabilitado, attrs (do controle), controle_html (controle pronto, ex.: select()),
+ * ia (bool, só textarea: mostra as ações rápidas de IA — melhorar texto, tom formal, tom amigável; só em telas internas).
  */
 function campo(array $o): string
 {
@@ -32,7 +33,7 @@ function campo(array $o): string
         $controle = $o['controle_html'];
     } elseif ($tipo === 'textarea') {
         $controle = '<textarea' . attrs_html(array_merge(['class' => 'textarea'], $comum, ['rows' => $o['linhas'] ?? 4], $extras)) . '>'
-            . e($valor) . '</textarea>';
+            . e($valor) . '</textarea>' . (!empty($o['ia']) ? ia_rapida_texto($id) : '');
     } elseif ($tipo === 'checkbox' || $tipo === 'switch') {
         $attrs = array_merge($comum, [
             'type'    => 'checkbox',

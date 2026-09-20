@@ -35,7 +35,7 @@ function atividade_form(array $vinculos, string $voltar): string
         . '<div>' . campo(['nome' => 'tipo', 'rotulo' => 'Tipo', 'id' => 'atv-tipo', 'controle_html' => select('tipo', $tipos, 'nota', ['id' => 'atv-tipo', 'obrigatorio' => true])]) . '</div>'
         . '<div>' . campo(['nome' => 'assunto', 'rotulo' => 'Assunto', 'id' => 'atv-assunto', 'placeholder' => 'Resumo curto', 'attrs' => ['maxlength' => 200]]) . '</div>'
         . '<div>' . campo(['nome' => 'data_hora', 'rotulo' => 'Data e hora', 'id' => 'atv-data', 'tipo' => 'datetime-local', 'valor' => date('Y-m-d\TH:i')]) . '</div>'
-        . '<div class="md:col-span-3">' . campo(['nome' => 'descricao', 'rotulo' => 'Detalhes', 'id' => 'atv-desc', 'tipo' => 'textarea', 'linhas' => 2, 'placeholder' => 'O que foi conversado ou combinado…']) . '</div>'
+        . '<div class="md:col-span-3">' . campo(['nome' => 'descricao', 'rotulo' => 'Detalhes', 'id' => 'atv-desc', 'tipo' => 'textarea', 'ia' => true, 'linhas' => 2, 'placeholder' => 'O que foi conversado ou combinado…']) . '</div>'
         . '<div class="md:col-span-3">' . botao('Registrar atividade', ['tipo' => 'submit', 'icone' => 'plus', 'tamanho' => 'sm']) . '</div></form>';
     return card(['classe' => 'mb-4', 'tamanho' => 'sm', 'titulo' => 'Nova atividade', 'corpo_html' => $corpo]);
 }

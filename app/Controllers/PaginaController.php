@@ -8,6 +8,7 @@ use App\Core\Response;
 use App\Core\View;
 use App\Repositories\AcaoPendenteRepository;
 use App\Repositories\Repositorios;
+use App\Services\Metas;
 
 /** Páginas do layout base (Início e telas ainda vazias, que ganham conteúdo nas próximas fases). */
 final class PaginaController
@@ -30,6 +31,7 @@ final class PaginaController
             'funil'     => $pipeline !== null ? Repositorios::negocios()->resumoPorEtapa((int) $pipeline['id']) : [],
             'parados'   => Repositorios::negocios()->parados(self::DIAS_NEGOCIO_PARADO),
             'contratos' => Repositorios::contratos()->vencendo(self::DIAS_CONTRATO_VENCENDO),
+            'metas'     => Metas::vigentes(),
             'acoesPendentes' => (new AcaoPendenteRepository())->contarPendentes(),
         ]);
     }

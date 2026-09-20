@@ -731,6 +731,10 @@ final class ActionExecutor
                 $erros += $this->regrasCampoExtra($v, null);
                 break;
 
+            case 'metas':
+                $extra['data_fim'] = Metas::fimDoPeriodo((string) $v['data_inicio'], (string) $v['periodo']);
+                break;
+
             case 'modelos_documento':
                 $v['conteudo'] ??= '';
                 if (($v['tipo'] ?? '') === 'contrato') {
@@ -799,6 +803,11 @@ final class ActionExecutor
 
             case 'contratos':
                 $erros += $this->regrasAtualizarContrato($atual, $novos);
+                break;
+
+            case 'metas':
+                // O fim do período acompanha o tipo de período e a data de início.
+                $derivados['data_fim'] = Metas::fimDoPeriodo((string) ($novos['data_inicio'] ?? $atual['data_inicio']), (string) ($novos['periodo'] ?? $atual['periodo']));
                 break;
         }
 
@@ -1056,6 +1065,9 @@ final class ActionExecutor
 
     private function nomeDoRegistro(array $registro): string
     {
+        if (isset($registro['valor_alvo'], $registro['data_fim'])) {
+            return Metas::rotulo($registro);
+        }
         return (string) ($registro['nome_fantasia'] ?? $registro['titulo'] ?? $registro['nome'] ?? $registro['nome_original'] ?? $registro['rotulo'] ?? ('#' . ($registro['id'] ?? '')));
     }
 
