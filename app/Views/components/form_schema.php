@@ -32,6 +32,10 @@ function campos_do_schema(string $entidade, string $grupo, array $valores, array
         if ($def['g'] !== $grupo || in_array($nome, $o['ocultar'] ?? [], true)) {
             continue;
         }
+        if ($def['t'] === 'extras') {
+            $html .= campos_extras_celulas($entidade, $valores[$nome] ?? null, $erros);
+            continue;
+        }
         $base = [
             'nome'        => $nome,
             'rotulo'      => $def['r'],

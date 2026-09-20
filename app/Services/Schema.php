@@ -11,7 +11,8 @@ namespace App\Services;
  * Campo: t = tipo, r = rótulo, g = grupo (aba do formulário), req = obrigatório, op = opções (enum),
  * fk = tabela referenciada, max = tamanho máximo, sis = controlado pelo servidor (não aceito em entrada),
  * l = largura no formulário (2 = linha inteira).
- * Tipos: texto textarea email tel url int money data datahora vencimento enum bool fk cnpj cpf cep uf cor.
+ * Tipos: texto textarea email tel url int money data datahora vencimento enum bool fk cnpj cpf cep uf cor extras
+ * (extras = JSON de campos definidos pelo operador; ver CamposExtras).
  */
 final class Schema
 {
@@ -63,6 +64,7 @@ final class Schema
             'propostas'     => self::propostas(),
             'proposta_itens' => self::propostaItens(),
             'contratos'     => self::contratos(),
+            'campos_extras_def' => self::camposExtrasDef(),
         ];
     }
 
@@ -114,6 +116,8 @@ final class Schema
             'status_contrato'  => ['rascunho' => 'Rascunho', 'enviado' => 'Enviado', 'assinado' => 'Assinado', 'ativo' => 'Ativo', 'vencido' => 'Vencido', 'cancelado' => 'Cancelado', 'renovado' => 'Renovado'],
             'recorrencia_contrato' => ['unica' => 'Única', 'mensal' => 'Mensal', 'anual' => 'Anual'],
             'indice_reajuste'  => ['nenhum' => 'Nenhum', 'ipca' => 'IPCA', 'igpm' => 'IGP-M', 'fixo' => 'Fixo'],
+            'entidade_extra'  => ['empresas' => 'Empresa', 'contatos' => 'Contato', 'negocios' => 'Negócio'],
+            'tipo_extra'      => ['texto' => 'Texto', 'numero' => 'Número', 'data' => 'Data', 'select' => 'Lista de opções', 'checkbox' => 'Sim/Não', 'url' => 'Link (URL)', 'textarea' => 'Texto longo'],
             'entidade_anexo'  => ['empresas' => 'Empresa', 'contatos' => 'Contato', 'negocios' => 'Negócio', 'propostas' => 'Proposta', 'contratos' => 'Contrato'],
         ][$nome];
     }
@@ -182,6 +186,7 @@ final class Schema
             'utm_content'     => $f('texto', 'utm_content', 'aquisicao', ['max' => 190]),
             // Controle
             'notas'           => $f('textarea', 'Notas', 'extras', ['l' => 2]),
+            'campos_extras'   => $f('extras', 'Campos extras', 'extras', ['l' => 2]),
         ]];
     }
 
@@ -218,6 +223,7 @@ final class Schema
             'nivel_relacionamento' => $f('int', 'Nível de relacionamento (1–5)', 'relacionamento', ['min' => 1, 'max' => 5]),
             'interesses'      => $f('textarea', 'Interesses', 'relacionamento', ['l' => 2]),
             'notas'           => $f('textarea', 'Notas', 'extras', ['l' => 2]),
+            'campos_extras'   => $f('extras', 'Campos extras', 'extras', ['l' => 2]),
         ]];
     }
 
@@ -260,6 +266,7 @@ final class Schema
             'utm_term'        => $f('texto', 'utm_term', 'aquisicao', ['max' => 190]),
             'utm_content'     => $f('texto', 'utm_content', 'aquisicao', ['max' => 190]),
             'notas'           => $f('textarea', 'Notas', 'extras', ['l' => 2]),
+            'campos_extras'   => $f('extras', 'Campos extras', 'extras', ['l' => 2]),
         ]];
     }
 
@@ -319,6 +326,22 @@ final class Schema
         return ['tabela' => 'tags', 'singular' => 'Tag', 'plural' => 'Tags', 'genero' => 'f', 'campos' => [
             'nome' => $f('texto', 'Nome', 'dados', ['req' => true, 'max' => 60]),
             'cor'  => $f('cor', 'Cor', 'dados'),
+        ]];
+    }
+
+    /** Definição dos campos extras (SPEC §4.12). Chave e entidade não mudam depois de criadas. */
+    private static function camposExtrasDef(): array
+    {
+        $f = self::f(...);
+        return ['tabela' => 'campos_extras_def', 'singular' => 'Campo extra', 'plural' => 'Campos extras', 'genero' => 'm', 'campos' => [
+            'entidade'    => $f('enum', 'Entidade', 'dados', ['op' => 'entidade_extra', 'req' => true]),
+            'chave'       => $f('texto', 'Chave', 'dados', ['req' => true, 'max' => 40]),
+            'rotulo'      => $f('texto', 'Rótulo', 'dados', ['req' => true, 'max' => 80]),
+            'tipo'        => $f('enum', 'Tipo', 'dados', ['op' => 'tipo_extra', 'req' => true]),
+            'opcoes'      => $f('textarea', 'Opções (uma por linha)', 'dados', ['max' => 2000]),
+            'obrigatorio' => $f('bool', 'Obrigatório', 'dados'),
+            'ordem'       => $f('int', 'Ordem', 'dados', ['min' => 0, 'max' => 1000]),
+            'ativo'       => $f('bool', 'Ativo', 'dados'),
         ]];
     }
 

@@ -74,7 +74,7 @@ if ($id !== null) {
 // ---- Referência
 $ref = '<dl class="grid gap-2 text-sm">'
     . '<div><dt class="font-medium">entrada</dt><dd class="text-muted-foreground">' . e(implode(', ', AgenteDefinicao::ENTRADAS)) . '</dd></div>'
-    . '<div><dt class="font-medium">contexto</dt><dd class="text-muted-foreground">Únicos campos do registro enviados à IA (nomes de coluna da entidade de entrada).</dd></div>'
+    . '<div><dt class="font-medium">contexto</dt><dd class="text-muted-foreground">Únicos campos do registro enviados à IA (nomes de coluna da entidade de entrada; campos extras como extra.chave).</dd></div>'
     . '<div><dt class="font-medium">contexto_relacionado</dt><dd class="text-muted-foreground">' . e(implode(', ', array_keys(AgenteDefinicao::RELACIONADOS))) . ' (quantidade máxima por chave).</dd></div>'
     . '<div><dt class="font-medium">acoes_permitidas</dt><dd class="text-muted-foreground">' . e(implode(', ', AcaoAgente::ACOES)) . '. O texto longo do agente vira nota no registro.</dd></div>'
     . '<div><dt class="font-medium">campos_gravaveis</dt><dd class="text-muted-foreground">Campos que atualizar/criar podem gravar, além de: ' . e(implode(', ', AcaoAgente::PSEUDOS)) . ' (a IA informa o nome, o servidor acha o registro).</dd></div>'

@@ -31,6 +31,7 @@ final class Repositorios
             'contrato_tipos' => new SimplesRepository('contrato_tipos'),
             'propostas'     => new PropostaRepository(),
             'contratos'     => new ContratoRepository(),
+            'campos_extras_def' => new CampoExtraRepository(),
             default         => throw new InvalidArgumentException("Entidade desconhecida: {$entidade}"),
         };
     }
@@ -48,4 +49,5 @@ final class Repositorios
     public static function modelos(): ModeloRepository { return self::para('modelos_documento'); }
     public static function propostas(): PropostaRepository { return self::para('propostas'); }
     public static function contratos(): ContratoRepository { return self::para('contratos'); }
+    public static function camposExtras(): CampoExtraRepository { return self::para('campos_extras_def'); }
 }

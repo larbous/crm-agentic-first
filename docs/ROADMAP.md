@@ -115,12 +115,14 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 
 ## Fase 7 — Campos extras e Dashboard
 
-- [ ] Tela de definição de campos extras por entidade
-- [ ] Renderização e validação dos campos extras nos formulários, detalhes e filtros de lista
-- [ ] Campos extras disponíveis em `contexto` de agentes e em variáveis de modelos (`{empresa.extra.chave}`)
-- [ ] Dashboard da Início completo (SPEC §9)
+- [x] Tela de definição de campos extras por entidade
+- [x] Renderização e validação dos campos extras nos formulários, detalhes e filtros de lista
+- [x] Campos extras disponíveis em `contexto` de agentes e em variáveis de modelos (`{empresa.extra.chave}`)
+- [x] Dashboard da Início completo (SPEC §9) — metas entram na Fase 9 (ver DECISOES)
 
 **Pronto quando:** um campo criado pela tela aparece em formulário, detalhe, filtro, agente e modelo sem mexer em código.
+
+> **Verificado (2026-09-20):** testes automáticos (`tests/CamposExtrasTest.php`) cobrem definição, validação por tipo, mescla, desfazer, filtro, variáveis de modelo, contexto de agente, formulário/detalhe e as consultas do dashboard. Manualmente (`php -S` com banco descartável via `CRM_DB_CAMINHO`): campos criados pela tela de Configurações apareceram no formulário (aba Extras, com erro de validação reexibido em 422), no detalhe, nos filtros da lista de empresas e o Início renderizou o funil. Agente e modelo com campo extra foram verificados só por testes automáticos (montagem do contexto e renderização de variáveis); nenhum agente rodou contra a API real da Anthropic com `extra.<chave>`.
 
 ---
 

@@ -41,6 +41,9 @@ final class Variaveis
             foreach (self::calculadas($ns) as $campo => $descricao) {
                 $itens['{' . $ns . '.' . $campo . '}'] = $descricao;
             }
+            foreach (CamposExtras::definicoes($entidade) as $extra) {
+                $itens['{' . $ns . '.extra.' . $extra['chave'] . '}'] = $extra['rotulo'] . ' (campo extra)';
+            }
             $grupos[ucfirst($schema['singular'])] = $itens;
         }
         $agencia = [];
@@ -71,7 +74,7 @@ final class Variaveis
      */
     public static function renderizar(string $modelo, array $contexto, bool $html, array &$naoResolvidas = []): string
     {
-        return preg_replace_callback('/\{([a-z_]+(?:\.[a-z_]+)?)\}/', function (array $m) use ($contexto, $html, &$naoResolvidas): string {
+        return preg_replace_callback('/\{([a-z_]+(?:\.[a-z_]+(?:\.[a-z][a-z0-9_]*)?)?)\}/', function (array $m) use ($contexto, $html, &$naoResolvidas): string {
             $valor = self::resolver($m[1], $contexto, $html);
             if ($valor === null) {
                 $naoResolvidas[] = $m[0];
@@ -108,6 +111,14 @@ final class Variaveis
         $entidade = self::ENTIDADES[$ns];
         $linha = $ctx[$ns] ?? null;
 
+        if (str_starts_with($campo, 'extra.')) {
+            $chaveExtra = substr($campo, 6);
+            $def = CamposExtras::porChave($entidade)[$chaveExtra] ?? null;
+            if ($def === null) {
+                return null;
+            }
+            return $esc(CamposExtras::texto($def, CamposExtras::valores($linha['campos_extras'] ?? null)[$chaveExtra] ?? null));
+        }
         if (isset(self::calculadas($ns)[$campo])) {
             return $linha === null ? '' : self::calculada($ns, $campo, $linha, $html);
         }

@@ -80,7 +80,7 @@ return static function (Router $r): void {
         $r->post('/desfazer', [AuditoriaController::class, 'desfazerUltima']);
 
         // Configurações
-        $tipos = 'pipelines|etapas|origens|motivos-perda|tags|contrato-tipos';
+        $tipos = 'pipelines|etapas|origens|motivos-perda|tags|contrato-tipos|campos-extras';
         $r->get('/configuracoes', [ConfiguracaoController::class, 'index']);
         $r->post('/configuracoes/agencia', [ConfiguracaoController::class, 'salvarAgencia']);
         $r->post("/configuracoes/{tipo:{$tipos}}", [ConfiguracaoController::class, 'criar']);

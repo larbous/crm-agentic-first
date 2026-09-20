@@ -11,6 +11,7 @@ use App\Core\View;
 use App\Repositories\ConfiguracaoRepository;
 use App\Repositories\Repositorios;
 use App\Services\ActionExecutor;
+use App\Services\CamposExtras;
 use App\Services\Resultado;
 use App\Services\Schema;
 
@@ -110,6 +111,18 @@ abstract class CrudController
         return caminho_seguro($_POST['voltar'] ?? null, url($this->rota() . '/' . $id));
     }
 
+    /** Filtros da lista: os da entidade e os dos campos extras de lista de opções e sim/não. */
+    private function filtrosLista(): array
+    {
+        return $this->filtros() + CamposExtras::filtros($this->entidade());
+    }
+
+    /** Colunas da lista: as da entidade e uma opcional para cada campo extra ativo. */
+    private function colunasLista(): array
+    {
+        return $this->colunas() + CamposExtras::colunas($this->entidade());
+    }
+
     protected function executor(): ActionExecutor
     {
         return new ActionExecutor();
@@ -139,7 +152,7 @@ abstract class CrudController
 
         $q = trim((string) ($_GET['q'] ?? ''));
         $filtrosAtivos = [];
-        foreach (array_keys($this->filtros()) as $nome) {
+        foreach (array_keys($this->filtrosLista()) as $nome) {
             $filtrosAtivos[$nome] = (string) ($_GET[$nome] ?? '');
         }
         $tagId = ctype_digit((string) ($_GET['tag_id'] ?? '')) ? (int) $_GET['tag_id'] : 0;
@@ -157,7 +170,7 @@ abstract class CrudController
         }
 
         // Colunas visíveis: preferência salva ou padrão
-        $todas = $this->colunas();
+        $todas = $this->colunasLista();
         $salvas = json_decode((new ConfiguracaoRepository())->obter("colunas.{$entidade}", '[]') ?? '[]', true);
         $visiveis = array_values(array_filter(
             is_array($salvas) && $salvas !== [] ? $salvas : array_keys(array_filter($todas, static fn (array $c) => !empty($c['padrao']))),
@@ -177,7 +190,7 @@ abstract class CrudController
         }
 
         $filtrosComValor = [];
-        foreach ($this->filtros() as $nome => $f) {
+        foreach ($this->filtrosLista() as $nome => $f) {
             $filtrosComValor[$nome] = $f + ['valor' => $filtrosAtivos[$nome]];
         }
 
@@ -192,7 +205,7 @@ abstract class CrudController
             'rota'        => $this->rota(),
             'q'           => $q,
             'filtros'     => $filtrosComValor,
-            'filtrosNomes' => array_keys($this->filtros()),
+            'filtrosNomes' => array_keys($this->filtrosLista()),
             'tagId'       => $tagId,
             'tagsOpcoes'  => $this->usaTags() ? Repositorios::tags()->opcoes() : [],
             'colunasTabela' => $colunasTabela,
@@ -210,7 +223,7 @@ abstract class CrudController
 
     public function colunasConfig(): Response
     {
-        $todas = array_keys($this->colunas());
+        $todas = array_keys($this->colunasLista());
         $escolhidas = array_values(array_intersect($todas, (array) ($_POST['colunas'] ?? [])));
         $r = $this->executor()->definirConfiguracao('colunas.' . $this->entidade(), $escolhidas === [] ? null : json_encode($escolhidas));
         $this->flash($r);

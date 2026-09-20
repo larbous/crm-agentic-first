@@ -104,6 +104,7 @@ $abas = [
             'Observações' => (string) $r['observacoes_digitais'],
         ]); ?>
         <?= card(['tamanho' => 'sm', 'titulo' => 'Presença digital', 'corpo_html' => $digital]) ?>
+        <?= card_campos_extras('empresas', $r) ?>
         <?php if ($r['notas']): ?>
             <?= card(['tamanho' => 'sm', 'titulo' => 'Notas', 'corpo_html' => '<p class="text-sm whitespace-pre-line">' . e($r['notas']) . '</p>']) ?>
         <?php endif; ?>

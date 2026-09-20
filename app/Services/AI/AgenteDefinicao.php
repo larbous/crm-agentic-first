@@ -6,6 +6,7 @@ namespace App\Services\AI;
 
 use App\Core\CronExpressao;
 use App\Repositories\ConfiguracaoRepository;
+use App\Services\CamposExtras;
 use App\Services\Events;
 use App\Services\Schema;
 
@@ -96,6 +97,13 @@ final class AgenteDefinicao
         if ($alvo !== null && $alvo !== 'nenhuma') {
             $campos = Schema::entidade($alvo)['campos'] ?? [];
             foreach ($contexto as $campo) {
+                if (str_starts_with($campo, 'extra.')) {
+                    // Campo extra ativo da entidade de entrada: "extra.<chave>".
+                    if (!isset(CamposExtras::porChave($alvo)[substr($campo, 6)])) {
+                        $erros[] = "\"contexto\": o campo extra \"{$campo}\" não existe (ou está inativo) em {$alvo}.";
+                    }
+                    continue;
+                }
                 if (!isset($campos[$campo]) || in_array($campo, self::CAMPOS_SENSIVEIS, true)) {
                     $erros[] = "\"contexto\": o campo \"{$campo}\" não existe em {$alvo} (ou não pode ser enviado à IA).";
                 }
@@ -167,7 +175,7 @@ final class AgenteDefinicao
         $nomes = array_fill_keys(AcaoAgente::PSEUDOS, true);
         foreach (array_unique([...AcaoAgente::ATUALIZAVEIS, ...AcaoAgente::CRIAVEIS]) as $entidade) {
             foreach (Schema::gravaveis($entidade) as $campo => $def) {
-                if ($def['t'] !== 'fk') {
+                if ($def['t'] !== 'fk' && $def['t'] !== 'extras') {
                     $nomes[$campo] = true;
                 }
             }

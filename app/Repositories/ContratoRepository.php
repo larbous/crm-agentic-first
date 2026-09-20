@@ -66,6 +66,25 @@ final class ContratoRepository extends BaseRepository
         return 'a.criado_em DESC, a.id DESC';
     }
 
+    /**
+     * Contratos assinados/ativos que terminam nos próximos $dias dias (os que acabam antes primeiro).
+     * @return array{total:int,linhas:list<array>}
+     */
+    public function vencendo(int $dias = 30, int $limite = 8): array
+    {
+        $onde = "a.arquivado_em IS NULL AND a.status IN ('assinado', 'ativo') AND a.data_fim IS NOT NULL
+                 AND a.data_fim >= :hoje AND a.data_fim <= :limite";
+        $params = ['hoje' => hoje(), 'limite' => date('Y-m-d', strtotime("+{$dias} days"))];
+        $st = $this->pdo()->prepare("SELECT COUNT(*) FROM contratos a WHERE {$onde}");
+        $st->execute($params);
+        $total = (int) $st->fetchColumn();
+
+        $limite = max(1, min(50, $limite));
+        $st = $this->pdo()->prepare($this->selectBase() . " WHERE {$onde} ORDER BY a.data_fim ASC, a.id ASC LIMIT {$limite}");
+        $st->execute($params);
+        return ['total' => $total, 'linhas' => $st->fetchAll()];
+    }
+
     public function proximoNumero(int $ano): string
     {
         $prefixo = sprintf('CT-%04d-', $ano);

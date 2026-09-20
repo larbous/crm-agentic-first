@@ -86,7 +86,7 @@ final class ActionExecutor
                 $itensBrutos = $dados['itens'];
                 unset($dados['itens']);
             }
-            $novos = $this->normalizar($entidade, $dados, true, $erros);
+            $novos = $this->normalizar($entidade, $dados, true, $erros, null, $origem === 'humano');
             if ($entidade === 'propostas') {
                 $this->itensPendentes = $this->normalizarItens($itensBrutos ?? [], $erros);
             }
@@ -143,7 +143,7 @@ final class ActionExecutor
                 $itensBrutos = $dados['itens'];
                 unset($dados['itens']);
             }
-            $novos = $this->normalizar($entidade, $dados, false, $erros);
+            $novos = $this->normalizar($entidade, $dados, false, $erros, $atual, $origem === 'humano');
             if ($itensBrutos !== null) {
                 $this->itensPendentes = $this->normalizarItens($itensBrutos, $erros);
             }
@@ -469,9 +469,11 @@ final class ActionExecutor
     /**
      * Valida e converte a entrada. Campos fora da whitelist ou controlados pelo servidor geram erro.
      * Valores monetários entram em reais (número ou texto pt-BR) e saem em centavos.
+     * Campos extras (`campos_extras`) mesclam sobre o valor atual; os obrigatórios só são exigidos de quem edita
+     * pela interface ($exigirExtras), para não travar chat, agentes e formulários públicos.
      * @param array<string,string> $erros
      */
-    private function normalizar(string $entidade, array $dados, bool $criar, array &$erros): array
+    private function normalizar(string $entidade, array $dados, bool $criar, array &$erros, ?array $atual = null, bool $exigirExtras = false): array
     {
         $campos = Schema::entidade($entidade)['campos'];
         $saida = [];
@@ -482,10 +484,21 @@ final class ActionExecutor
                 $erros[$chave] = 'Campo não permitido: ' . $chave . '.';
                 continue;
             }
+            if ($def['t'] === 'extras') {
+                $saida[$chave] = CamposExtras::normalizar($entidade, $valor, $atual['campos_extras'] ?? null, $exigirExtras, $erros);
+                continue;
+            }
             $erro = null;
             $saida[$chave] = $this->converter($def, $valor, $erro);
             if ($erro !== null) {
                 $erros[$chave] = $erro;
+            }
+        }
+
+        if ($criar && $exigirExtras && isset($campos['campos_extras']) && !array_key_exists('campos_extras', $dados)) {
+            $extras = CamposExtras::normalizar($entidade, [], null, true, $erros);
+            if ($extras !== null) {
+                $saida['campos_extras'] = $extras;
             }
         }
 
@@ -709,6 +722,10 @@ final class ActionExecutor
                 $erros += $this->regrasCriarContrato($v, $extra);
                 break;
 
+            case 'campos_extras_def':
+                $erros += $this->regrasCampoExtra($v, null);
+                break;
+
             case 'modelos_documento':
                 $v['conteudo'] ??= '';
                 if (($v['tipo'] ?? '') === 'contrato') {
@@ -758,6 +775,10 @@ final class ActionExecutor
                 $erros['_'] = 'Anexos não podem ser editados; envie um novo arquivo.';
                 break;
 
+            case 'campos_extras_def':
+                $erros += $this->regrasCampoExtra($novos, $atual);
+                break;
+
             case 'modelos_documento':
                 if (array_key_exists('conteudo', $novos)) {
                     $novos['conteudo'] ??= '';
@@ -777,6 +798,55 @@ final class ActionExecutor
         }
 
         return $erros + $this->nomeUnico($entidade, $novos, (int) $atual['id'], $atual);
+    }
+
+    /**
+     * Definição de campo extra: chave (minúsculas, números e _) única por entidade e imutável depois de criada
+     * (os valores gravados nos registros a referenciam); opções só para lista, uma por linha, gravadas como JSON.
+     * @return array<string,string>
+     */
+    private function regrasCampoExtra(array &$v, ?array $atual): array
+    {
+        $erros = [];
+        $repo = Repositorios::camposExtras();
+        $entidade = (string) ($v['entidade'] ?? $atual['entidade'] ?? '');
+
+        if ($atual === null) {
+            $chave = (string) ($v['chave'] ?? '');
+            if (!preg_match(CamposExtras::PADRAO_CHAVE, $chave)) {
+                $erros['chave'] = 'Use só letras minúsculas, números e _, começando por letra (até 40 caracteres).';
+            } elseif ($repo->chaveEmUso($entidade, $chave)) {
+                $erros['chave'] = 'Já existe um campo extra com esta chave.';
+            }
+            $v['ordem'] ??= $repo->proximaOrdem($entidade);
+        } else {
+            foreach (['entidade', 'chave'] as $imutavel) {
+                if (isset($v[$imutavel]) && $v[$imutavel] !== $atual[$imutavel]) {
+                    $erros[$imutavel] = 'Não pode ser alterado depois de criado.';
+                }
+            }
+        }
+
+        $tipo = (string) ($v['tipo'] ?? $atual['tipo'] ?? 'texto');
+        if ($tipo !== 'select') {
+            $v['opcoes'] = null;
+        } elseif (array_key_exists('opcoes', $v) || $atual === null || ($atual['tipo'] ?? '') !== 'select') {
+            $opcoes = [];
+            foreach (preg_split('/\R/u', (string) ($v['opcoes'] ?? '')) ?: [] as $linha) {
+                $linha = trim($linha);
+                if ($linha !== '') {
+                    $opcoes[$linha] = $linha;
+                }
+            }
+            if ($opcoes === []) {
+                $erros['opcoes'] = 'Informe ao menos uma opção (uma por linha).';
+            } elseif (count($opcoes) > 50 || max(array_map('mb_strlen', $opcoes)) > 80) {
+                $erros['opcoes'] = 'Use até 50 opções de até 80 caracteres.';
+            } else {
+                $v['opcoes'] = json_encode(array_values($opcoes), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            }
+        }
+        return $erros;
     }
 
     /** @return array<string,string> */
@@ -981,7 +1051,7 @@ final class ActionExecutor
 
     private function nomeDoRegistro(array $registro): string
     {
-        return (string) ($registro['nome_fantasia'] ?? $registro['titulo'] ?? $registro['nome'] ?? $registro['nome_original'] ?? ('#' . ($registro['id'] ?? '')));
+        return (string) ($registro['nome_fantasia'] ?? $registro['titulo'] ?? $registro['nome'] ?? $registro['nome_original'] ?? $registro['rotulo'] ?? ('#' . ($registro['id'] ?? '')));
     }
 
     private function mensagem(array $schema, array $registro, string $acao): string

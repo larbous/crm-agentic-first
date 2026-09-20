@@ -114,6 +114,7 @@ foreach ($etapas as $e) {
             'Próximo passo' => (string) $r['proximo_passo'], 'Próximo passo em' => data_br($r['proximo_passo_em']),
             'Motivo da perda' => (string) $r['motivo_perda_nome'], 'Detalhe da perda' => (string) $r['detalhe_perda'],
         ], 1)]) ?>
+        <?= card_campos_extras('negocios', $r) ?>
         <?php if ($r['notas']): ?>
             <?= card(['tamanho' => 'sm', 'titulo' => 'Notas', 'corpo_html' => '<p class="text-sm whitespace-pre-line">' . e($r['notas']) . '</p>']) ?>
         <?php endif; ?>

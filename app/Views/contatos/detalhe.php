@@ -71,6 +71,7 @@ $abas = [
             'Marketing' => $r['opt_in_marketing'] ? 'Aceita' : 'Não aceita', 'Base legal' => $op('base_legal', $r['base_legal']),
             'Consentimento' => data_br($r['data_consentimento']), 'Origem do consentimento' => (string) $r['origem_consentimento'],
         ])]) ?>
+        <?= card_campos_extras('contatos', $r) ?>
         <?php if ($r['notas']): ?>
             <?= card(['tamanho' => 'sm', 'titulo' => 'Notas', 'corpo_html' => '<p class="text-sm whitespace-pre-line">' . e($r['notas']) . '</p>']) ?>
         <?php endif; ?>

@@ -9,6 +9,7 @@ use App\Core\Session;
 use App\Core\View;
 use App\Repositories\Repositorios;
 use App\Services\ActionExecutor;
+use App\Services\CamposExtras;
 use App\Services\Schema;
 
 /** Configurações: pipelines/etapas, origens, motivos de perda e tags (tudo via ActionExecutor). */
@@ -22,6 +23,7 @@ final class ConfiguracaoController
         'motivos-perda' => ['motivos_perda', 'motivos'],
         'tags'          => ['tags', 'tags'],
         'contrato-tipos' => ['contrato_tipos', 'contratos'],
+        'campos-extras' => ['campos_extras_def', 'extras'],
     ];
 
     public function index(): Response
@@ -32,13 +34,17 @@ final class ConfiguracaoController
         }
         return View::pagina('configuracoes/index', [
             'titulo'    => 'Configurações',
-            'aba'       => in_array($_GET['aba'] ?? '', ['pipelines', 'origens', 'motivos', 'tags', 'contratos', 'agencia'], true) ? $_GET['aba'] : 'pipelines',
+            'aba'       => in_array($_GET['aba'] ?? '', ['pipelines', 'origens', 'motivos', 'tags', 'contratos', 'extras', 'agencia'], true) ? $_GET['aba'] : 'pipelines',
             'pipelines' => Repositorios::pipelines()->todas(),
             'etapas'    => $etapasPorPipeline,
             'origens'   => Repositorios::para('origens')->todas(),
             'motivos'   => Repositorios::para('motivos_perda')->todas(),
             'tags'      => Repositorios::tags()->todas(),
             'tiposContrato' => Repositorios::para('contrato_tipos')->todas(),
+            'camposExtras' => array_combine(CamposExtras::ENTIDADES, array_map(
+                static fn (string $e): array => Repositorios::camposExtras()->daEntidade($e, false),
+                CamposExtras::ENTIDADES,
+            )),
             'agencia'   => DocumentoDados::agencia() + ['validade_dias' => (new \App\Repositories\ConfiguracaoRepository())->obter('proposta.validade_dias', '15')],
         ]);
     }
@@ -72,8 +78,8 @@ final class ConfiguracaoController
     public function atualizar(array $p): Response
     {
         [$entidade, $aba] = $this->tipo($p['tipo']);
-        // O pipeline de uma etapa não muda por aqui.
-        $entrada = array_diff_key(Schema::filtrar($entidade, $_POST), ['pipeline_id' => 1]);
+        // O pipeline de uma etapa e a entidade/chave de um campo extra não mudam por aqui.
+        $entrada = array_diff_key(Schema::filtrar($entidade, $_POST), ['pipeline_id' => 1, 'entidade' => 1, 'chave' => 1]);
         $r = (new ActionExecutor())->atualizar($entidade, (int) $p['id'], $entrada, 'humano');
         return $this->responder($r->ok, $r->mensagem, $aba);
     }

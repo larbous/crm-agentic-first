@@ -8,6 +8,7 @@
  * @var list<array> $motivos
  * @var list<array> $tags
  * @var list<array> $tiposContrato
+ * @var array<string,list<array>> $camposExtras definições por entidade (inclui inativas)
  * @var array $agencia
  */
 use App\Services\Schema;
@@ -111,6 +112,43 @@ $painelPipelines .= '<form method="post" action="' . e(url('/configuracoes/pipel
     . botao('Criar pipeline', ['tipo' => 'submit', 'icone' => 'plus']) . '</form>'
     . '<p class="text-muted-foreground mt-3 text-xs">Uma etapa do tipo "ganho" exige o valor fechado e uma do tipo "perdido" exige o motivo ao mover o negócio. Etapas com negócios ativos não podem ser arquivadas.</p>';
 
+// ---- Campos extras (empresas, contatos e negócios)
+$marca = static fn (string $nome, bool $ligado, string $formId, string $rotulo): string
+    => '<label class="flex items-center gap-1 text-xs whitespace-nowrap"><input type="hidden" name="' . e($nome) . '" value="0" form="' . e($formId) . '">'
+        . '<input type="checkbox" name="' . e($nome) . '" value="1" form="' . e($formId) . '"' . ($ligado ? ' checked' : '') . '> ' . e($rotulo) . '</label>';
+$painelExtras = '<p class="text-muted-foreground mb-4 text-sm">Campos próprios do seu negócio. Aparecem no formulário (aba Extras), no detalhe, como filtro/coluna da lista '
+    . '(lista de opções e sim/não), no contexto dos agentes (<code>extra.chave</code>) e nos modelos (<code>{empresa.extra.chave}</code>). '
+    . 'A chave não muda depois de criada. Campos obrigatórios só são exigidos nas telas; chat, agentes e formulários públicos não travam por eles.</p>';
+foreach (Schema::opcoes('entidade_extra') as $entExtra => $rotuloEnt) {
+    $linhasExtras = '';
+    foreach ($camposExtras[$entExtra] ?? [] as $c) {
+        $id = (int) $c['id'];
+        $f = "f-campos-extras-{$id}";
+        $formLinha('campos-extras', $id, $f);
+        $formArquivar('campos-extras', $id, "a-campos-extras-{$id}", 'Arquivar o campo "' . $c['rotulo'] . '"? Os valores já gravados continuam nos registros, mas deixam de aparecer.');
+        $linhasExtras .= '<tr class="align-top">'
+            . '<td class="w-20">' . $input('ordem', (string) $c['ordem'], $f, ['type' => 'number', 'min' => 0, 'max' => 1000, 'aria-label' => 'Ordem']) . '</td>'
+            . '<td>' . $input('rotulo', $c['rotulo'], $f, ['required' => true, 'maxlength' => 80, 'aria-label' => 'Rótulo']) . '<code class="text-muted-foreground text-xs">' . e($c['chave']) . '</code></td>'
+            . '<td class="w-40">' . select('tipo', Schema::opcoes('tipo_extra'), $c['tipo'], ['id' => "tipo-extra-{$id}", 'attrs' => ['form' => $f, 'aria-label' => 'Tipo']]) . '</td>'
+            . '<td><textarea class="textarea" rows="2" name="opcoes" form="' . e($f) . '" aria-label="Opções (uma por linha)" placeholder="Uma opção por linha (só para lista de opções)">' . e(implode("\n", $c['opcoes'])) . '</textarea></td>'
+            . '<td class="w-px">' . $marca('obrigatorio', (int) $c['obrigatorio'] === 1, $f, 'Obrigatório') . $marca('ativo', (int) $c['ativo'] === 1, $f, 'Ativo') . '</td>'
+            . '<td class="w-px whitespace-nowrap">' . botao('Salvar', ['tipo' => 'submit', 'tamanho' => 'sm', 'variante' => 'outline', 'attrs' => ['form' => $f]])
+            . ' ' . botao('Arquivar', ['tipo' => 'submit', 'tamanho' => 'sm', 'variante' => 'ghost', 'classe' => 'text-destructive', 'attrs' => ['form' => "a-campos-extras-{$id}"]]) . '</td></tr>';
+    }
+    $novoExtra = '<form method="post" action="' . e(url('/configuracoes/campos-extras')) . '" class="mt-3 grid items-start gap-2 md:grid-cols-[10rem_1fr_9rem_1fr_auto]">' . csrf_field()
+        . '<input type="hidden" name="entidade" value="' . e($entExtra) . '"><input type="hidden" name="ativo" value="1">'
+        . campo(['nome' => 'chave', 'id' => "extra-chave-{$entExtra}", 'rotulo' => 'Chave', 'obrigatorio' => true, 'ajuda' => 'ex.: nicho', 'attrs' => ['maxlength' => 40, 'pattern' => '[a-z][a-z0-9_]*']])
+        . campo(['nome' => 'rotulo', 'id' => "extra-rotulo-{$entExtra}", 'rotulo' => 'Rótulo', 'obrigatorio' => true, 'attrs' => ['maxlength' => 80]])
+        . campo(['nome' => 'tipo', 'id' => "extra-tipo-{$entExtra}", 'rotulo' => 'Tipo', 'controle_html' => select('tipo', Schema::opcoes('tipo_extra'), 'texto', ['id' => "extra-tipo-{$entExtra}"])])
+        . campo(['nome' => 'opcoes', 'id' => "extra-opcoes-{$entExtra}", 'rotulo' => 'Opções (lista)', 'tipo' => 'textarea', 'linhas' => 2, 'ajuda' => 'Uma por linha'])
+        . '<div class="pt-6">' . botao('Adicionar', ['tipo' => 'submit', 'icone' => 'plus']) . '</div></form>';
+    $painelExtras .= '<div class="mb-4 rounded-lg border p-4"><h3 class="mb-3 font-medium">' . e($rotuloEnt) . '</h3>'
+        . ($linhasExtras !== ''
+            ? '<div class="table-container"><table class="table"><thead><tr><th>Ordem</th><th>Rótulo / chave</th><th>Tipo</th><th>Opções</th><th></th><th></th></tr></thead><tbody>' . $linhasExtras . '</tbody></table></div>'
+            : '<p class="text-muted-foreground text-sm">Nenhum campo extra.</p>')
+        . $novoExtra . '</div>';
+}
+
 // ---- Dados da agência (variáveis {larbous.*}) e validade padrão das propostas
 $campoAg = "";
 foreach (\App\Services\Variaveis::CAMPOS_AGENCIA as $chave => $rotuloAg) {
@@ -129,6 +167,7 @@ $paineis = [
     'motivos'   => ['Motivos de perda', $listaSimples('motivos-perda', $motivos, 'Novo motivo de perda')],
     'tags'      => ['Tags', $painelTags],
     'contratos' => ['Tipos de contrato', $listaSimples('contrato-tipos', $tiposContrato, 'Novo tipo de contrato')],
+    'extras'    => ['Campos extras', $painelExtras],
     'agencia'   => ['Dados da agência', $painelAgencia],
 ];
 $abasHtml = [];

@@ -8,6 +8,7 @@ use App\Core\Config;
 use App\Repositories\ContextoAgenteRepository;
 use App\Repositories\ItemPropostaRepository;
 use App\Repositories\Repositorios;
+use App\Services\CamposExtras;
 use App\Services\Schema;
 
 /**
@@ -100,6 +101,14 @@ final class ContextBuilder
         $schema = Schema::entidade($entidade)['campos'] ?? [];
         $saida = [];
         foreach ($campos as $campo) {
+            if (str_starts_with($campo, 'extra.')) {
+                // Campo extra: "extra.<chave>" entra como "<rótulo>" (só se ativo e preenchido).
+                $valor = CamposExtras::paraContexto($entidade, $registro, substr($campo, 6));
+                if ($valor !== null) {
+                    $saida[CamposExtras::porChave($entidade)[substr($campo, 6)]['rotulo']] = $this->texto($valor);
+                }
+                continue;
+            }
             $def = $schema[$campo] ?? null;
             $valor = $registro[$campo] ?? null;
             if ($def === null || $valor === null || $valor === '') {

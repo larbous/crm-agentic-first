@@ -78,6 +78,48 @@ final class NegocioRepository extends BaseRepository
         return $porEtapa;
     }
 
+    /**
+     * Funil aberto de um pipeline, por etapa (só etapas abertas, mesmo vazias): qtd, valor estimado e valor ponderado
+     * (estimado × probabilidade do negócio, a mesma conta da lista), em centavos.
+     * @return list<array{id:int,nome:string,cor:?string,qtd:int,valor:int,ponderado:int}>
+     */
+    public function resumoPorEtapa(int $pipelineId): array
+    {
+        $st = $this->pdo()->prepare(
+            "SELECT et.id, et.nome, et.cor, COUNT(a.id) AS qtd,
+                    COALESCE(SUM(a.valor_estimado), 0) AS valor,
+                    COALESCE(SUM(COALESCE(a.valor_estimado, 0) * COALESCE(a.probabilidade, 0) / 100), 0) AS ponderado
+             FROM etapas et
+             LEFT JOIN negocios a ON a.etapa_id = et.id AND a.arquivado_em IS NULL AND a.status = 'aberto'
+             WHERE et.pipeline_id = :p AND et.arquivado_em IS NULL AND et.tipo = 'aberta'
+             GROUP BY et.id ORDER BY et.ordem ASC, et.id ASC"
+        );
+        $st->execute(['p' => $pipelineId]);
+        return array_map(static fn (array $l): array => [
+            'id' => (int) $l['id'], 'nome' => $l['nome'], 'cor' => $l['cor'],
+            'qtd' => (int) $l['qtd'], 'valor' => (int) $l['valor'], 'ponderado' => (int) $l['ponderado'],
+        ], $st->fetchAll());
+    }
+
+    /**
+     * Negócios abertos parados na mesma etapa há mais de $dias dias (mais antigos primeiro).
+     * @return array{total:int,linhas:list<array>}
+     */
+    public function parados(int $dias = 14, int $limite = 8): array
+    {
+        $onde = "a.arquivado_em IS NULL AND a.status = 'aberto' AND et.tipo = 'aberta'
+                 AND a.entrou_etapa_em IS NOT NULL AND a.entrou_etapa_em < :corte";
+        $params = ['corte' => date('Y-m-d H:i:s', strtotime("-{$dias} days"))];
+        $st = $this->pdo()->prepare("SELECT COUNT(*) FROM negocios a JOIN etapas et ON et.id = a.etapa_id WHERE {$onde}");
+        $st->execute($params);
+        $total = (int) $st->fetchColumn();
+
+        $limite = max(1, min(50, $limite));
+        $st = $this->pdo()->prepare($this->selectBase() . " WHERE {$onde} ORDER BY a.entrou_etapa_em ASC, a.id ASC LIMIT {$limite}");
+        $st->execute($params);
+        return ['total' => $total, 'linhas' => $st->fetchAll()];
+    }
+
     public function porEmpresa(int $empresaId): array
     {
         $st = $this->pdo()->prepare($this->selectBase() . ' WHERE a.empresa_id = :e AND a.arquivado_em IS NULL ORDER BY a.criado_em DESC');

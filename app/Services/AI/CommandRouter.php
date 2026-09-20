@@ -69,7 +69,7 @@ final class CommandRouter
         foreach (ContratoRoteador::GRAVAVEIS as $entidade) {
             $campos = [];
             foreach (Schema::gravaveis($entidade) as $chave => $def) {
-                if ($def['t'] === 'fk' || str_starts_with($chave, 'utm_')) {
+                if ($def['t'] === 'fk' || $def['t'] === 'extras' || str_starts_with($chave, 'utm_')) {
                     continue;
                 }
                 $campos[] = $def['t'] === 'enum' ? $chave . '=' . implode('|', array_keys(Schema::opcoes($def['op']))) : $chave;

@@ -22,6 +22,7 @@ $errosGerais = $erros['_'] ?? null;
 // Aba ativa: a primeira com erro; senão a primeira
 $grupoDoErro = [];
 foreach ($erros as $campo => $msg) {
+    $campo = explode('.', (string) $campo)[0]; // "campos_extras.chave" cai na aba do campo composto
     if (isset($campos[$campo])) {
         $grupoDoErro[$campos[$campo]['g']] = true;
     }

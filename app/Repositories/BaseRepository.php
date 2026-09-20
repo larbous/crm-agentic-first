@@ -139,6 +139,10 @@ abstract class BaseRepository
             if ($valor === null || $valor === '') {
                 continue;
             }
+            if (str_starts_with((string) $chave, 'x_') && ($extra = $this->filtroExtra(substr((string) $chave, 2), $valor, $params)) !== null) {
+                $onde[] = $extra;
+                continue;
+            }
             if (!isset($filtraveis[$chave])) {
                 $especial = $this->filtroEspecial((string) $chave, $valor, $params);
                 if ($especial !== null) {
@@ -177,6 +181,28 @@ abstract class BaseRepository
         $st->execute($params);
 
         return ['linhas' => $st->fetchAll(), 'total' => $total, 'pagina' => $pagina, 'por_pagina' => $porPagina, 'paginas' => $paginas];
+    }
+
+    /**
+     * Filtro por campo extra (coluna JSON campos_extras): só para campos ativos de lista de opções ou sim/não.
+     * A chave já foi validada contra as definições, e vai como parâmetro (nunca interpolada).
+     */
+    private function filtroExtra(string $chave, mixed $valor, array &$params): ?string
+    {
+        if (!in_array('campos_extras', $this->colunas(), true)) {
+            return null;
+        }
+        $def = (new CampoExtraRepository())->ativaPorChave($this->tabela(), $chave);
+        if ($def === null || !in_array($def['tipo'], ['select', 'checkbox'], true)) {
+            return null;
+        }
+        $expr = "json_extract({$this->alias}.campos_extras, :xp_{$chave})";
+        $params["xp_{$chave}"] = '$.' . $chave;
+        if ($def['tipo'] === 'checkbox') {
+            return $valor === 'sim' ? "{$expr} = 1" : "COALESCE({$expr}, 0) <> 1";
+        }
+        $params["xv_{$chave}"] = (string) $valor;
+        return "{$expr} = :xv_{$chave}";
     }
 
     /** Todas as linhas ativas (para selects e listas curtas). */
