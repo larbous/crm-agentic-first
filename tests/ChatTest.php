@@ -455,3 +455,15 @@ teste('contexto: tela é lida do banco pelo caminho e ignora rotas sem registro'
     igual(null, ContextBuilder::tela('/tarefas'));
     igual(null, ContextBuilder::tela(null));
 });
+
+teste('IA: negócio citado pelo nome da empresa é encontrado (ganho/perda "do cliente X")', function () {
+    $chat = chatComSeed();
+    $x = new ActionExecutor();
+    $emp = novaEmpresa($x, 'Clínica Sorriso');
+    $n = novoNegocio($x, ['titulo' => 'Site institucional', 'empresa_id' => $emp]);
+    iaResponde(['tipo' => 'acao', 'acao' => 'mover_etapa', 'ref' => ['negocio' => 'Clinica Sorriso'], 'dados' => ['etapa' => 'Perdido', 'motivo_perda' => 'Preço']]);
+    $r = $chat->enviar('perdi o negócio da Clínica Sorriso por preço', null);
+    contem('movido para "Perdido"', $r['resposta']['conteudo']);
+    igual('perdido', Repositorios::negocios()->encontrar($n)['status']);
+});
+

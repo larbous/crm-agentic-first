@@ -46,7 +46,8 @@ final class BuscaRepository
             'negocio' => "SELECT n.id, n.titulo AS titulo, TRIM(COALESCE(n.codigo, '') || ' · ' || COALESCE(e.nome_fantasia, '')) AS subtitulo
                           FROM negocios n LEFT JOIN empresas e ON e.id = n.empresa_id
                           WHERE n.arquivado_em IS NULL{$porEmpresa} AND (
-                              busca_norm(n.titulo) LIKE :q ESCAPE '\\' OR busca_norm(n.codigo) LIKE :q ESCAPE '\\')
+                              busca_norm(n.titulo) LIKE :q ESCAPE '\\' OR busca_norm(n.codigo) LIKE :q ESCAPE '\\'
+                              OR busca_norm(e.nome_fantasia) LIKE :q ESCAPE '\\')
                           ORDER BY n.criado_em DESC LIMIT {$limite}",
             'tarefa'  => "SELECT id, titulo, COALESCE(vencimento, '') AS subtitulo
                           FROM tarefas WHERE arquivado_em IS NULL AND status IN ('pendente', 'andamento')
