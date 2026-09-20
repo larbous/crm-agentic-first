@@ -9,6 +9,14 @@ use App\Repositories\AuditoriaRepository;
 /** Registro em log_auditoria: quem, o quê, antes e depois (JSON). */
 final class Audit
 {
+    /** Execução de IA em andamento: vinculada às entradas de auditoria gravadas enquanto estiver definida. */
+    private static ?int $execucaoAtual = null;
+
+    public static function definirExecucao(?int $execucaoId): void
+    {
+        self::$execucaoAtual = $execucaoId;
+    }
+
     /**
      * @param array<string,mixed>|null $antes  valores anteriores (só campos alterados; null em criação)
      * @param array<string,mixed>|null $depois valores novos
@@ -26,6 +34,8 @@ final class Audit
         $json = static fn (?array $d): ?string => $d === null
             ? null
             : json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+        $execucaoId ??= self::$execucaoAtual;
 
         return (new AuditoriaRepository())->inserir([
             'data'        => agora(),

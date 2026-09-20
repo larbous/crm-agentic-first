@@ -71,6 +71,18 @@ final class Schema
         return ['t' => $t, 'r' => $r, 'g' => $g] + $x;
     }
 
+    /** Chave de um enum a partir da chave ou do rótulo, sem acento/caixa ("Média" → "media"). Null se não existir. */
+    public static function chaveDoEnum(string $opcoes, string $valor): ?string
+    {
+        $alvo = normalizar_busca(trim($valor));
+        foreach (self::opcoes($opcoes) as $chave => $rotulo) {
+            if (normalizar_busca((string) $chave) === $alvo || normalizar_busca($rotulo) === $alvo) {
+                return (string) $chave;
+            }
+        }
+        return null;
+    }
+
     // ---- Opções de enums (valor => rótulo)
 
     public static function opcoes(string $nome): array

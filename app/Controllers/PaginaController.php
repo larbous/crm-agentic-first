@@ -16,6 +16,7 @@ final class PaginaController
         $limite = date('Y-m-d', strtotime('+7 days'));
         return View::pagina('paginas/inicio', [
             'titulo'    => 'Início',
+            'painel_chat' => false, // o chat fica central na página
             'atrasadas' => $repo->grupo('atrasadas', hoje(), $limite),
             'hoje'      => $repo->grupo('hoje', hoje(), $limite),
         ]);

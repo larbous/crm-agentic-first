@@ -13,6 +13,8 @@ return [
         'base_url' => '',
     ],
     'anthropic' => [
-        'api_key' => '', // chave da API Anthropic (usada a partir da Fase 4)
+        'api_key' => '', // chave da API Anthropic (linguagem natural no chat)
+        // 'timeout' => 30,
+        // 'cacert'  => '', // caminho do cacert.pem, se o cURL não achar os certificados
     ],
 ];

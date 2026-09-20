@@ -3,6 +3,7 @@
  * @var array $usuario
  * @var list<array> $atrasadas
  * @var list<array> $hoje
+ * @var string $caminho
  */
 $primeiroNome = explode(' ', trim($usuario['nome']))[0];
 ?>
@@ -17,11 +18,8 @@ $primeiroNome = explode(' ', trim($usuario['nome']))[0];
     <div class="lg:col-span-2">
         <?= card([
             'titulo'     => 'Chat',
-            'descricao'  => 'Comandos e linguagem natural entram na Fase 4.',
-            'corpo_html' => vazio('Chat em breve', 'Use o painel lateral (Ctrl+K) quando o chat estiver disponível.', [
-                'icone'     => 'message-square',
-                'acao_html' => botao('Abrir painel de chat', ['variante' => 'outline', 'attrs' => ['data-alternar-chat' => true]]),
-            ]),
+            'descricao'  => 'Comandos com / e linguagem natural. Ctrl+K foca o campo.',
+            'corpo_html' => chat_caixa(['modo' => 'pagina', 'caminho' => $caminho]),
         ]) ?>
     </div>
     <?php

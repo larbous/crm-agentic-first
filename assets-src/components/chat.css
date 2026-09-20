@@ -1,0 +1,86 @@
+/* Chat: caixa (painel lateral e página Início), mensagens, botões de resposta e tabela de consultas */
+@layer components {
+  .chat-caixa {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+
+  .chat-caixa[data-modo='pagina'] {
+    @apply h-[28rem] flex-none;
+  }
+
+  .chat-contexto {
+    @apply text-muted-foreground bg-muted/50 flex shrink-0 items-center gap-1.5 border-b px-3 py-1.5 text-xs;
+  }
+
+  .chat-log {
+    @apply flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3;
+  }
+
+  .chat-vazio {
+    @apply text-muted-foreground m-auto max-w-[16rem] text-center text-sm;
+  }
+
+  .chat-msg {
+    @apply flex max-w-[92%] flex-col gap-1.5;
+  }
+
+  .chat-msg[data-papel='operador'] {
+    @apply items-end self-end;
+  }
+
+  .chat-msg[data-papel='sistema'] {
+    @apply items-start self-start;
+  }
+
+  .chat-balao {
+    @apply rounded-lg px-3 py-2 text-sm break-words whitespace-pre-line;
+  }
+
+  .chat-msg[data-papel='operador'] .chat-balao {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  .chat-msg[data-papel='sistema'] .chat-balao {
+    @apply bg-muted text-foreground;
+  }
+
+  .chat-msg[data-erro] .chat-balao {
+    @apply bg-destructive/10 text-destructive;
+  }
+
+  .chat-pensando .chat-balao {
+    @apply text-muted-foreground animate-pulse;
+  }
+
+  .chat-acoes {
+    @apply flex flex-wrap items-center gap-1.5;
+  }
+
+  .chat-tabela {
+    @apply bg-card max-w-full overflow-x-auto rounded-md border;
+  }
+
+  .chat-tabela table {
+    @apply text-xs;
+  }
+
+  .chat-grupo ul {
+    @apply m-0 list-none space-y-0.5 p-0 text-sm;
+  }
+
+  .chat-form {
+    @apply flex shrink-0 items-end gap-2 border-t p-3;
+  }
+
+  .chat-form textarea {
+    @apply max-h-40 min-h-9 flex-1 resize-none;
+  }
+
+  .chat-dica {
+    @apply text-muted-foreground shrink-0 px-3 pb-2 text-[11px];
+  }
+
+  .chat-ocupado [data-chat-enviar] {
+    @apply pointer-events-none opacity-50;
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "hoje": "2026-09-21",
+  "observacao": "hoje = segunda-feira. 'esperado' é um subconjunto do JSON do roteador (SPEC §3.4): só o que está aqui é conferido; campos extras devolvidos pelo modelo não penalizam. '*' = qualquer valor não vazio. 'op' pode ser lista de alternativas aceitas.",
+  "frases": [
+    {
+      "mensagem": "cria negócio de 8 mil pro site da Padaria Central, contato Ana",
+      "esperado": {"tipo": "acao", "acao": "criar", "entidade": "negocios", "dados": {"valor_estimado": 8000}, "ref": {"empresa": "Padaria Central", "contato": "Ana"}}
+    },
+    {
+      "mensagem": "cadastra a empresa Studio Bela, de Curitiba, instagram @studiobela",
+      "esperado": {"tipo": "acao", "acao": "criar", "entidade": "empresas", "dados": {"nome_fantasia": "Studio Bela", "cidade": "Curitiba", "instagram": "@studiobela"}}
+    },
+    {
+      "mensagem": "adiciona o contato Carlos Mendes, diretor financeiro da Padaria Central, email carlos@padaria.com.br",
+      "esperado": {"tipo": "acao", "acao": "criar", "entidade": "contatos", "dados": {"nome": "Carlos", "email": "carlos@padaria.com.br"}, "ref": {"empresa": "Padaria Central"}}
+    },
+    {
+      "mensagem": "cria um negócio de 12 mil para landing page",
+      "tela": {"entidade": "empresas", "id": 12, "nome": "Padaria Central"},
+      "esperado": {"tipo": "acao", "acao": "criar", "entidade": "negocios", "dados": {"valor_estimado": 12000}}
+    },
+    {
+      "mensagem": "anota que ela pediu desconto de 10%",
+      "ultima_ref": {"entidade": "contatos", "id": 40, "nome": "Ana Souza"},
+      "esperado": {"tipo": "acao", "acao": "nota", "ref": {"contato": 40}}
+    },
+    {
+      "mensagem": "cria tarefa pra ligar pro Marcos amanhã às 10h",
+      "esperado": {"tipo": "acao", "acao": "tarefa", "dados": {"vencimento": "2026-09-22 10:00"}}
+    },
+    {
+      "mensagem": "lembra de enviar a proposta pra Loja Aurora na sexta",
+      "esperado": {"tipo": "acao", "acao": "tarefa", "dados": {"vencimento": "2026-09-25"}, "ref": {"empresa": "Loja Aurora"}}
+    },
+    {
+      "mensagem": "conclui a tarefa 12",
+      "esperado": {"tipo": "acao", "acao": "concluir", "ref": {"tarefa": 12}}
+    },
+    {
+      "mensagem": "terminei a tarefa de ligar pro Marcos",
+      "esperado": {"tipo": "acao", "acao": "concluir", "ref": {"tarefa": "*"}}
+    },
+    {
+      "mensagem": "move o negócio Site Padaria Central para proposta",
+      "esperado": {"tipo": "acao", "acao": "mover_etapa", "ref": {"negocio": "Site Padaria Central"}, "dados": {"etapa": "Proposta"}}
+    },
+    {
+      "mensagem": "ganhamos o negócio do Hotel Vista por 15 mil",
+      "esperado": {"tipo": "acao", "acao": "mover_etapa", "dados": {"etapa": "Ganho", "valor_fechado": 15000}}
+    },
+    {
+      "mensagem": "perdi o negócio da Clínica Sorriso, escolheram o concorrente",
+      "esperado": {"tipo": "acao", "acao": "mover_etapa", "dados": {"etapa": "Perdido", "motivo_perda": "*"}}
+    },
+    {
+      "mensagem": "a Padaria Central virou cliente",
+      "esperado": {"tipo": "acao", "acao": "converter_cliente", "ref": {"empresa": "Padaria Central"}}
+    },
+    {
+      "mensagem": "arquiva a empresa Studio Antigo",
+      "esperado": {"tipo": "acao", "acao": "arquivar", "entidade": "empresas", "ref": {"empresa": "Studio Antigo"}}
+    },
+    {
+      "mensagem": "muda o telefone dela pra 11 98888-7777",
+      "tela": {"entidade": "contatos", "id": 40, "nome": "Ana Souza"},
+      "esperado": {"tipo": "acao", "acao": "atualizar", "entidade": "contatos", "dados": {"telefone": "11988887777"}}
+    },
+    {
+      "mensagem": "marca esse negócio como quente",
+      "tela": {"entidade": "negocios", "id": 7, "nome": "Site Padaria Central"},
+      "esperado": {"tipo": "acao", "acao": "atualizar", "entidade": "negocios", "dados": {"temperatura": "quente"}}
+    },
+    {
+      "mensagem": "muda a previsão de fechamento do negócio Site Padaria Central para 30/10",
+      "esperado": {"tipo": "acao", "acao": "atualizar", "entidade": "negocios", "dados": {"previsao_fechamento": "2026-10-30"}, "ref": {"negocio": "Site Padaria Central"}}
+    },
+    {
+      "mensagem": "quais negócios estão em proposta acima de 5 mil?",
+      "esperado": {"tipo": "acao", "acao": "consultar", "entidade": "negocios", "filtro": [["etapa", "=", "Proposta"], ["valor_estimado", ">", 5000]]}
+    },
+    {
+      "mensagem": "o que tenho pra hoje?",
+      "esperado": {"tipo": "acao", "acao": "consultar", "entidade": "tarefas", "filtro": [["vencimento", "=", "2026-09-21"]]}
+    },
+    {
+      "mensagem": "lista as empresas que já são clientes",
+      "esperado": {"tipo": "acao", "acao": "consultar", "entidade": "empresas", "filtro": [["status", "=", "cliente"]]}
+    },
+    {
+      "mensagem": "contatos sem e-mail",
+      "esperado": {"tipo": "acao", "acao": "consultar", "entidade": "contatos", "filtro": [["email", "vazio"]]}
+    },
+    {
+      "mensagem": "negócios quentes, do maior valor para o menor",
+      "esperado": {"tipo": "acao", "acao": "consultar", "entidade": "negocios", "filtro": [["temperatura", "=", "quente"]], "ordem": "valor_estimado desc"}
+    },
+    {
+      "mensagem": "mostra os negócios da Padaria Central",
+      "esperado": {"tipo": "acao", "acao": "consultar", "entidade": "negocios", "filtro": [["empresa", ["=", "contem"], "Padaria Central"]]}
+    },
+    {
+      "mensagem": "tarefas atrasadas",
+      "esperado": {"tipo": "acao", "acao": "consultar", "entidade": "tarefas", "filtro": [["vencimento", "<", "2026-09-21"]]}
+    },
+    {
+      "mensagem": "desfaz isso",
+      "esperado": {"tipo": "acao", "acao": "desfazer"}
+    },
+    {
+      "mensagem": "muda o valor do negócio",
+      "esperado": {"tipo": "indefinido"}
+    },
+    {
+      "mensagem": "bom dia, tudo bem?",
+      "esperado": {"tipo": "indefinido"}
+    },
+    {
+      "mensagem": "roda o agente pesquisador na Padaria Central",
+      "esperado": {"tipo": "agente", "slug": "pesquisador", "alvo": {"empresa": "Padaria Central"}}
+    },
+    {
+      "mensagem": "dispara o squad novo-lead para a Loja Aurora",
+      "esperado": {"tipo": "squad", "slug": "novo-lead", "alvo": {"empresa": "Loja Aurora"}}
+    },
+    {
+      "mensagem": "cria tarefa: revisar contrato até 28/09, prioridade alta",
+      "tela": {"entidade": "negocios", "id": 7, "nome": "Site Padaria Central"},
+      "esperado": {"tipo": "acao", "acao": "tarefa", "dados": {"titulo": "*", "vencimento": "2026-09-28", "prioridade": "alta"}}
+    }
+  ]
+}

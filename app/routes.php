@@ -7,6 +7,7 @@ use App\Controllers\AtividadeController;
 use App\Controllers\AuditoriaController;
 use App\Controllers\AuthController;
 use App\Controllers\BuscaController;
+use App\Controllers\ChatController;
 use App\Controllers\ConfiguracaoController;
 use App\Controllers\ContatoController;
 use App\Controllers\ContratoController;
@@ -79,6 +80,9 @@ return static function (Router $r): void {
         $r->grupo('/api', static function (Router $r): void {
             $r->get('/ping', [PaginaController::class, 'ping']);
             $r->get('/busca', [BuscaController::class, 'buscar']);
+            $r->get('/chat/historico', [ChatController::class, 'historico']);
+            $r->post('/chat', [ChatController::class, 'enviar']);
+            $r->post('/chat/acao', [ChatController::class, 'acao']);
         });
     }, [[Auth::class, 'exigir']]);
 };

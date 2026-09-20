@@ -61,17 +61,19 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 
 ## Fase 4 — Chat
 
-- [ ] Migração: `chat_mensagens`, `execucoes` (SPEC §4.13)
-- [ ] UI: chat na Início e painel lateral global (`Ctrl+K`), contexto automático na tela de detalhe
-- [ ] Comandos `/` (SPEC §3.2), sem IA
-- [ ] `AI/Client` (cURL, prompt caching, registro em `execucoes`, tratamento de erro/timeout)
-- [ ] `AI/CommandRouter`: prompt de sistema, contrato de saída (SPEC §3.4), validação por whitelist
-- [ ] Resolução de referências, botões de desambiguação, botão de confirmação (SPEC §3.5)
-- [ ] Respostas por template com link e botão Desfazer
-- [ ] `consultar` renderizado como tabela no chat
-- [ ] Arquivo `tests/frases.json` com 30 frases reais + JSON esperado; script `scripts/avaliar-roteador.php` que mede acertos
+- [x] Migração: `chat_mensagens`, `execucoes` (SPEC §4.13)
+- [x] UI: chat na Início e painel lateral global (`Ctrl+K`), contexto automático na tela de detalhe
+- [x] Comandos `/` (SPEC §3.2), sem IA
+- [x] `AI/Client` (cURL, prompt caching, registro em `execucoes`, tratamento de erro/timeout)
+- [x] `AI/CommandRouter`: prompt de sistema, contrato de saída (SPEC §3.4), validação por whitelist
+- [x] Resolução de referências, botões de desambiguação, botão de confirmação (SPEC §3.5)
+- [x] Respostas por template com link e botão Desfazer
+- [x] `consultar` renderizado como tabela no chat
+- [x] Arquivo `tests/frases.json` com 30 frases reais + JSON esperado; script `scripts/avaliar-roteador.php` que mede acertos
 
 **Pronto quando:** as 30 frases de teste têm ≥ 90% de acerto e nenhuma escrita acontece sem passar pela validação.
+
+> **Pendente:** a meta de ≥ 90% só pode ser medida com a API real — rode `php scripts/avaliar-roteador.php` com `anthropic.api_key` em `config.local.php` (o modo `--offline` já confere que o fixture é válido no contrato). A parte "nenhuma escrita sem validação" está coberta por testes automatizados.
 
 ---
 

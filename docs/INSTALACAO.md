@@ -56,6 +56,21 @@ copie `dist/components/*.css`, `dist/basecoat-components.css` e `dist/styles/veg
 e `--temp-*`. Para trocar o tema, gere um no editor de temas do shadcn/ui e cole as variáveis nesse arquivo.
 `--primary` é um **placeholder** até a definição da cor oficial da Lárbous.
 
+## IA (chat)
+
+Comandos com `/` funcionam sem IA. Para linguagem natural, defina em `config.local.php`:
+
+```php
+'anthropic' => [
+    'api_key' => 'sk-ant-...',
+    'timeout' => 30,                        // opcional (segundos)
+    'cacert'  => 'C:/php/extras/cacert.pem', // opcional: bundle de CA (Windows/hospedagens sem certificados)
+],
+```
+
+O modelo do roteador é `claude-haiku-4-5-20251001`; para trocar, grave `ia.modelo_roteador` em `configuracoes`.
+Para medir o acerto do roteador (meta ≥ 90%): `php scripts/avaliar-roteador.php` (`--offline` só valida o fixture; `--verbose` mostra as saídas). A avaliação usa um banco em memória, mas **chama a API real e consome tokens**.
+
 ## Hospedagem compartilhada
 
 Aponte o document root para `/public`. `storage/`, `app/`, `migrations/` e `config*.php` ficam fora dele.

@@ -5,6 +5,7 @@
  * @var string $titulo
  * @var string $caminho caminho atual (para marcar o item ativo)
  * @var array|null $usuario
+ * @var bool|null $painel_chat false = sem painel lateral (a página já traz o chat central)
  */
 use App\Core\Session;
 use App\Core\View;
@@ -124,21 +125,15 @@ $item = static function (array $n) use ($ativo): string {
             <?= $conteudo ?>
         </main>
 
+        <?php if ($painel_chat ?? true) : ?>
         <aside id="painel-chat" class="chat-painel" aria-label="Chat" hidden>
             <header class="chat-painel-topo">
                 <div class="flex items-center gap-2 font-medium"><?= icone('sparkles') ?> Chat</div>
                 <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" data-alternar-chat aria-label="Fechar chat"><?= icone('x') ?></button>
             </header>
-            <div class="chat-painel-corpo" aria-live="polite">
-                <?= vazio('Chat em breve', 'Aqui você dará comandos e conversará com os agentes. Disponível a partir da Fase 4.', ['icone' => 'message-square']) ?>
-            </div>
-            <div class="chat-painel-entrada">
-                <div class="input-group">
-                    <input type="text" placeholder="Escreva um comando ou mensagem…" disabled aria-label="Mensagem">
-                    <div data-align="end"><button type="button" class="btn" data-variant="ghost" data-size="icon-sm" disabled aria-label="Enviar"><?= icone('send') ?></button></div>
-                </div>
-            </div>
+            <?= chat_caixa(['modo' => 'painel', 'caminho' => $caminho]) ?>
         </aside>
+        <?php endif; ?>
     </div>
 </div>
 
