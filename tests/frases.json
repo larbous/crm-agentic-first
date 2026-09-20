@@ -76,7 +76,7 @@
     },
     {
       "mensagem": "quais negócios estão em proposta acima de 5 mil?",
-      "esperado": {"tipo": "acao", "acao": "consultar", "entidade": "negocios", "filtro": [["etapa", "=", "Proposta"], ["valor_estimado", ">", 5000]]}
+      "esperado": {"tipo": "acao", "acao": "consultar", "entidade": "negocios", "filtro": [["etapa", ["=", "contem"], "Proposta"], ["valor_estimado", [">", ">="], 5000]]}
     },
     {
       "mensagem": "o que tenho pra hoje?",

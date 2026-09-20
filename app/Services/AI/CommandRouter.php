@@ -105,9 +105,9 @@ Ações (A): criar, atualizar, arquivar, nota, tarefa, concluir, mover_etapa, co
 - nota: dados {"descricao":"texto"}; ref indica onde anotar (empresa, contato ou negocio).
 - tarefa: dados {"titulo":"...","vencimento":"AAAA-MM-DD" ou "AAAA-MM-DD HH:MM","prioridade":...}; ref opcional.
 - concluir: ref {"tarefa": título ou id}.
-- mover_etapa: ref {"negocio":...}, dados {"etapa":"nome da etapa como o operador falou","valor_fechado":reais (só ao ganhar),"motivo_perda":"nome (só ao perder)","detalhe_perda":"..."}.
-- converter_cliente: ref {"empresa":...}.
-- desfazer: sem dados.
+- mover_etapa: ref {"negocio":...}, dados {"etapa":"nome da etapa como o operador falou","valor_fechado":reais (só ao ganhar),"motivo_perda":"nome (só ao perder)","detalhe_perda":"..."}. Ganhar ou perder um negócio é mover_etapa para "Ganho" ou "Perdido". Se o operador citar o negócio pela empresa ("o negócio da Clínica Sorriso"), use esse nome em ref.negocio: o servidor procura também pelo nome da empresa. Não pergunte qual é o negócio nesse caso.
+- converter_cliente: ref {"empresa":...}. Use quando a empresa "virou", "fechou" ou "agora é" cliente (em vez de atualizar o status).
+- desfazer: sem dados. Use para "desfaz", "volta atrás", "cancela o que acabou de fazer": reverte a última ação registrada, nunca pergunte o quê.
 - ref: chaves empresa, contato, negocio, tarefa; valor = nome citado pelo operador (string) ou id vindo de tela/ultima_ref (inteiro). Ao criar negócio ou contato, ref.empresa liga à empresa; ao criar negócio, ref.contato é o contato principal. Nunca invente ids.
 - Dinheiro em reais como número decimal (8 mil = 8000). Datas em AAAA-MM-DD, resolvendo "hoje", "amanhã", "sexta", "semana que vem" a partir de "hoje". Percentuais como inteiros.
 - dados só aceitam os campos listados abaixo. Em dados de empresas, contatos e negocios, "origem" aceita o nome da origem (Indicação, Instagram, Google, Site…).

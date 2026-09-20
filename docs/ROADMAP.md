@@ -73,7 +73,7 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 
 **Pronto quando:** as 30 frases de teste têm ≥ 90% de acerto e nenhuma escrita acontece sem passar pela validação.
 
-> **Pendente:** a meta de ≥ 90% só pode ser medida com a API real — rode `php scripts/avaliar-roteador.php` com `anthropic.api_key` em `config.local.php` (o modo `--offline` já confere que o fixture é válido no contrato). A parte "nenhuma escrita sem validação" está coberta por testes automatizados.
+> **Medido (2026-09-20, Haiku 4.5):** 1ª rodada 26/30 (86,7%); após ajustar o prompt e a busca de negócio por nome da empresa, 30/30. O prompt foi ajustado olhando essas mesmas 30 frases, então o 100% é otimista: renove/amplie `tests/frases.json` com frases novas do uso real antes de confiar no número. "Nenhuma escrita sem validação" está coberta por testes automatizados.
 
 ---
 

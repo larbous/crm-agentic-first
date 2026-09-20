@@ -5,6 +5,7 @@ config.local.php
 /storage/db/*
 /storage/uploads/*
 /storage/logs/*
+/storage/cacert.pem
 !/storage/**/.gitkeep
 
 # Executável do Tailwind (baixar conforme docs/INSTALACAO.md)

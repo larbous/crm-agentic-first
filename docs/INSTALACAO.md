@@ -68,6 +68,8 @@ Comandos com `/` funcionam sem IA. Para linguagem natural, defina em `config.loc
 ],
 ```
 
+No Windows, se aparecer `unable to get local issuer certificate`, baixe <https://curl.se/ca/cacert.pem> para `storage/cacert.pem` e use `'cacert' => __DIR__ . '/storage/cacert.pem'` (não desative a verificação de TLS).
+
 O modelo do roteador é `claude-haiku-4-5-20251001`; para trocar, grave `ia.modelo_roteador` em `configuracoes`.
 Para medir o acerto do roteador (meta ≥ 90%): `php scripts/avaliar-roteador.php` (`--offline` só valida o fixture; `--verbose` mostra as saídas). A avaliação usa um banco em memória, mas **chama a API real e consome tokens**.
 

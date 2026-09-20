@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Core\Config;
 use App\Core\DB;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\ChatRepository;
@@ -360,8 +361,15 @@ teste('IA: falha da API vira mensagem ao operador e execução com status erro',
     contem('HTTP 401', $ex['erro']);
     verdadeiro(!str_contains(json_encode($r), 'sk-'), 'sem vazar chave');
 
+    // Sem transporte falso e sem chave (mesmo que config.local.php tenha uma): nunca chama a rede.
     Client::definirTransporte(null);
-    $sem = $chat->enviar('cria empresa X', null);
+    $config = require dirname(__DIR__) . '/config.php';
+    Config::definir(array_replace_recursive($config, ['anthropic' => ['api_key' => '']]));
+    try {
+        $sem = $chat->enviar('cria empresa X', null);
+    } finally {
+        Config::definir($config);
+    }
     contem('não está configurada', $sem['resposta']['conteudo']);
 });
 
