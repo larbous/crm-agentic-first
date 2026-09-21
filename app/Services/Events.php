@@ -15,6 +15,7 @@ final class Events
         'negocio.etapa_mudou', 'negocio.ganho', 'negocio.perdido', 'atividade.criada', 'tarefa.vencida',
         'proposta.enviada', 'proposta.visualizada', 'proposta.aceita', 'proposta.recusada',
         'contrato.assinado', 'contrato.vencendo', 'contrato.vencido', 'formulario.submetido',
+        'pesquisa.criada', 'pesquisa.respondida',
     ];
 
     /** @var array<string,list<callable>> */

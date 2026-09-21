@@ -25,6 +25,7 @@ final class ActionExecutor
     use AcoesSquads;
     use AcoesWorker;
     use AcoesFormularios;
+    use AcoesPesquisas;
 
     private const PADROES = [
         'empresas' => ['status' => 'lead'],

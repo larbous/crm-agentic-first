@@ -27,6 +27,7 @@ $comercial = [
     ['/servicos', 'Serviços', 'package'],
     ['/modelos', 'Modelos', 'layout-template'],
     ['/formularios', 'Formulários', 'clipboard-list'],
+    ['/pesquisas', 'Pesquisas NPS', 'star'],
     ['/metas', 'Metas', 'target'],
 ];
 $ia = [

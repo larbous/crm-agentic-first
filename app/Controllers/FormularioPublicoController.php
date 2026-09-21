@@ -74,7 +74,8 @@ final class FormularioPublicoController
     private function formularioAtivo(string $chave): ?array
     {
         $f = (new FormularioRepository())->porChave($chave);
-        return $f !== null && (int) $f['ativo'] === 1 ? $f : null;
+        // Pesquisa NPS só responde pelo link individual (/nps/{token}), nunca pelo endereço genérico do formulário.
+        return $f !== null && (int) $f['ativo'] === 1 && $f['tipo'] === 'captacao' ? $f : null;
     }
 
     private function embutido(): bool

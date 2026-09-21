@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Repositories\FormularioRepository;
+use App\Repositories\PesquisaRepository;
 use App\Repositories\WorkerRepository;
 use DateTimeImmutable;
 
@@ -31,7 +33,54 @@ final class Rotinas
             'propostas_expiradas' => $this->propostasExpiradas(),
             'contratos_vencendo'  => $this->contratosVencendo(),
             'contratos_vencidos'  => $this->contratosVencidos(),
+            'pesquisas_criadas'   => $this->pesquisasAutomaticas(),
+            'pesquisas_expiradas' => $this->pesquisasExpiradas(),
         ];
+    }
+
+    /** Contratos assinados há pelo menos N dias entram na pesquisa; só os dos últimos N + 30 dias (ativar o gatilho não dispara para contratos antigos). */
+    private const JANELA_CONTRATOS_DIAS = 30;
+    private const LIMITE_PESQUISAS = 50;
+
+    /**
+     * Cria as pesquisas dos formulários com gatilho: `contrato_assinado` (N dias depois da assinatura, uma por contrato) e
+     * `periodica` (clientes ativos há pelo menos N dias e sem pesquisa nos últimos N). Cada uma abre uma tarefa para o operador
+     * entregar o link, até 50 por rodada.
+     */
+    private function pesquisasAutomaticas(): int
+    {
+        $n = 0;
+        $pesquisas = new PesquisaRepository();
+        foreach ((new FormularioRepository())->pesquisasAutomaticas() as $f) {
+            $dias = (int) $f['gatilho_dias'];
+            if ($f['gatilho_tipo'] === 'contrato_assinado') {
+                $ate = date('Y-m-d', strtotime("-{$dias} days"));
+                $de = date('Y-m-d', strtotime('-' . ($dias + self::JANELA_CONTRATOS_DIAS) . ' days'));
+                foreach ($pesquisas->contratosParaPesquisar((int) $f['id'], $de, $ate, self::LIMITE_PESQUISAS - $n) as $c) {
+                    $n += $this->executor->criarPesquisa($f, (int) $c['empresa_id'], $c['contato_id'] !== null ? (int) $c['contato_id'] : null, (int) $c['id'], 'contrato_assinado', 'sistema')->ok ? 1 : 0;
+                }
+            } else {
+                $desde = date('Y-m-d H:i:s', strtotime("-{$dias} days"));
+                $clienteAte = date('Y-m-d', strtotime("-{$dias} days"));
+                foreach ($pesquisas->clientesParaPesquisar((int) $f['id'], $desde, $clienteAte, self::LIMITE_PESQUISAS - $n) as $e) {
+                    $n += $this->executor->criarPesquisa($f, (int) $e['id'], null, null, 'periodica', 'sistema')->ok ? 1 : 0;
+                }
+            }
+            if ($n >= self::LIMITE_PESQUISAS) {
+                break;
+            }
+        }
+        return $n;
+    }
+
+    /** Link não respondido dentro do prazo → expirada. */
+    private function pesquisasExpiradas(): int
+    {
+        $n = 0;
+        foreach ((new PesquisaRepository())->vencidas(agora(), self::LIMITE) as $id) {
+            $n += $this->executor->expirarPesquisa($id)->ok ? 1 : 0;
+        }
+        return $n;
     }
 
     /**

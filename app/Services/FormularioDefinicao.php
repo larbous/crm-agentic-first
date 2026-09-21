@@ -17,6 +17,10 @@ final class FormularioDefinicao
     public const MAX_CAMPOS = 40;
     public const LIMITE_ENVIOS_POR_HORA = 5;
     public const ENTIDADES = ['empresa' => 'empresas', 'contato' => 'contatos', 'negocio' => 'negocios'];
+    /** Tipos de formulário: captação (cria empresa/contato/negócio) e pesquisa de satisfação/NPS (responde a um envio individual). */
+    public const FORMULARIO_TIPOS = ['captacao' => 'Captação', 'pesquisa' => 'Pesquisa NPS'];
+    public const GATILHOS = ['manual' => 'Só manual', 'contrato_assinado' => 'Dias depois de um contrato assinado', 'periodica' => 'Periodicamente, para clientes ativos'];
+    public const MAX_PERGUNTAS_EXTRAS = 8;
 
     /** Tipos do Schema que um formulário público consegue preencher. */
     private const TIPOS_SCHEMA = ['texto', 'textarea', 'email', 'tel', 'url', 'int', 'money', 'data', 'enum', 'bool', 'cnpj', 'cpf', 'cep', 'uf'];
@@ -71,6 +75,32 @@ final class FormularioDefinicao
             }
         }
         return $saida;
+    }
+
+    /**
+     * Destinos de um formulário de pesquisa: a nota (escala 0–10), o comentário e até 8 perguntas extras (guardadas em `respostas`).
+     * @return array<string,array<string,mixed>>
+     */
+    public static function destinosPesquisa(): array
+    {
+        $d = static fn (string $destino, string $rotulo, string $grupo, array $tipos): array => [
+            'destino' => $destino, 'entidade' => null, 'campo' => $destino, 'chave_extra' => null, 'rotulo' => $rotulo, 'grupo' => $grupo,
+            'tipos' => $tipos, 'padrao' => $tipos[0], 'opcoes' => null,
+        ];
+        $saida = [
+            'pesquisa.nota' => $d('pesquisa.nota', 'Nota de 0 a 10 (NPS)', 'Pesquisa', ['numero']),
+            'pesquisa.comentario' => $d('pesquisa.comentario', 'Comentário (por quê?)', 'Pesquisa', ['textarea']),
+        ];
+        for ($i = 1; $i <= self::MAX_PERGUNTAS_EXTRAS; $i++) {
+            $saida["pergunta.{$i}"] = $d("pergunta.{$i}", "Pergunta extra {$i}", 'Perguntas extras', ['texto', 'textarea', 'select', 'checkbox', 'numero']);
+        }
+        return $saida;
+    }
+
+    /** Destinos do tipo de formulário. */
+    public static function destinosDe(string $tipo): array
+    {
+        return $tipo === 'pesquisa' ? self::destinosPesquisa() : self::destinos();
     }
 
     /** @return list<string> tipos de controle aceitos para um tipo do Schema (o primeiro é o padrão) */
@@ -145,6 +175,11 @@ final class FormularioDefinicao
             $erros['redirect_url'] = 'Informe um endereço completo, começando com http:// ou https://.';
         }
 
+        if (($d['tipo'] ?? 'captacao') === 'pesquisa') {
+            return self::validarPesquisa($d, $dados, $erros, $campos);
+        }
+        $dados['tipo'] = 'captacao';
+
         $origem = (string) ($d['origem_id_padrao'] ?? '');
         $dados['origem_id_padrao'] = $origem === '' ? null : (int) $origem;
         if ($dados['origem_id_padrao'] !== null && !Repositorios::para('origens')->existe($dados['origem_id_padrao'])) {
@@ -178,11 +213,54 @@ final class FormularioDefinicao
         return ['erros' => $erros + $errosCampos, 'dados' => $dados, 'campos' => $camposOk];
     }
 
+    /**
+     * Pesquisa de satisfação: configuração de disparo (gatilho, dias, validade do link, tarefa para detrator) e campos.
+     * @return array{erros:array<string,string>,dados:array,campos:list<array>}
+     */
+    private static function validarPesquisa(array $d, array $dados, array $erros, array $campos): array
+    {
+        $dados['tipo'] = 'pesquisa';
+        if (trim((string) ($d['mensagem_sucesso'] ?? '')) === '') {
+            $dados['mensagem_sucesso'] = 'Obrigado pela sua resposta!';
+        }
+        if ($dados['texto_botao'] === 'Enviar') {
+            $dados['texto_botao'] = 'Enviar resposta';
+        }
+        $gatilho = (string) ($d['gatilho_tipo'] ?? 'manual');
+        if (!isset(self::GATILHOS[$gatilho])) {
+            $erros['gatilho_tipo'] = 'Escolha um gatilho válido.';
+            $gatilho = 'manual';
+        }
+        $dados['gatilho_tipo'] = $gatilho;
+        $dias = trim((string) ($d['gatilho_dias'] ?? ''));
+        $dados['gatilho_dias'] = null;
+        if ($gatilho !== 'manual') {
+            if (!ctype_digit($dias) || (int) $dias < 1 || (int) $dias > 730) {
+                $erros['gatilho_dias'] = 'Informe de 1 a 730 dias.';
+            } else {
+                $dados['gatilho_dias'] = (int) $dias;
+            }
+        }
+        $validade = trim((string) ($d['validade_dias'] ?? '30'));
+        if (!ctype_digit($validade) || (int) $validade < 1 || (int) $validade > 365) {
+            $erros['validade_dias'] = 'A validade do link vai de 1 a 365 dias.';
+            $validade = '30';
+        }
+        $dados['validade_dias'] = (int) $validade;
+        $dados['tarefa_detrator'] = in_array($d['tarefa_detrator'] ?? 0, [1, '1', true, 'on'], true) ? 1 : 0;
+        $dados['ativo'] = in_array($d['ativo'] ?? 1, [1, '1', true, 'on'], true) ? 1 : 0;
+        // Campos de captação não se aplicam: ficam nos padrões.
+        $dados += ['origem_id_padrao' => null, 'status_padrao' => 'lead', 'criar_negocio' => 0, 'etapa_id_padrao' => null, 'squad_disparado' => null, 'regra_duplicado' => 'tarefa'];
+
+        [$camposOk, $errosCampos] = self::validarCampos($campos, self::destinosPesquisa(), 'pesquisa');
+        return ['erros' => $erros + $errosCampos, 'dados' => $dados, 'campos' => $camposOk];
+    }
+
     /** @return array{0:list<array>,1:array<string,string>} */
-    private static function validarCampos(array $campos): array
+    private static function validarCampos(array $campos, ?array $destinos = null, string $modo = 'captacao'): array
     {
         $erros = [];
-        $destinos = self::destinos();
+        $destinos ??= self::destinos();
         $ok = [];
         $vistos = [];
         if ($campos === []) {
@@ -252,7 +330,12 @@ final class FormularioDefinicao
             ];
         }
 
-        if ($erros === []) {
+        if ($erros === [] && $modo === 'pesquisa') {
+            $nota = array_filter($ok, static fn (array $c): bool => $c['campo_destino'] === 'pesquisa.nota' && $c['obrigatorio'] === 1);
+            if ($nota === []) {
+                $erros['campos'] = 'Inclua o campo "Nota de 0 a 10 (NPS)" e marque-o como obrigatório: é o que calcula o índice.';
+            }
+        } elseif ($erros === []) {
             $identifica = array_filter($ok, static fn (array $c): bool => in_array($c['campo_destino'], ['empresa.nome_fantasia', 'contato.nome'], true) && $c['obrigatorio'] === 1);
             if ($identifica === []) {
                 $erros['campos'] = 'Inclua o campo "Nome fantasia" (empresa) ou "Nome" (contato) e marque-o como obrigatório: é o que identifica quem enviou.';

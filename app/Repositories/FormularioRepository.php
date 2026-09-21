@@ -17,6 +17,7 @@ final class FormularioRepository
     {
         return DB::conexao()->query(
             'SELECT f.*, (SELECT COUNT(*) FROM formulario_submissoes s WHERE s.formulario_id = f.id) AS submissoes,
+                    (SELECT COUNT(*) FROM pesquisas p WHERE p.formulario_id = f.id AND p.nota IS NOT NULL) AS respostas,
                     (SELECT COUNT(*) FROM formulario_campos c WHERE c.formulario_id = f.id) AS campos
                FROM formularios f WHERE f.arquivado_em IS NULL ORDER BY f.nome COLLATE pt_br'
         )->fetchAll();
@@ -27,6 +28,18 @@ final class FormularioRepository
         $st = DB::conexao()->prepare('SELECT * FROM formularios WHERE id = :id AND arquivado_em IS NULL');
         $st->execute(['id' => $id]);
         return $st->fetch() ?: null;
+    }
+
+    /** Pesquisas (tipo "pesquisa") ativas, id => nome: as que podem ser enviadas a um cliente. */
+    public function pesquisasAtivas(): array
+    {
+        return array_column(DB::conexao()->query("SELECT id, nome FROM formularios WHERE tipo = 'pesquisa' AND ativo = 1 AND arquivado_em IS NULL ORDER BY nome COLLATE pt_br")->fetchAll(), 'nome', 'id');
+    }
+
+    /** Pesquisas ativas que criam envios sozinhas (o worker). */
+    public function pesquisasAutomaticas(): array
+    {
+        return DB::conexao()->query("SELECT * FROM formularios WHERE tipo = 'pesquisa' AND ativo = 1 AND arquivado_em IS NULL AND gatilho_tipo <> 'manual' AND gatilho_dias IS NOT NULL ORDER BY id")->fetchAll();
     }
 
     /** Formulário pela chave pública (arquivado não aparece). */

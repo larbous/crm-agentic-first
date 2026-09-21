@@ -9,7 +9,9 @@
  * @var array<int,string> $origens
  * @var array<int,string> $etapas
  * @var array<string,string> $squads slug => nome
+ * @var string $tipo 'captacao' ou 'pesquisa' (pesquisa de satisfação NPS)
  */
+$pesquisa = $tipo === 'pesquisa';
 $id = $formulario !== null ? (int) $formulario['id'] : null;
 $acao = $id !== null ? url("/formularios/{$id}") : url('/formularios');
 $v = static fn (string $k, mixed $padrao = ''): mixed => $cfg[$k] ?? $padrao;
@@ -40,8 +42,8 @@ $config = '<div class="grid gap-4 md:grid-cols-2">'
     . campo(['nome' => 'nome', 'rotulo' => 'Nome (uso interno)', 'valor' => $v('nome'), 'obrigatorio' => true, 'erro' => $err('nome'), 'ajuda' => 'Ex.: Contato do site.'])
     . campo(['nome' => 'titulo', 'rotulo' => 'Título exibido no formulário', 'valor' => $v('titulo'), 'erro' => $err('titulo'), 'ajuda' => 'Opcional.'])
     . campo(['nome' => 'texto_botao', 'rotulo' => 'Texto do botão', 'valor' => $v('texto_botao', 'Enviar'), 'erro' => $err('texto_botao')])
-    . campo(['nome' => 'redirect_url', 'rotulo' => 'Redirecionar depois do envio', 'valor' => $v('redirect_url'), 'erro' => $err('redirect_url'), 'placeholder' => 'https://…/obrigado', 'ajuda' => 'Opcional. Em branco, mostra a mensagem abaixo.'])
-    . '<div class="md:col-span-2">' . campo(['nome' => 'mensagem_sucesso', 'rotulo' => 'Mensagem de sucesso', 'tipo' => 'textarea', 'linhas' => 2, 'valor' => $v('mensagem_sucesso', 'Recebemos suas informações. Em breve entraremos em contato.'), 'erro' => $err('mensagem_sucesso')]) . '</div>'
+    . ($pesquisa ? '' : campo(['nome' => 'redirect_url', 'rotulo' => 'Redirecionar depois do envio', 'valor' => $v('redirect_url'), 'erro' => $err('redirect_url'), 'placeholder' => 'https://…/obrigado', 'ajuda' => 'Opcional. Em branco, mostra a mensagem abaixo.']))
+    . '<div class="md:col-span-2">' . campo(['nome' => 'mensagem_sucesso', 'rotulo' => 'Mensagem de sucesso', 'tipo' => 'textarea', 'linhas' => 2, 'valor' => $v('mensagem_sucesso', $pesquisa ? 'Obrigado pela sua resposta!' : 'Recebemos suas informações. Em breve entraremos em contato.'), 'erro' => $err('mensagem_sucesso')]) . '</div>'
     . '</div>';
 
 $processamento = '<div class="grid gap-4 md:grid-cols-2">'
@@ -56,9 +58,22 @@ $processamento = '<div class="grid gap-4 md:grid-cols-2">'
     . campo(['nome' => 'ativo', 'rotulo' => 'Formulário ativo (aceita envios)', 'tipo' => 'switch', 'valor' => $marcado('ativo', 1)])
     . '</div>';
 
+// ---- Envio da pesquisa (só tipo pesquisa)
+$envioPesquisa = '<div class="grid gap-4 md:grid-cols-2">'
+    . campo(['nome' => 'gatilho_tipo', 'rotulo' => 'Quando criar as pesquisas sozinho', 'erro' => $err('gatilho_tipo'), 'controle_html' => select('gatilho_tipo', \App\Services\FormularioDefinicao::GATILHOS, $v('gatilho_tipo', 'manual'), ['id' => 'campo-gatilho_tipo']),
+        'ajuda' => 'O worker cria a pesquisa e uma tarefa "Enviar pesquisa" com o link. "Só manual": você cria na tela da empresa ou em Pesquisas NPS.'])
+    . campo(['nome' => 'gatilho_dias', 'rotulo' => 'Dias', 'valor' => $v('gatilho_dias'), 'erro' => $err('gatilho_dias'), 'attrs' => ['inputmode' => 'numeric'],
+        'ajuda' => 'Após contrato assinado: dias depois da assinatura. Periódica: intervalo entre pesquisas do mesmo cliente. Ignorado no modo manual.'])
+    . campo(['nome' => 'validade_dias', 'rotulo' => 'Validade do link (dias)', 'valor' => $v('validade_dias', 30), 'erro' => $err('validade_dias'), 'attrs' => ['inputmode' => 'numeric']])
+    . campo(['nome' => 'tarefa_detrator', 'rotulo' => 'Abrir tarefa de ligação quando a nota for 0 a 6 (detrator)', 'tipo' => 'switch', 'valor' => $marcado('tarefa_detrator', 1)])
+    . campo(['nome' => 'ativo', 'rotulo' => 'Pesquisa ativa (cria e aceita respostas)', 'tipo' => 'switch', 'valor' => $marcado('ativo', 1)])
+    . '</div>';
+
 // ---- Construtor
 $construtor = '<div data-fb data-destinos="' . e($destinosJson) . '" data-largura-max="12">'
-    . '<p class="text-muted-foreground mb-3 text-sm">Arraste pelo ícone <span aria-hidden="true">⋮⋮</span> (ou use as setas) para reordenar. A largura vai de 1 a 12 colunas (12 = linha inteira); no celular todos ocupam a linha inteira. Inclua o campo que identifica quem enviou (nome da empresa ou do contato) e marque-o como obrigatório.</p>'
+    . '<p class="text-muted-foreground mb-3 text-sm">Arraste pelo ícone <span aria-hidden="true">⋮⋮</span> (ou use as setas) para reordenar. A largura vai de 1 a 12 colunas (12 = linha inteira); no celular todos ocupam a linha inteira. ' . ($pesquisa
+        ? 'A nota de 0 a 10 é obrigatória (é ela que calcula o NPS); o comentário e até 8 perguntas extras são opcionais. Quem responde é identificado pelo link individual, então não há campos de nome.'
+        : 'Inclua o campo que identifica quem enviou (nome da empresa ou do contato) e marque-o como obrigatório.') . '</p>'
     . '<div class="flex flex-wrap items-end gap-2 pb-3">'
     . '<div class="field min-w-64 flex-1"><label for="fb-novo">Adicionar campo</label><select id="fb-novo" class="select" data-fb-novo></select></div>'
     . botao('Adicionar', ['variante' => 'outline', 'icone' => 'plus', 'attrs' => ['data-fb-adicionar' => true]])
@@ -70,7 +85,7 @@ $construtor = '<div data-fb data-destinos="' . e($destinosJson) . '" data-largur
 
 // ---- Incorporação
 $incorporar = '';
-if ($id !== null) {
+if ($id !== null && !$pesquisa) {
     $publico = url_publica('/f/' . $formulario['chave']);
     $script = '<script src="' . url_publica('/assets/js/embed-formulario.js') . '" data-formulario="' . $formulario['chave'] . '" async></script>';
     $iframe = '<iframe src="' . $publico . '?embed=1" style="width:100%;border:0;min-height:520px" title="' . e($formulario['nome']) . '"></iframe>';
@@ -88,17 +103,18 @@ if ($id !== null) {
     <div>
         <h1 class="page-titulo"><?= e($titulo) ?></h1>
         <?php if ($id !== null): ?>
-            <p class="text-muted-foreground"><a class="underline underline-offset-4" href="<?= e(url('/formularios/submissoes?formulario=' . $id)) ?>">Ver submissões</a></p>
+            <p class="text-muted-foreground"><?php if ($pesquisa): ?><a class="underline underline-offset-4" href="<?= e(url('/pesquisas?formulario=' . $id)) ?>">Ver respostas</a><?php else: ?><a class="underline underline-offset-4" href="<?= e(url('/formularios/submissoes?formulario=' . $id)) ?>">Ver submissões</a><?php endif; ?></p>
         <?php endif; ?>
     </div>
 </div>
 
 <form method="post" action="<?= e($acao) ?>" class="grid gap-4" novalidate data-fb-form>
     <?= csrf_field() ?>
+    <input type="hidden" name="tipo" value="<?= e($tipo) ?>">
     <?= $alerta ?>
-    <?= card(['titulo' => 'Formulário', 'corpo_html' => $config]) ?>
-    <?= card(['titulo' => 'Campos', 'corpo_html' => $construtor]) ?>
-    <?= card(['titulo' => 'O que acontece a cada envio', 'corpo_html' => $processamento]) ?>
+    <?= card(['titulo' => $pesquisa ? 'Pesquisa' : 'Formulário', 'corpo_html' => $config]) ?>
+    <?= card(['titulo' => $pesquisa ? 'Perguntas' : 'Campos', 'corpo_html' => $construtor]) ?>
+    <?= $pesquisa ? card(['titulo' => 'Envio', 'corpo_html' => $envioPesquisa]) : card(['titulo' => 'O que acontece a cada envio', 'corpo_html' => $processamento]) ?>
     <div class="flex flex-wrap items-center gap-2">
         <?= botao('Salvar', ['tipo' => 'submit', 'icone' => 'check']) ?>
         <?= botao('Voltar', ['href' => url('/formularios'), 'variante' => 'outline']) ?>
@@ -108,7 +124,7 @@ if ($id !== null) {
 <?php if ($id !== null): ?>
     <div class="mt-4 grid gap-4">
         <?= $incorporar ?>
-        <form method="post" action="<?= e(url("/formularios/{$id}/arquivar")) ?>" data-confirmar="Arquivar este formulário? O link público deixa de funcionar (as submissões continuam guardadas).">
+        <form method="post" action="<?= e(url("/formularios/{$id}/arquivar")) ?>" data-confirmar="<?= $pesquisa ? 'Arquivar esta pesquisa? Os links pendentes deixam de funcionar (as respostas continuam guardadas).' : 'Arquivar este formulário? O link público deixa de funcionar (as submissões continuam guardadas).' ?>">
             <?= csrf_field() ?>
             <?= botao('Arquivar formulário', ['tipo' => 'submit', 'variante' => 'destructive', 'icone' => 'archive']) ?>
         </form>

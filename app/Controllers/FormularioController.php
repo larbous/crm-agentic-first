@@ -41,7 +41,13 @@ final class FormularioController
 
     public function novo(): Response
     {
-        return $this->editor(null, ['status_padrao' => 'lead', 'regra_duplicado' => 'tarefa', 'texto_botao' => 'Enviar', 'ativo' => 1], $this->camposIniciais(), []);
+        if (($_GET['tipo'] ?? '') === 'pesquisa') {
+            return $this->editor(null, [
+                'tipo' => 'pesquisa', 'texto_botao' => 'Enviar resposta', 'gatilho_tipo' => 'manual', 'validade_dias' => 30, 'tarefa_detrator' => 1, 'ativo' => 1,
+                'titulo' => 'Como está sendo trabalhar com a Lárbous?', 'mensagem_sucesso' => 'Obrigado pela sua resposta!',
+            ], $this->camposIniciaisPesquisa(), []);
+        }
+        return $this->editor(null, ['tipo' => 'captacao', 'status_padrao' => 'lead', 'regra_duplicado' => 'tarefa', 'texto_botao' => 'Enviar', 'ativo' => 1], $this->camposIniciais(), []);
     }
 
     public function criar(): Response
@@ -110,12 +116,24 @@ final class FormularioController
     private function entrada(): array
     {
         $dados = [];
-        foreach (['nome', 'titulo', 'texto_botao', 'mensagem_sucesso', 'redirect_url', 'origem_id_padrao', 'status_padrao', 'criar_negocio',
-            'etapa_id_padrao', 'squad_disparado', 'regra_duplicado', 'ativo'] as $k) {
+        foreach (['tipo', 'nome', 'titulo', 'texto_botao', 'mensagem_sucesso', 'redirect_url', 'origem_id_padrao', 'status_padrao', 'criar_negocio',
+            'etapa_id_padrao', 'squad_disparado', 'regra_duplicado', 'ativo', 'gatilho_tipo', 'gatilho_dias', 'validade_dias', 'tarefa_detrator'] as $k) {
             $dados[$k] = $_POST[$k] ?? null;
         }
         $campos = json_decode((string) ($_POST['campos_json'] ?? '[]'), true);
         return [$dados, is_array($campos) ? array_values(array_filter($campos, 'is_array')) : []];
+    }
+
+    /** Ponto de partida de uma pesquisa NPS nova: a nota e o "por quê?". */
+    private function camposIniciaisPesquisa(): array
+    {
+        $c = static fn (string $d, string $r, string $t, int $o, ?string $aj = null): array => [
+            'campo_destino' => $d, 'rotulo' => $r, 'tipo' => $t, 'largura' => 12, 'obrigatorio' => $o, 'placeholder' => null, 'ajuda' => $aj, 'opcoes' => [],
+        ];
+        return [
+            $c('pesquisa.nota', 'Em uma escala de 0 a 10, o quanto você recomendaria a Lárbous a um amigo ou colega?', 'numero', 1, '0 = nada provável · 10 = extremamente provável'),
+            $c('pesquisa.comentario', 'Qual o principal motivo da sua nota?', 'textarea', 0),
+        ];
     }
 
     /** Ponto de partida de um formulário novo: o essencial de um contato comercial. */
@@ -142,10 +160,13 @@ final class FormularioController
                 $etapas[$e['id']] = ($e['pipeline_nome'] ?? '') !== '' ? "{$e['pipeline_nome']} · {$e['nome']}" : $e['nome'];
             }
         }
+        $tipo = (($formulario['tipo'] ?? $dados['tipo'] ?? 'captacao') === 'pesquisa') ? 'pesquisa' : 'captacao';
+        $rotuloTipo = $tipo === 'pesquisa' ? 'pesquisa NPS' : 'formulário';
         return View::pagina('formularios/editor', [
-            'titulo' => $formulario === null ? 'Novo formulário' : 'Formulário: ' . $formulario['nome'],
+            'titulo' => $formulario === null ? 'Nova ' . ($tipo === 'pesquisa' ? 'pesquisa NPS' : 'formulário') : ($tipo === 'pesquisa' ? 'Pesquisa: ' : 'Formulário: ') . $formulario['nome'],
+            'tipo' => $tipo,
             'formulario' => $formulario, 'cfg' => $dados, 'campos' => $campos, 'erros' => $erros,
-            'destinos' => array_values(FormularioDefinicao::destinos()),
+            'destinos' => array_values(FormularioDefinicao::destinosDe($tipo)),
             'origens' => Repositorios::para('origens')->opcoes(),
             'etapas' => $etapas,
             'squads' => array_column((new SquadRepository())->todos(true), 'nome', 'slug'),

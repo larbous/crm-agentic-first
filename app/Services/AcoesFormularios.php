@@ -26,6 +26,10 @@ trait AcoesFormularios
      */
     public function salvarFormulario(?int $id, array $dados, array $campos): Resultado
     {
+        // O tipo (captação ou pesquisa) é definido na criação e não muda.
+        if ($id !== null && ($existente = (new FormularioRepository())->encontrar($id)) !== null) {
+            $dados['tipo'] = $existente['tipo'];
+        }
         $v = FormularioDefinicao::validar($dados, $campos);
         if ($v['erros'] !== []) {
             return Resultado::falha($v['erros']);
@@ -44,7 +48,7 @@ trait AcoesFormularios
                     return Resultado::erroGeral('Formulário não encontrado.');
                 }
                 $formularioId = $id;
-                $repo->atualizar($id, $v['dados'] + ['atualizado_em' => $agora]);
+                $repo->atualizar($id, array_diff_key($v['dados'], ['tipo' => 1]) + ['atualizado_em' => $agora]);
             }
             $repo->substituirCampos($formularioId, $v['campos']);
             return Resultado::sucesso($formularioId, "Formulário \"{$v['dados']['nome']}\" salvo.");

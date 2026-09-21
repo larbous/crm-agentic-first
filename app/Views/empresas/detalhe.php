@@ -55,6 +55,7 @@ $abas = [
     ['rotulo' => 'Propostas', 'contagem' => count($propostas), 'html' => tabela_propostas($propostas, 'Crie propostas a partir de um negócio desta empresa.')],
     ['rotulo' => 'Contratos', 'contagem' => count($contratos), 'html' => tabela_contratos($contratos)],
     ['rotulo' => 'Tarefas', 'contagem' => count(array_filter($tarefas, 'tarefa_aberta')), 'html' => tarefas_mini($tarefas, 'empresa_id', $id, $voltar)],
+    ['rotulo' => 'Pesquisas NPS', 'html' => pesquisas_empresa($id, $voltar)],
     ['rotulo' => 'Anexos', 'contagem' => count($anexos), 'html' => anexos_painel($anexos, 'empresas', $id, $voltar)],
 ];
 ?>

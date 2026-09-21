@@ -237,11 +237,18 @@ tipo (faturamento/mrr/novos_clientes/propostas_enviadas/negocios_ganhos), period
 - **acoes_pendentes:** execucao_id, acao (JSON no mesmo formato do roteador), resumo, status (pendente/aprovada/rejeitada), decidido_em.
 - **agendamentos_execucao:** agente_id/squad_id, cron, ultimo_run_em, proximo_run_em.
 
+### 4.10b Pesquisas NPS (Fase 12)
+
+- **formularios.tipo** (`captacao` | `pesquisa`; imutável) e, só para pesquisa: `gatilho_tipo` (`manual` | `contrato_assinado` | `periodica`), `gatilho_dias`, `validade_dias` (padrão 30), `tarefa_detrator`. Destinos de campo da pesquisa: `pesquisa.nota` (escala 0–10, obrigatória), `pesquisa.comentario` e `pergunta.1` a `pergunta.8` (perguntas extras).
+- **pesquisas:** formulario_id, token (40 hex; link individual `/nps/{token}`), empresa_id, contato_id, contrato_id, gatilho, status (pendente/respondida/expirada/cancelada), expira_em, enviada_em, respondida_em, nota (0–10), categoria (promotor 9–10 / neutro 7–8 / detrator 0–6), comentario, respostas (JSON), ip + campos padrão. Índice único (formulario_id, contrato_id) para o gatilho de contrato.
+- **NPS** = % promotores − % detratores (−100 a 100). Tela `/pesquisas`: índice, distribuição das notas, tendência mensal, taxa de resposta, fila de envio e respostas.
+
+
 ## 5. Eventos
 
 `Events::disparar(nome, payload)`; gatilhos de agentes/squads assinam eventos.
 
-`empresa.criada` · `empresa.atualizada` · `empresa.convertida` · `contato.criado` · `negocio.criado` · `negocio.etapa_mudou` · `negocio.ganho` · `negocio.perdido` · `atividade.criada` · `tarefa.vencida` · `proposta.enviada` · `proposta.visualizada` · `proposta.aceita` · `proposta.recusada` · `contrato.assinado` · `contrato.vencendo` · `contrato.vencido` · `formulario.submetido`
+`empresa.criada` · `empresa.atualizada` · `empresa.convertida` · `contato.criado` · `negocio.criado` · `negocio.etapa_mudou` · `negocio.ganho` · `negocio.perdido` · `atividade.criada` · `tarefa.vencida` · `proposta.enviada` · `proposta.visualizada` · `proposta.aceita` · `proposta.recusada` · `pesquisa.criada` · `pesquisa.respondida` · `contrato.assinado` · `contrato.vencendo` · `contrato.vencido` · `formulario.submetido`
 
 Eventos disparados por agentes não re-disparam o mesmo agente (proteção contra loop via `origem`).
 
@@ -371,6 +378,7 @@ Botões em campos de texto longos e na timeline, cada um = 1 chamada Haiku, resu
 2. Dispara agendamentos vencidos.
 3. Cria próximas ocorrências de tarefas recorrentes.
 4. Marca tarefas vencidas (`tarefa.vencida`), propostas expiradas, contratos vencendo/vencidos.
+5. Pesquisas NPS: cria as pesquisas dos gatilhos (`contrato_assinado`, `periodica`), com uma tarefa "Enviar pesquisa", e expira os links vencidos.
 Usa lock de arquivo para não rodar em paralelo.
 
 ## 12. Interface (shadcn/ui via Basecoat)

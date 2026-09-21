@@ -178,3 +178,18 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 **Pronto quando:** rodar o Qualificador num negócio (aprovando as ações) deixa a temperatura calculada pelo CHAMP, visível no kanban e filtrável na lista.
 
 > **Verificado (2026-09-21):** `tests/LeadScoringTest.php` cobre a tabela de pontuação e a trava, derivação em criar/atualizar/desfazer, auditoria, temperatura explícita, ordenação e filtro, kanban (com filtro) e detalhe renderizados, os dois agentes v2 (válidos, sem `temperatura` gravável, fluxo com aprovação) e a migração (dados/FKs/índices preservados, `CHECK` novo, rollback quando há violação de FK). A migração também foi aplicada com sucesso numa cópia do banco local antes de ir ao original. **Não verificado:** o Qualificador v2 contra uma IA real (sem chave da Anthropic e o Gemini sem créditos, ver Fase 10): a qualidade da avaliação CHAMP pelo modelo não foi medida; e as telas só foram renderizadas pelos testes, não abertas no navegador (nem o arrastar do kanban com o filtro ativo).
+
+---
+
+## Fase 12 — NPS e pesquisa de satisfação
+
+- [x] Migração `0010`: `formularios.tipo` e configuração de disparo; tabela `pesquisas` (token, status, nota, categoria, comentário, respostas)
+- [x] Construtor de formulários em modo pesquisa (nota 0–10, comentário, até 8 perguntas extras) e lista com o tipo
+- [x] Envio individual com link `/nps/{token}` (uso único, validade), atalhos de WhatsApp e e-mail, marcar enviada, cancelar
+- [x] Página pública de resposta (escala 0–10) e gravação atômica; timeline, tarefa para detrator e eventos `pesquisa.criada` / `pesquisa.respondida`
+- [x] Gatilhos no worker: N dias após contrato assinado e periódico para clientes, com tarefa "Enviar pesquisa"; expiração de links
+- [x] Tabulação automática em `/pesquisas` (NPS, distribuição, tendência mensal, taxa de resposta, respostas) e aba na empresa
+
+**Pronto quando:** uma pesquisa criada no construtor gera links individuais (à mão ou pelo worker), o cliente responde pelo link e o NPS aparece calculado em Pesquisas NPS.
+
+> **Verificado (2026-09-21):** `tests/PesquisasTest.php` cobre a definição (nota obrigatória, tipo imutável, gatilhos e validade), a separação do formulário de captação, a criação do envio (token, contato, timeline, eventos, tarefa), a resposta (categoria, extras, validação, uso único, expirado/cancelado/inativo, tarefa de detrator, gatilho de agente por evento), a página pública (escala, erros, cabeçalhos, reabrir), as rotinas do worker (contrato, periódica, janela, sem duplicar, limite de 50, expiração), a matemática do NPS e as telas (índice, filtros, envio com `wa.me`/`mailto`, aba da empresa, redirecionamento só para caminhos internos). Também rodado por HTTP real (`php -S` com cópia do banco): o link abriu com a escala, recusou envio sem nota (422), gravou a nota 4 como detrator com tarefa de ligação, e o segundo acesso mostrou "já foi respondida". **Não verificado:** as telas administrativas e o construtor em modo pesquisa em um navegador (arrastar, pré-visualização da escala, copiar link e os atalhos `wa.me`/`mailto`); só foram renderizados pelos testes e o JS teve a sintaxe checada. Nenhum envio real por WhatsApp ou e-mail (não existe ainda).

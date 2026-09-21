@@ -139,7 +139,9 @@ if (construtor) {
         for (const c of campos) {
             const d = porDestino.get(c.campo_destino);
             let controle;
-            if (c.tipo === 'textarea') controle = el('textarea', { class: 'textarea', rows: 3, disabled: true, placeholder: c.placeholder });
+            if (c.campo_destino === 'pesquisa.nota') {
+                controle = el('div', { class: 'fp-nps' }, ...Array.from({ length: 11 }, (_, n) => el('span', { class: 'fp-nps-nota', text: String(n) })));
+            } else if (c.tipo === 'textarea') controle = el('textarea', { class: 'textarea', rows: 3, disabled: true, placeholder: c.placeholder });
             else if (c.tipo === 'select') {
                 const ops = d.opcoes_sistema ?? c.opcoes;
                 controle = el('select', { class: 'select', disabled: true }, el('option', { text: 'Selecione…' }), ...ops.map((o) => el('option', { text: o })));
@@ -168,7 +170,7 @@ if (construtor) {
         if (!d) return;
         campos.push({
             campo_destino: d.destino, rotulo: d.rotulo, tipo: d.padrao, placeholder: '', ajuda: '', obrigatorio: 0, opcoes: [],
-            largura: ['textarea'].includes(d.padrao) ? 12 : 6,
+            largura: ['textarea'].includes(d.padrao) || d.destino === 'pesquisa.nota' ? 12 : 6,
         });
         desenhar();
         lista.lastElementChild?.querySelector('input')?.focus();

@@ -24,6 +24,8 @@ use App\Controllers\NegocioController;
 use App\Controllers\ModeloController;
 use App\Controllers\PaginaController;
 use App\Controllers\PropostaController;
+use App\Controllers\PesquisaController;
+use App\Controllers\PesquisaPublicaController;
 use App\Controllers\PublicoController;
 use App\Controllers\ServicoController;
 use App\Controllers\SquadController;
@@ -43,6 +45,9 @@ return static function (Router $r): void {
 
     // Formulários de captação públicos (/f/{chave}), só por chave aleatória
     FormularioPublicoController::registrar($r);
+
+    // Pesquisa de satisfação (/nps/{token}): link individual por cliente
+    PesquisaPublicaController::registrar($r);
 
     // Autenticadas
     $r->grupo('', static function (Router $r): void {
@@ -81,6 +86,9 @@ return static function (Router $r): void {
 
         // Formulários de captação (construtor e submissões)
         FormularioController::registrar($r);
+
+        // Pesquisas NPS (tabulação, fila de envio e envio individual)
+        PesquisaController::registrar($r);
 
         // Timeline, anexos e tags
         $r->post('/atividades', [AtividadeController::class, 'criar']);
