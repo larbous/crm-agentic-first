@@ -165,6 +165,12 @@ Recorrência: ao concluir, o worker cria a próxima ocorrência.
 - **chamados:** codigo (`CH-AAAA-NNNN`), titulo, descricao, area_id (obrigatória), prioridade (baixa/media/alta/urgente), status (aberto/andamento/aguardando/concluido/cancelado), vencimento (prazo de entrega, data + hora opcional), resolucao, concluido_em, empresa_id, contato_id, negocio_id, contrato_id, checklist (JSON `[{texto, feito}]`, até 50 itens).
 - Chamado é a **demanda de execução** da agência ("criar a campanha", "arte do post"); tarefa é o que o operador precisa fazer. Não há responsável individual: a atribuição é por área (um operador). Sem recorrência.
 
+### 4.5c conversas e mensagens (Fase 14)
+
+- **conversas:** canal (`whatsapp` | `instagram` | `email`), identificador (número com DDI, id do usuário do Instagram ou e-mail; único por canal), nome, contato_id, empresa_id, assunto (e-mail), status (aberta/resolvida), nao_lidas, ultima_mensagem_em, ultima_entrada_em, ultima_direcao, ultima_previa.
+- **mensagens:** conversa_id, direcao (entrada/saida), tipo (texto/audio/imagem/video/documento/sticker/localizacao/outro), texto, midia (JSON com o id do provedor), id_externo (único, prefixo `wa:`/`ig:`/`em:`), status (recebida/enviando/enviada/entregue/lida/falhou), erro, data_hora, atividade_id.
+- Toda mensagem de uma conversa ligada a um contato ou empresa vira uma **atividade** (`whatsapp`, `email` ou `instagram`) na timeline. As credenciais dos canais ficam em `config.local.php` (`canais.*`), nunca no banco.
+
 ### 4.6 servicos
 
 nome, categoria (site/ecommerce/consultoria/manutencao/hospedagem/trafego/outro), descricao, entregaveis, unidade (projeto/hora/mes/ano), preco_base, preco_minimo, recorrente, prazo_padrao_dias, ativo.
@@ -254,7 +260,7 @@ tipo (faturamento/mrr/novos_clientes/propostas_enviadas/negocios_ganhos), period
 
 `Events::disparar(nome, payload)`; gatilhos de agentes/squads assinam eventos.
 
-`empresa.criada` · `empresa.atualizada` · `empresa.convertida` · `contato.criado` · `negocio.criado` · `negocio.etapa_mudou` · `negocio.ganho` · `negocio.perdido` · `atividade.criada` · `tarefa.vencida` · `proposta.enviada` · `proposta.visualizada` · `proposta.aceita` · `proposta.recusada` · `pesquisa.criada` · `pesquisa.respondida` · `contrato.assinado` · `contrato.vencendo` · `contrato.vencido` · `formulario.submetido`
+`empresa.criada` · `empresa.atualizada` · `empresa.convertida` · `contato.criado` · `negocio.criado` · `negocio.etapa_mudou` · `negocio.ganho` · `negocio.perdido` · `atividade.criada` · `tarefa.vencida` · `proposta.enviada` · `proposta.visualizada` · `proposta.aceita` · `proposta.recusada` · `pesquisa.criada` · `pesquisa.respondida` · `mensagem.recebida` · `contrato.assinado` · `contrato.vencendo` · `contrato.vencido` · `formulario.submetido`
 
 Eventos disparados por agentes não re-disparam o mesmo agente (proteção contra loop via `origem`).
 
@@ -356,6 +362,7 @@ Botões em campos de texto longos e na timeline, cada um = 1 chamada Haiku, resu
 | Negócios | Lista + kanban por etapa com arrastar (mudança passa pelo ActionExecutor, com modais de ganho/perda); detalhe com propostas, contatos, timeline |
 | Propostas | Lista; editor com itens do catálogo e totais em tempo real; visualização de impressão; link público com aceite/recusa |
 | Contratos | Lista (filtros por status/tipo/vencimento); editor a partir de modelo; impressão; link público com assinatura; botão Renovar |
+| Caixa de entrada | Conversas de WhatsApp, Instagram e e-mail numa tela (filtros por canal, situação, não lidas e busca); conversa com resposta pelo próprio canal, vínculo a contato, resolver/reabrir. Webhook da Meta em `/webhooks/meta`; e-mail por IMAP/SMTP |
 | Tarefas e chamados | Hoje / atrasadas / próximos 7 dias / todas, com tarefas e chamados juntos (filtro por tipo e por área); conclusão rápida. Chamados também têm lista (filtros por área/status/prioridade), formulário com checklist e detalhe (andamento, checklist, anexos, histórico) |
 | Serviços | Catálogo |
 | Modelos | Editor com lista de variáveis e pré-visualização com registro de exemplo |
@@ -385,6 +392,7 @@ Botões em campos de texto longos e na timeline, cada um = 1 chamada Haiku, resu
 3. Cria próximas ocorrências de tarefas recorrentes.
 4. Marca tarefas vencidas (`tarefa.vencida`), propostas expiradas, contratos vencendo/vencidos.
 5. Pesquisas NPS: cria as pesquisas dos gatilhos (`contrato_assinado`, `periodica`), com uma tarefa "Enviar pesquisa", e expira os links vencidos.
+6. Caixa de entrada: coleta os e-mails novos da caixa IMAP (a cada 2 minutos, até 20 por rodada).
 Usa lock de arquivo para não rodar em paralelo.
 
 ## 12. Interface (shadcn/ui via Basecoat)

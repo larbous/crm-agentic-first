@@ -26,6 +26,7 @@ final class ActionExecutor
     use AcoesWorker;
     use AcoesFormularios;
     use AcoesPesquisas;
+    use AcoesCaixa;
 
     private const PADROES = [
         'empresas' => ['status' => 'lead'],
@@ -39,7 +40,7 @@ final class ActionExecutor
     ];
 
     /** Atividades que contam como contato com a pessoa (atualizam contatos.ultimo_contato_em). */
-    private const TIPOS_CONTATO = ['ligacao', 'whatsapp', 'email', 'reuniao', 'visita'];
+    private const TIPOS_CONTATO = ['ligacao', 'whatsapp', 'email', 'instagram', 'reuniao', 'visita'];
 
     /** Entidades cujo nome deve ser único entre os registros ativos (com escopo opcional). */
     private const NOME_UNICO = ['origens' => [], 'motivos_perda' => [], 'tags' => [], 'pipelines' => [], 'etapas' => ['pipeline_id'], 'contrato_tipos' => [], 'areas' => []];

@@ -10,6 +10,7 @@
 use App\Core\Session;
 use App\Core\View;
 use App\Repositories\AcaoPendenteRepository;
+use App\Repositories\ConversaRepository;
 
 $caminho = $caminho ?? '/';
 $usuario = $usuario ?? ['nome' => 'Operador', 'email' => ''];
@@ -18,6 +19,7 @@ $navegacao = [
     ['/', 'Início', 'house'],
     ['/empresas', 'Empresas', 'building'],
     ['/contatos', 'Contatos', 'users'],
+    ['/caixa', 'Caixa de entrada', 'inbox'],
     ['/negocios', 'Negócios', 'handshake'],
     ['/tarefas', 'Tarefas', 'list-checks'],
 ];
@@ -37,14 +39,18 @@ $ia = [
     ['/execucoes', 'Execuções', 'activity'],
 ];
 $acoesPendentes = (new AcaoPendenteRepository())->contarPendentes();
+$caixaNaoLidas = (new ConversaRepository())->contarComNaoLidas();
 $sistema = [
     ['/auditoria', 'Auditoria', 'scroll-text'],
     ['/configuracoes', 'Configurações', 'settings'],
     ['/ui', 'Guia de estilo', 'palette'],
 ];
 $ativo = static fn (string $rota): bool => $rota === '/' ? $caminho === '/' : ($caminho === $rota || str_starts_with($caminho, $rota . '/'));
-$item = static function (array $n) use ($ativo, $acoesPendentes): string {
+$item = static function (array $n) use ($ativo, $acoesPendentes, $caixaNaoLidas): string {
     $selo = $n[0] === '/acoes-pendentes' && $acoesPendentes > 0 ? '<span class="badge" data-variant="secondary" aria-label="' . $acoesPendentes . ' pendente(s)">' . $acoesPendentes . '</span>' : '';
+    if ($n[0] === '/caixa' && $caixaNaoLidas > 0) {
+        $selo = '<span class="badge" data-variant="secondary" aria-label="' . $caixaNaoLidas . ' conversa(s) com mensagens novas">' . $caixaNaoLidas . '</span>';
+    }
     return '<li><a href="' . e(url($n[0])) . '"' . ($ativo($n[0]) ? ' aria-current="page"' : '') . '>'
         . icone($n[2]) . '<span>' . e($n[1]) . '</span>' . $selo . '</a></li>';
 };

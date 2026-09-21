@@ -207,3 +207,19 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 **Pronto quando:** um chamado aberto para uma área com prazo aparece em Tarefas (hoje/atrasadas/próximos), tem checklist que se marca item a item e pode ser concluído com resolução.
 
 > **Verificado (2026-09-21):** `tests/ChamadosTest.php` cobre o serviço do checklist (limites, ida e volta do texto), a criação (código, padrões, área obrigatória, campos de servidor recusados), concluir/reabrir/cancelar com a data e o Desfazer, o checklist pelas ações do ActionExecutor com auditoria, as áreas, a tela unificada (mistura e ordenação, contagens, filtros inválidos, links que mantêm o filtro), o formulário (prazo, checklist em texto, resolução), a lista com filtros, a aba da empresa e o card do Início. Também exercitado por **HTTP real autenticado** (`php -S` com cópia do banco): login, `/tarefas`, criar chamado por POST com CSRF, detalhe com progresso 50%, alternar item (302; sem CSRF devolve 419), concluir com resolução, Início e Configurações → Áreas. **Não verificado em navegador:** a aparência e o uso das telas (o filtro que envia o formulário ao mudar, os botões de item do checklist, o formulário com abas); só foram renderizadas por testes e por `curl`.
+
+---
+
+## Fase 14 — Caixa de entrada unificada
+
+- [x] Migração `0012`: `conversas`, `mensagens` e `atividades.tipo` com `instagram` (recriação com `-- @fk-off`)
+- [x] WhatsApp Business Cloud API: webhook assinado (`/webhooks/meta`), verificação, mensagens de texto e mídia, status de entrega e envio de respostas (janela de 24 h)
+- [x] Instagram Direct pelo mesmo webhook e a mesma API Graph
+- [x] E-mail: cliente IMAP e SMTP próprios (sem extensão), leitura MIME, coleta no worker e resposta com `In-Reply-To`
+- [x] Toda mensagem vira atividade na timeline do contato (com histórico levado ao vincular); evento `mensagem.recebida`
+- [x] Tela Caixa de entrada: lista com filtros, conversa, resposta pelo canal, vincular/criar contato, resolver/reabrir, selo no menu
+- [x] `docs/INSTALACAO.md` com o passo a passo de cada canal
+
+**Pronto quando:** uma mensagem recebida em qualquer dos três canais aparece na Caixa de entrada e na timeline do contato, e a resposta sai pelo mesmo canal.
+
+> **Verificado (2026-09-22):** `tests/CaixaTest.php` cobre a assinatura HMAC e o desafio (inclusive o padrão seguro sem segredo), a leitura dos payloads de WhatsApp (texto, áudio, imagem, localização, botão, status) e Instagram (ecos e leituras ignorados), o webhook (403/400/413, idempotência, status que só avançam), o casamento de contato com as variações do número brasileiro, a timeline e o histórico levado ao vincular, criar contato a partir da conversa, o envio (janela de 24 h, erros da API sem vazar chave, Instagram), o MIME (cabeçalhos codificados, multipart, quoted-printable ISO-8859-1, HTML, citação, respostas automáticas), o IMAP contra um servidor falso (ponto de partida, só o novo, só conhecidos, duplicados, senha errada isolada do worker), o SMTP falso (autenticação, Re:, In-Reply-To, dot-stuffing, falha), as telas e a migração. Também por **HTTP real** (`php -S` com cópia do banco): verificação GET, 403 sem assinatura e com assinatura errada, POST assinado gravando a mensagem e o reenvio não duplicando, login, `/caixa` com a conversa, resolver com CSRF (sem CSRF 419). **Não verificado:** nenhuma chamada real à Meta (WhatsApp/Instagram) nem a um servidor IMAP/SMTP de verdade (faltam as credenciais): formatos de payload e de resposta seguem a documentação, e a revisão do app para o Instagram é externa; o envio de e-mail e a coleta com TLS real só foram exercitados com conexões simuladas; e as telas não foram abertas em um navegador.

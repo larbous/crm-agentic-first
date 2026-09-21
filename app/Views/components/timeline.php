@@ -12,7 +12,7 @@ function timeline(array $atividades, array $o = []): string
         return vazio('Nenhuma atividade ainda', 'Registre uma nota, ligação ou reunião acima.', ['icone' => 'file-text']);
     }
     $icones = [
-        'nota' => 'file-text', 'ligacao' => 'phone', 'whatsapp' => 'message-square', 'email' => 'mail', 'reuniao' => 'users',
+        'nota' => 'file-text', 'ligacao' => 'phone', 'whatsapp' => 'message-square', 'email' => 'mail', 'instagram' => 'image', 'reuniao' => 'users',
         'visita' => 'map-pin', 'proposta' => 'file-text', 'contrato' => 'file-text', 'sistema' => 'sparkles',
     ];
     $tipos = \App\Services\Schema::opcoes('tipo_atividade');

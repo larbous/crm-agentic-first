@@ -105,7 +105,7 @@ final class Schema
             'temperatura'     => ['frio' => 'Frio', 'morno' => 'Morno', 'quente' => 'Quente', 'fervendo' => 'Fervendo'],
             'champ'           => ['confirmado' => 'Confirmado', 'parcial' => 'Parcial', 'nao_identificado' => 'Não identificado'],
             'prioridade_neg'  => ['baixa' => 'Baixa', 'media' => 'Média', 'alta' => 'Alta'],
-            'tipo_atividade'  => ['nota' => 'Nota', 'ligacao' => 'Ligação', 'whatsapp' => 'WhatsApp', 'email' => 'E-mail', 'reuniao' => 'Reunião', 'visita' => 'Visita', 'proposta' => 'Proposta', 'contrato' => 'Contrato', 'sistema' => 'Sistema'],
+            'tipo_atividade'  => ['nota' => 'Nota', 'ligacao' => 'Ligação', 'whatsapp' => 'WhatsApp', 'email' => 'E-mail', 'instagram' => 'Instagram', 'reuniao' => 'Reunião', 'visita' => 'Visita', 'proposta' => 'Proposta', 'contrato' => 'Contrato', 'sistema' => 'Sistema'],
             'direcao'         => ['entrada' => 'Entrada', 'saida' => 'Saída'],
             'tipo_tarefa'     => ['ligar' => 'Ligar', 'enviar' => 'Enviar', 'reuniao' => 'Reunião', 'followup' => 'Follow-up', 'interno' => 'Interno', 'outro' => 'Outro'],
             'status_chamado'  => ['aberto' => 'Aberto', 'andamento' => 'Em andamento', 'aguardando' => 'Aguardando', 'concluido' => 'Concluído', 'cancelado' => 'Cancelado'],

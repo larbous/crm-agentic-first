@@ -35,6 +35,7 @@ final class Rotinas
             'contratos_vencidos'  => $this->contratosVencidos(),
             'pesquisas_criadas'   => $this->pesquisasAutomaticas(),
             'pesquisas_expiradas' => $this->pesquisasExpiradas(),
+            'emails_recebidos'    => \App\Services\Canais\Email::coletar($this->executor),
         ];
     }
 

@@ -132,3 +132,45 @@ O seed nunca sobrescreve agentes já importados. Depois da Fase 11, em bancos ex
 ### Áreas dos chamados (Fase 13)
 
 `php scripts/seed.php` cria as áreas padrão (Tráfego Pago, Design, Social Media, Web, Redação) que ainda não existem; rode-o depois de `php scripts/migrate.php` em bancos já em uso. Depois é só editar a lista em Configurações → Áreas (chamados).
+
+## Caixa de entrada: WhatsApp, Instagram e e-mail (Fase 14)
+
+Cada canal é opcional e só liga quando as chaves abaixo existem em `config.local.php` (nunca no banco, nunca em `config.php`). Sem elas, a tela **Caixa de entrada** funciona vazia e avisa quais canais faltam. Para receber mensagens o site precisa estar em **HTTPS** com endereço público (a Meta não chama `localhost`).
+
+```php
+'canais' => [
+    'meta' => [
+        'app_secret'   => '...',            // Meta for Developers → seu app → Configurações → Básico → Chave secreta do app
+        'verify_token' => 'invente-um-texto-longo-e-aleatorio',   // você escolhe; o mesmo texto vai no painel da Meta
+    ],
+    'whatsapp' => [
+        'token'           => '...',         // token permanente (usuário do sistema), com permissão whatsapp_business_messaging
+        'phone_number_id' => '...',         // WhatsApp → Configuração da API → "ID do número de telefone"
+    ],
+    'instagram' => [
+        'token'    => '...',                // token da conta profissional do Instagram
+        'conta_id' => '...',                // id da conta profissional (Instagram) que recebe as mensagens
+    ],
+    'email' => [
+        'imap_host' => 'imap.seudominio.com', 'imap_porta' => 993, 'imap_seguranca' => 'ssl',   // ssl | tls | ''
+        'usuario'   => 'crm@seudominio.com',  'senha' => '...',
+        'smtp_host' => 'smtp.seudominio.com', 'smtp_porta' => 465, 'smtp_seguranca' => 'ssl',   // ssl (465) ou tls (587)
+        'de_email'  => 'crm@seudominio.com',  'de_nome' => 'Lárbous',
+        // 'smtp_usuario' => '', 'smtp_senha' => '',   // só se forem diferentes do login do IMAP
+        // 'importar_desconhecidos' => false,          // true: cria conversa até para quem ainda não é contato
+        // 'intervalo_seg' => 120,                     // segundos entre duas conexões ao IMAP
+    ],
+],
+```
+
+**WhatsApp (Cloud API oficial) e Instagram Direct — mesmo webhook**
+
+1. Em <https://developers.facebook.com>, crie um app do tipo *Business* e adicione o produto **WhatsApp** (e o de **Instagram**, se for usar).
+2. WhatsApp: em *Configuração da API*, copie o **ID do número de telefone** e gere um **token permanente** (Business Manager → Usuários do sistema → gerar token com `whatsapp_business_messaging` e `whatsapp_business_management`). O token temporário de 24 h serve só para testar.
+3. Webhook: em *Configuração* do produto, informe a **URL de callback** `https://SEU-DOMINIO/webhooks/meta` e o **Verify token** (o mesmo `verify_token` do `config.local.php`); a Meta chama a URL para verificar. Depois assine o campo **messages** (WhatsApp) e **messages** do objeto Instagram.
+4. Instagram: a conta precisa ser **profissional** e estar ligada a uma Página do Facebook; o app precisa da permissão `instagram_manage_messages`, que exige **revisão do app pela Meta** (pode levar dias: comece cedo). Em modo de desenvolvimento só funcionam contas com função no app.
+5. Regra da Meta que o CRM respeita: só se responde com texto livre **até 24 h depois da última mensagem do cliente**. Fora da janela é preciso um *modelo de mensagem aprovado*, que o CRM ainda não envia; a tela avisa e bloqueia o envio.
+
+**E-mail**: use os dados de IMAP/SMTP da caixa (no hPanel: E-mails → Configuração de cliente de e-mail). A primeira coleta só marca o ponto de partida (o histórico da caixa não é importado); depois, a cada 2 minutos, entram os e-mails novos de quem já é contato ou empresa. O cron da hospedagem precisa estar rodando `cron/worker.php` a cada minuto.
+
+Para conferir sem esperar o worker: `php cron/worker.php --verbose`. Mensagens recebidas pelo webhook aparecem na hora.
