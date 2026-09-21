@@ -22,6 +22,14 @@ final class WorkerRepository
         return $st->rowCount() === 1;
     }
 
+    /** A marca já foi registrada? (consulta sem registrar) */
+    public function marcada(string $chave): bool
+    {
+        $st = DB::conexao()->prepare('SELECT 1 FROM worker_marcas WHERE chave = :c');
+        $st->execute(['c' => $chave]);
+        return $st->fetchColumn() !== false;
+    }
+
     /** Tarefas concluídas com recorrência ainda sem a próxima ocorrência gerada. */
     public function tarefasRecorrentesConcluidas(int $limite): array
     {
@@ -95,5 +103,29 @@ final class WorkerRepository
         $st->execute(['e' => $empresaId]);
         $id = $st->fetchColumn();
         return $id === false ? null : (int) $id;
+    }
+
+    /**
+     * Negócios abertos sem interação real (ligação, WhatsApp, e-mail, Instagram, reunião, visita, proposta) desde `$corte`, com a data
+     * e a direção da última. A interação vale se for do negócio, da empresa ou do contato principal; sem nenhuma, conta a criação do negócio.
+     * Notas e atividades do sistema não contam (o rascunho do follow-up é uma nota e não pode zerar o silêncio).
+     * @param string $corte AAAA-MM-DD HH:MM:SS
+     * @return list<array{id:int|string,titulo:string,ultima:string,ultima_direcao:?string}>
+     */
+    public function negociosSemInteracao(string $corte, int $limite): array
+    {
+        $casa = "a.arquivado_em IS NULL AND a.tipo IN ('ligacao', 'whatsapp', 'email', 'instagram', 'reuniao', 'visita', 'proposta')
+                 AND (a.negocio_id = n.id OR (n.empresa_id IS NOT NULL AND a.empresa_id = n.empresa_id)
+                      OR (n.contato_principal_id IS NOT NULL AND a.contato_id = n.contato_principal_id))";
+        $st = DB::conexao()->prepare(
+            "SELECT * FROM (
+                SELECT n.id, n.titulo,
+                       COALESCE((SELECT MAX(a.data_hora) FROM atividades a WHERE {$casa}), n.criado_em) AS ultima,
+                       (SELECT a.direcao FROM atividades a WHERE {$casa} ORDER BY a.data_hora DESC, a.id DESC LIMIT 1) AS ultima_direcao
+                FROM negocios n WHERE n.arquivado_em IS NULL AND n.status = 'aberto'
+             ) WHERE ultima <= :corte ORDER BY ultima, id LIMIT " . max(1, $limite)
+        );
+        $st->execute(['corte' => $corte]);
+        return $st->fetchAll();
     }
 }

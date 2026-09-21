@@ -9,6 +9,7 @@ use App\Core\Session;
 use App\Core\View;
 use App\Repositories\Repositorios;
 use App\Services\ActionExecutor;
+use App\Services\AI\IaCreditos;
 use App\Services\CamposExtras;
 use App\Services\Schema;
 
@@ -68,6 +69,14 @@ final class ConfiguracaoController
         }
         $x->definirConfiguracao('proposta.validade_dias', $dias);
         return $this->responder(true, 'Dados da agência salvos.', 'agencia');
+    }
+
+    /** "Já recarreguei": limpa o alerta de créditos esgotados; se ainda estiver sem crédito, o próximo uso da IA volta a marcá-lo. */
+    public function reativarIa(array $p): Response
+    {
+        IaCreditos::limpar((string) $p['provedor']);
+        Session::flash('success', 'Tudo certo: a IA será usada de novo. Se os créditos ainda não voltaram, o aviso reaparece.');
+        return Response::redirecionar(caminho_seguro($_POST['voltar'] ?? null, url('/')));
     }
 
     public function criar(array $p): Response

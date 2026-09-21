@@ -16,6 +16,8 @@ final class RequisicaoIA
         public readonly ?float $temperatura,
         public readonly bool $buscaWeb,
         public readonly int $timeout,
+        /** Áudios anexados: cada um com 'mime' e 'base64'. Só provedores com `suportaAudio()` os recebem. @var list<array{mime:string,base64:string}> */
+        public readonly array $anexos = [],
     ) {
     }
 }

@@ -36,6 +36,11 @@ final class ProvedorAnthropic implements Provedor
         return true;
     }
 
+    public function suportaAudio(): bool
+    {
+        return false;
+    }
+
     public function modeloPara(string $modeloPedido): string
     {
         return $modeloPedido;

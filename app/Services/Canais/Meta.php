@@ -101,6 +101,68 @@ final class Meta
         return ['ok' => false, 'id' => null, 'erro' => mb_substr('Meta: ' . $mensagem, 0, 300)];
     }
 
+    /**
+     * Baixa a mídia de uma mensagem recebida. WhatsApp: o id da mídia dá, na API Graph, uma URL temporária que também exige o
+     * token. Instagram: o webhook já traz a URL do anexo. `definitivo` = repetir não adianta (mídia expirada, grande demais).
+     * @param array $midia {id, mime, nome} (WhatsApp) ou {url} (Instagram)
+     * @return array{ok:bool,bytes:?string,mime:?string,erro:?string,definitivo:bool}
+     */
+    public static function baixarMidia(string $canal, array $midia, int $maxBytes): array
+    {
+        $falha = static fn (string $erro, bool $definitivo = false): array => ['ok' => false, 'bytes' => null, 'mime' => null, 'erro' => mb_substr($erro, 0, 300), 'definitivo' => $definitivo];
+        $mime = isset($midia['mime']) ? (string) $midia['mime'] : null;
+
+        if ($canal === 'whatsapp') {
+            $token = (string) Canais::valor('whatsapp', 'token');
+            $versao = (string) (Canais::valor('meta', 'versao') ?: self::VERSAO_PADRAO);
+            if (!isset($midia['id']) || $token === '') {
+                return $falha('Mídia sem id ou WhatsApp sem token.', !isset($midia['id']));
+            }
+            $r = self::obter("https://graph.facebook.com/{$versao}/" . rawurlencode((string) $midia['id']), $token, $maxBytes);
+            if ($r['status'] === 0) {
+                return $falha('Sem resposta da Meta: ' . (string) $r['erro']);
+            }
+            $meta = json_decode($r['corpo'], true);
+            if ($r['status'] !== 200 || !is_array($meta) || !is_string($meta['url'] ?? null)) {
+                return $falha('Meta: ' . (string) (is_array($meta) ? ($meta['error']['message'] ?? 'HTTP ' . $r['status']) : 'HTTP ' . $r['status']), in_array($r['status'], [400, 404], true));
+            }
+            if ((int) ($meta['file_size'] ?? 0) > $maxBytes) {
+                return $falha('Arquivo maior que o limite de ' . intdiv($maxBytes, 1048576) . ' MB.', true);
+            }
+            $mime = (string) ($meta['mime_type'] ?? $mime);
+            $url = $meta['url'];
+        } else {
+            $url = (string) ($midia['url'] ?? '');
+            $token = '';
+            if ($url === '') {
+                return $falha('Anexo sem URL.', true);
+            }
+        }
+        if (!str_starts_with($url, 'https://')) {
+            return $falha('URL da mídia não é HTTPS.', true);
+        }
+
+        $r = self::obter($url, $token, $maxBytes);
+        if ($r['status'] === 0) {
+            return $falha('Sem resposta ao baixar a mídia: ' . (string) $r['erro']);
+        }
+        if ($r['status'] !== 200 || $r['corpo'] === '') {
+            return $falha('Download da mídia falhou (HTTP ' . $r['status'] . ').', in_array($r['status'], [400, 403, 404, 410], true));
+        }
+        if (strlen($r['corpo']) > $maxBytes) {
+            return $falha('Arquivo maior que o limite de ' . intdiv($maxBytes, 1048576) . ' MB.', true);
+        }
+        return ['ok' => true, 'bytes' => $r['corpo'], 'mime' => $mime, 'erro' => null, 'definitivo' => false];
+    }
+
+    /** GET autenticado (ou não, sem token), pelo transporte de teste ou pelo cURL. @return array{status:int,corpo:string,erro:?string} */
+    private static function obter(string $url, string $token, int $maxBytes): array
+    {
+        return self::$transporte !== null
+            ? (self::$transporte)(['url' => $url, 'corpo' => null, 'token' => $token, 'metodo' => 'GET'])
+            : Http::obter($url, $token !== '' ? ['Authorization: Bearer ' . $token] : [], 60, $maxBytes + 1024);
+    }
+
     // ---- Interno --------------------------------------------------------------------------
 
     private static function whatsapp(array $valor, array &$saida): void

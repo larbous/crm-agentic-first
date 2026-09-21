@@ -94,6 +94,14 @@ final class ConversaRepository
         return (int) DB::conexao()->query("SELECT COUNT(*) FROM conversas WHERE arquivado_em IS NULL AND status = 'aberta' AND nao_lidas > 0")->fetchColumn();
     }
 
+    /** Conversas resolvidas que esperam o resumo automático (fila do worker), das mais antigas para as mais novas. @return list<array> */
+    public function paraResumir(int $limite): array
+    {
+        $st = DB::conexao()->prepare(self::SELECT . ' WHERE c.resumo_pendente = 1 AND c.arquivado_em IS NULL ORDER BY c.atualizado_em, c.id LIMIT ' . max(1, $limite));
+        $st->execute();
+        return $st->fetchAll();
+    }
+
     /** @return list<array> conversas de um contato ou de uma empresa */
     public function doRegistro(string $campo, int $id, int $limite = 20): array
     {

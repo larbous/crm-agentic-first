@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Repositories\ConversaRepository;
 use App\Repositories\MensagemRepository;
 use App\Repositories\Repositorios;
+use App\Services\AI\Transcritor;
 use App\Services\Canais\Canais;
 use App\Services\Canais\ContatoResolver;
 use App\Services\Canais\Email;
@@ -64,6 +65,8 @@ trait AcoesCaixa
                     'conversa_id' => $id, 'direcao' => 'entrada', 'tipo' => $tipo, 'texto' => $texto,
                     'midia' => !empty($m['midia']) ? json_encode($m['midia'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
                     'id_externo' => (string) $m['id_externo'], 'status' => 'recebida', 'data_hora' => $dataHora, 'criado_em' => $agora,
+                    // Áudio com mídia baixável entra na fila de transcrição do worker (Fase 15).
+                    'transcricao_status' => $tipo === 'audio' && !empty($m['midia']) ? 'pendente' : null,
                 ]);
 
                 $atual = $conversas->encontrar($id);
@@ -199,13 +202,23 @@ trait AcoesCaixa
     public function mudarStatusConversa(int $conversaId, string $status): Resultado
     {
         $conversas = new ConversaRepository();
-        if ($conversas->encontrar($conversaId) === null) {
+        $conversa = $conversas->encontrar($conversaId);
+        if ($conversa === null) {
             return Resultado::erroGeral('Conversa não encontrada.');
         }
         if (!in_array($status, ['aberta', 'resolvida'], true)) {
             return Resultado::erroGeral('Situação inválida.');
         }
-        $conversas->atualizar($conversaId, ['status' => $status, 'atualizado_em' => agora()] + ($status === 'resolvida' ? ['nao_lidas' => 0] : []));
+        $novo = ['status' => $status, 'atualizado_em' => agora()];
+        if ($status === 'resolvida') {
+            $novo += ['nao_lidas' => 0];
+            // Ao final do atendimento, o worker gera o resumo (só se houve troca de mensagens e nada mudou desde o último resumo).
+            $jaResumida = $conversa['resumo_em'] !== null && (string) $conversa['resumo_em'] >= (string) $conversa['ultima_mensagem_em'];
+            if (!$jaResumida && $conversa['ultima_entrada_em'] !== null && count((new MensagemRepository())->daConversa($conversaId, 2)) >= 2) {
+                $novo += ['resumo_pendente' => 1, 'resumo_tentativas' => 0];
+            }
+        }
+        $conversas->atualizar($conversaId, $novo);
         return Resultado::sucesso($conversaId, $status === 'resolvida' ? 'Conversa resolvida.' : 'Conversa reaberta.');
     }
 
@@ -260,6 +273,90 @@ trait AcoesCaixa
         });
     }
 
+    /**
+     * Grava o resultado da transcrição de um áudio (Fase 15). A IA só devolve dados; aqui intenção e sentimento passam pela lista
+     * fixa e o texto vai para a mensagem, para a prévia da conversa e para a descrição da atividade da timeline.
+     * Falha: conta uma tentativa (a não ser que `$contarTentativa` seja falso, como na falta de crédito) e desiste se for definitiva
+     * ou ao esgotar as tentativas; enquanto não desiste, o áudio continua pendente.
+     * @param array $r saída de Transcritor::transcrever
+     */
+    public function registrarTranscricao(int $mensagemId, array $r, bool $contarTentativa = true): Resultado
+    {
+        $mensagens = new MensagemRepository();
+        $m = $mensagens->encontrar($mensagemId);
+        if ($m === null || $m['transcricao_status'] !== 'pendente') {
+            return Resultado::erroGeral('Não há transcrição pendente para esta mensagem.');
+        }
+
+        if (empty($r['ok'])) {
+            $tentativas = (int) $m['transcricao_tentativas'] + ($contarTentativa ? 1 : 0);
+            $desiste = !empty($r['definitivo']) || $tentativas >= Transcritor::MAX_TENTATIVAS;
+            $mensagens->atualizar($mensagemId, [
+                'transcricao_tentativas' => $tentativas, 'transcricao_erro' => mb_substr((string) ($r['erro'] ?? 'Falha na transcrição.'), 0, 300),
+            ] + ($desiste ? ['transcricao_status' => 'falhou'] : []));
+            return Resultado::sucesso($mensagemId, $desiste ? 'Transcrição desistida.' : 'Nova tentativa mais tarde.');
+        }
+
+        $texto = mb_substr(trim((string) ($r['transcricao'] ?? '')), 0, 20000);
+        $intencao = isset(Transcritor::INTENCOES[(string) ($r['intencao'] ?? '')]) ? (string) $r['intencao'] : null;
+        $sentimento = isset(Transcritor::SENTIMENTOS[(string) ($r['sentimento'] ?? '')]) ? (string) $r['sentimento'] : null;
+
+        return $this->transacao(function () use ($mensagens, $mensagemId, $m, $texto, $intencao, $sentimento): Resultado {
+            $mensagens->atualizar($mensagemId, [
+                'transcricao_status' => 'concluida', 'transcricao' => $texto, 'intencao' => $intencao, 'sentimento' => $sentimento, 'transcricao_erro' => null,
+            ]);
+            $conversas = new ConversaRepository();
+            $conversa = $conversas->encontrar((int) $m['conversa_id']);
+            if ($conversa !== null && (string) $conversa['ultima_mensagem_em'] === (string) $m['data_hora']) {
+                $conversas->atualizar((int) $conversa['id'], ['ultima_previa' => mb_substr(preg_replace('/\s+/u', ' ', Canais::descricao('audio', $texto)) ?? '', 0, 140)]);
+            }
+            if ($m['atividade_id'] !== null && $texto !== '') {
+                $r = $this->atualizar('atividades', (int) $m['atividade_id'], ['descricao' => mb_substr(Canais::descricao('audio', $texto), 0, 4900)], 'sistema');
+                if (!$r->ok) {
+                    error_log("Transcrição da mensagem #{$mensagemId} não atualizou a timeline: {$r->mensagem}");
+                }
+            }
+            return Resultado::sucesso($mensagemId, 'Transcrição registrada.');
+        });
+    }
+
+    /** Grava o resumo do atendimento e, se a conversa já tem contato ou empresa, uma nota na timeline (origem "ia"). */
+    public function registrarResumoConversa(int $conversaId, string $texto): Resultado
+    {
+        $conversas = new ConversaRepository();
+        $conversa = $conversas->encontrar($conversaId);
+        $texto = mb_substr(trim($texto), 0, 3000);
+        if ($conversa === null || $texto === '') {
+            return Resultado::erroGeral('Conversa não encontrada ou resumo vazio.');
+        }
+        return $this->transacao(function () use ($conversas, $conversaId, $conversa, $texto): Resultado {
+            $agora = agora();
+            $conversas->atualizar($conversaId, ['resumo' => $texto, 'resumo_em' => $agora, 'resumo_pendente' => 0, 'resumo_tentativas' => 0]);
+            if ($conversa['contato_id'] !== null || $conversa['empresa_id'] !== null) {
+                $r = $this->criar('atividades', [
+                    'tipo' => 'nota', 'assunto' => 'Resumo do atendimento (' . Canais::ROTULOS[(string) $conversa['canal']] . ')', 'descricao' => mb_substr($texto, 0, 4900),
+                    'empresa_id' => $conversa['empresa_id'] !== null ? (int) $conversa['empresa_id'] : null,
+                    'contato_id' => $conversa['contato_id'] !== null ? (int) $conversa['contato_id'] : null, 'data_hora' => $agora,
+                ], 'ia');
+                if (!$r->ok) {
+                    error_log("Resumo da conversa #{$conversaId} não virou nota na timeline: {$r->mensagem}");
+                }
+            }
+            return Resultado::sucesso($conversaId, 'Resumo registrado.');
+        });
+    }
+
+    /** O resumo falhou: conta a tentativa e, na terceira, tira a conversa da fila. */
+    public function adiarResumoConversa(int $conversaId): void
+    {
+        $conversas = new ConversaRepository();
+        $conversa = $conversas->encontrar($conversaId);
+        if ($conversa !== null) {
+            $tentativas = (int) $conversa['resumo_tentativas'] + 1;
+            $conversas->atualizar($conversaId, ['resumo_tentativas' => $tentativas, 'resumo_pendente' => $tentativas >= 3 ? 0 : 1]);
+        }
+    }
+
     // ---- Apoio ----------------------------------------------------------------------------
 
     /** Cria a atividade da timeline para a mensagem (só se a conversa já tem contato ou empresa). Devolve o id ou null. */
@@ -275,7 +372,7 @@ trait AcoesCaixa
             : Canais::ROTULOS[$canal] . ($entrada ? ' recebido' : ' enviado');
         $r = $this->criar('atividades', [
             'tipo' => Canais::TIPO_ATIVIDADE[$canal], 'direcao' => $mensagem['direcao'], 'assunto' => $assunto,
-            'descricao' => mb_substr(Canais::descricao((string) $mensagem['tipo'], $mensagem['texto']), 0, 4900),
+            'descricao' => mb_substr(Canais::descricao((string) $mensagem['tipo'], $mensagem['texto'] ?: ($mensagem['transcricao'] ?? null)), 0, 4900),
             'empresa_id' => $conversa['empresa_id'] !== null ? (int) $conversa['empresa_id'] : null,
             'contato_id' => $conversa['contato_id'] !== null ? (int) $conversa['contato_id'] : null,
             'data_hora' => (string) $mensagem['data_hora'],

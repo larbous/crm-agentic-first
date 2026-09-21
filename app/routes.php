@@ -120,6 +120,7 @@ return static function (Router $r): void {
         $tipos = 'pipelines|etapas|origens|motivos-perda|tags|contrato-tipos|areas|campos-extras';
         $r->get('/configuracoes', [ConfiguracaoController::class, 'index']);
         $r->post('/configuracoes/agencia', [ConfiguracaoController::class, 'salvarAgencia']);
+        $r->post('/ia/creditos/{provedor:gemini|anthropic}/reativar', [ConfiguracaoController::class, 'reativarIa']);
         $r->post("/configuracoes/{tipo:{$tipos}}", [ConfiguracaoController::class, 'criar']);
         $r->post("/configuracoes/{tipo:{$tipos}}/{id:\\d+}", [ConfiguracaoController::class, 'atualizar']);
         $r->post("/configuracoes/{tipo:{$tipos}}/{id:\\d+}/arquivar", [ConfiguracaoController::class, 'arquivar']);

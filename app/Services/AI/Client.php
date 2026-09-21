@@ -51,7 +51,8 @@ final class Client
      * @param array $meta agente_id, squad_id, squad_execucao_id, etapa_ordem, entidade, registro_id, simulacao (opcionais);
      *                    execucao_id reaproveita uma linha já criada (execução tirada da fila do worker) em vez de criar outra
      * @param array $opcoes web_search (bool: liga a ferramenta de busca na web; só provedores que a suportam), timeout (segundos por tentativa),
-     *                      temperatura (float; null omite o parâmetro — padrão 0, usado pelo roteador)
+     *                      temperatura (float; null omite o parâmetro — padrão 0, usado pelo roteador),
+     *                      anexos (lista de ['mime' => string, 'base64' => string]: áudios; só provedores que os aceitam, hoje o Gemini)
      * @throws IaErro
      */
     public function chamar(string $modelo, string $sistema, string $usuario, array $meta = [], int $maxTokens = 1024, array $opcoes = []): RespostaIA
@@ -78,12 +79,15 @@ final class Client
         };
 
         $buscaWeb = !empty($opcoes['web_search']);
-        $ordem = $this->ordenar($this->provedores($buscaWeb));
+        $anexos = array_values((array) ($opcoes['anexos'] ?? []));
+        $ordem = $this->ordenar($this->provedores($buscaWeb, $anexos !== []));
         if ($ordem === []) {
             $falhar(
-                $buscaWeb && $this->provedores() !== []
-                    ? 'Esta tarefa usa busca na web, disponível só com a Anthropic. Defina anthropic.api_key em config.local.php.'
-                    : 'A IA não está configurada. Defina anthropic.api_key em config.local.php ou use os comandos com / (digite /ajuda).',
+                match (true) {
+                    $anexos !== [] && $this->provedores() !== [] => 'Esta tarefa usa áudio, disponível só com o Gemini. Defina gemini.api_key em config.local.php.',
+                    $buscaWeb && $this->provedores() !== [] => 'Esta tarefa usa busca na web, disponível só com a Anthropic. Defina anthropic.api_key em config.local.php.',
+                    default => 'A IA não está configurada. Defina anthropic.api_key em config.local.php ou use os comandos com / (digite /ajuda).',
+                },
                 'api_key ausente',
             );
         }
@@ -106,7 +110,7 @@ final class Client
             }
             $req = new RequisicaoIA(
                 $provedor->modeloPara($modelo), $sistema, $usuario, $maxTokens, $temperatura, $buscaWeb,
-                $i === 0 ? $timeoutBase : max(5, min($timeoutBase, $restante)),
+                $i === 0 ? $timeoutBase : max(5, min($timeoutBase, $restante)), $anexos,
             );
             $r = $provedor->enviar($req);
             $tentativas++;
@@ -118,6 +122,7 @@ final class Client
 
             if ($r->ok()) {
                 $this->disjuntor->registrarSucesso($provedor->nome());
+                IaCreditos::limpar($provedor->nome());
                 $resposta = $r;
                 $usado = $provedor;
                 $modeloUsado = $req->modelo;
@@ -126,6 +131,9 @@ final class Client
             $ultima = $r;
             $ultimoProvedor = $provedor->nome();
             $falhasTecnicas[] = $provedor->nome() . ': ' . $r->tecnico;
+            if ($r->semCredito()) {
+                IaCreditos::marcar($provedor->nome()); // alerta no topo das telas e tarefas dependentes suspensas
+            }
             if (!$r->instavel()) {
                 break; // configuração ou requisição inválida: outro provedor não resolve
             }
@@ -148,14 +156,14 @@ final class Client
      * Provedores com credencial, na ordem de `ia.provedores`.
      * @return list<Provedor>
      */
-    private function provedores(bool $exigirBuscaWeb = false): array
+    private function provedores(bool $exigirBuscaWeb = false, bool $exigirAudio = false): array
     {
         $todos = ['anthropic' => new ProvedorAnthropic(), 'gemini' => new ProvedorGemini()];
         $lista = (string) ((new ConfiguracaoRepository())->obter('ia.provedores') ?: self::PROVEDORES_PADRAO);
         $saida = [];
         foreach (array_unique(array_map('trim', explode(',', $lista))) as $nome) {
             $p = $todos[$nome] ?? null;
-            if ($p !== null && $p->configurado() && (!$exigirBuscaWeb || $p->suportaBuscaWeb())) {
+            if ($p !== null && $p->configurado() && (!$exigirBuscaWeb || $p->suportaBuscaWeb()) && (!$exigirAudio || $p->suportaAudio())) {
                 $saida[] = $p;
             }
         }
@@ -163,14 +171,15 @@ final class Client
     }
 
     /**
-     * Provedores com disjuntor aberto vão para o fim da fila: só são tentados se os outros falharem (última chance).
+     * Provedores com disjuntor aberto ou sem crédito vão para o fim da fila: só são tentados se os outros falharem (última chance).
      * @param list<Provedor> $provedores
      * @return list<Provedor>
      */
     private function ordenar(array $provedores): array
     {
-        $saudaveis = array_values(array_filter($provedores, fn (Provedor $p): bool => !$this->disjuntor->aberto($p->nome())));
-        $abertos = array_values(array_filter($provedores, fn (Provedor $p): bool => $this->disjuntor->aberto($p->nome())));
+        $fora = fn (Provedor $p): bool => $this->disjuntor->aberto($p->nome()) || IaCreditos::bloqueado($p->nome());
+        $saudaveis = array_values(array_filter($provedores, fn (Provedor $p): bool => !$fora($p)));
+        $abertos = array_values(array_filter($provedores, $fora));
         return [...$saudaveis, ...$abertos];
     }
 }

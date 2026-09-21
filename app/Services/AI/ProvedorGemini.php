@@ -44,6 +44,11 @@ final class ProvedorGemini implements Provedor
         return false;
     }
 
+    public function suportaAudio(): bool
+    {
+        return true;
+    }
+
     /** Classe do modelo pedido (Haiku = tarefa simples → rápido; o resto → redação/análise) traduzida para o modelo Gemini configurado. */
     public function modeloPara(string $modeloPedido): string
     {
@@ -69,9 +74,13 @@ final class ProvedorGemini implements Provedor
         if (str_starts_with($req->modelo, 'gemini-2.5-')) {
             $config['thinkingConfig'] = ['thinkingBudget' => str_contains($req->modelo, '-pro') ? 128 : 0]; // o Pro não aceita 0
         }
+        $partes = [['text' => $req->usuario]];
+        foreach ($req->anexos as $anexo) {
+            $partes[] = ['inline_data' => ['mime_type' => $anexo['mime'], 'data' => $anexo['base64']]];
+        }
         $corpo = [
             'systemInstruction' => ['parts' => [['text' => $req->sistema]]],
-            'contents'          => [['role' => 'user', 'parts' => [['text' => $req->usuario]]]],
+            'contents'          => [['role' => 'user', 'parts' => $partes]],
             'generationConfig'  => $config,
         ];
 

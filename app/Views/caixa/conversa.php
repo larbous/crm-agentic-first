@@ -70,6 +70,12 @@ if ($c['contato_id'] === null) {
 
 <div class="grid gap-4">
     <?php if ($vinculo !== ''): ?><?= card(['tamanho' => 'sm', 'titulo' => 'Quem é', 'corpo_html' => $vinculo]) ?><?php endif; ?>
+    <?php if (trim((string) ($c['resumo'] ?? '')) !== ''): ?>
+        <?= card(['tamanho' => 'sm', 'titulo' => 'Resumo do atendimento', 'corpo_html' => '<p class="text-sm whitespace-pre-line">' . e((string) $c['resumo']) . '</p>'
+            . '<p class="text-muted-foreground mt-2 text-xs">Gerado pela IA em ' . e(datahora_br((string) $c['resumo_em'])) . '.</p>']) ?>
+    <?php elseif ((int) ($c['resumo_pendente'] ?? 0) === 1): ?>
+        <?= alerta('Resumo a caminho', 'A conversa foi resolvida e o resumo do atendimento será gerado em instantes.', 'info') ?>
+    <?php endif; ?>
     <?= card(['titulo' => 'Mensagens', 'corpo_html' => $lista !== '' ? '<ul class="grid gap-2">' . $lista . '</ul>' : vazio('Sem mensagens', '', ['icone' => 'message-square'])]) ?>
     <?= card(['titulo' => 'Resposta', 'corpo_html' => $resposta]) ?>
 </div>

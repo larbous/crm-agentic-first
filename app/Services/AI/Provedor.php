@@ -16,6 +16,9 @@ interface Provedor
     /** Ferramenta de busca na web (só a Anthropic tem hoje; o Gemini fica de fora nessas chamadas). */
     public function suportaBuscaWeb(): bool;
 
+    /** Aceita áudio como anexo da requisição (só o Gemini hoje): usado na transcrição de áudios da caixa de entrada. */
+    public function suportaAudio(): bool;
+
     /** Modelo deste provedor equivalente ao pedido (que vem do agente/configuração, em id Claude). */
     public function modeloPara(string $modeloPedido): string;
 

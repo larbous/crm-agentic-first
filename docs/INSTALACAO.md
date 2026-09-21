@@ -93,6 +93,12 @@ Ajustes opcionais em `configuracoes` (chave → valor; padrão entre parênteses
 
 Cada agente pode ter o seu corte em `confianca_minima` (0 a 1) no JSON. A tela Execuções mostra o provedor quando não é a Anthropic e quantas tentativas foram necessárias.
 Limitações no Gemini: sem busca na web (o `pesquisador` só roda com a Anthropic) e sem prompt caching (custo de entrada maior).
+
+### Áudios, resumo de conversas e follow-up (Fase 15)
+
+- **Transcrição de áudios** (WhatsApp e Instagram): usa **só o Gemini** (a Anthropic não aceita áudio); exige `gemini.api_key` e o token do canal. O worker baixa a mídia, transcreve e grava texto, intenção e sentimento; o áudio em si não é guardado. Áudios acima de 15 MB não são transcritos. Sem chave do Gemini ou **sem créditos**, a transcrição fica desativada e os áudios esperam na fila: aparece um alerta vermelho no topo de todas as telas e, quando os créditos voltarem (o sistema testa de novo a cada 30 min, ou clique em "Já recarreguei"), eles são transcritos sozinhos.
+- **Resumo ao resolver**: ao resolver uma conversa com troca de mensagens, o worker gera o resumo (fica na conversa e vira uma nota na timeline do contato). Usa o modelo rápido (`ia.modelo_roteador`) de qualquer provedor configurado.
+- **Follow-up automático**: o worker aciona o agente `redator-followup` (da biblioteca; precisa estar importado e ativo, **desativá-lo desliga a cadência**) para negócios abertos sem interação real há 3, 7 e 14 dias; o rascunho fica como nota no negócio para você revisar e enviar pela Caixa de entrada. A cadência é `followup.cadencia_dias` em `configuracoes` (ex.: `5,10`). Vale o teto `ia.limite_hora`.
 Para medir o acerto do roteador (meta ≥ 90%): `php scripts/avaliar-roteador.php` (`--offline` só valida o fixture; `--verbose` mostra as saídas). A avaliação usa um banco em memória, mas **chama a API real e consome tokens**.
 
 ## Agentes de IA

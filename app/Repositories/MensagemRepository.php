@@ -52,6 +52,17 @@ final class MensagemRepository
         return array_map($this->decodificar(...), $st->fetchAll());
     }
 
+    /** Áudios recebidos à espera de transcrição (com o canal da conversa), dos mais antigos para os mais novos. @return list<array> */
+    public function paraTranscrever(int $limite): array
+    {
+        $st = DB::conexao()->prepare(
+            "SELECT m.*, c.canal FROM mensagens m JOIN conversas c ON c.id = m.conversa_id
+             WHERE m.transcricao_status = 'pendente' ORDER BY m.id LIMIT " . max(1, $limite)
+        );
+        $st->execute();
+        return array_map($this->decodificar(...), $st->fetchAll());
+    }
+
     private function decodificar(?array $linha): ?array
     {
         if ($linha === null) {

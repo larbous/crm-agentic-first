@@ -11,6 +11,7 @@ use App\Core\Session;
 use App\Core\View;
 use App\Repositories\AcaoPendenteRepository;
 use App\Repositories\ConversaRepository;
+use App\Services\AI\IaCreditos;
 
 $caminho = $caminho ?? '/';
 $usuario = $usuario ?? ['nome' => 'Operador', 'email' => ''];
@@ -141,6 +142,27 @@ $item = static function (array $n) use ($ativo, $acoesPendentes, $caixaNaoLidas)
             <form id="form-sair" method="post" action="<?= e(url('/logout')) ?>" hidden><?= csrf_field() ?></form>
         </div>
     </header>
+
+    <?php /* Provedor de IA sem créditos: alerta fixo no topo até o crédito voltar (Fase 15). */ ?>
+    <?php foreach (IaCreditos::alertas() as $sc) :
+        $efeito = $sc['provedor'] === 'gemini'
+            ? 'A transcrição de áudios do WhatsApp e do Instagram está desativada: os áudios ficam na fila e são transcritos sozinhos quando os créditos voltarem.'
+            : 'As respostas da IA passam a usar o Gemini enquanto isso.';
+        $onde = $sc['provedor'] === 'gemini' ? 'no Google AI Studio (aistudio.google.com)' : 'no console da Anthropic (console.anthropic.com)'; ?>
+    <div class="px-4 pt-3 lg:px-6" data-alerta-creditos="<?= e($sc['provedor']) ?>">
+        <div class="alert" data-variant="destructive" role="alert">
+            <?= icone('circle-alert') ?>
+            <h2>Sem créditos no <?= e($sc['rotulo']) ?> desde <?= e(datahora_br($sc['desde'])) ?></h2>
+            <section>
+                <p><?= e($efeito) ?> Recarregue <?= e($onde) ?> e depois clique em “Já recarreguei”.</p>
+                <form method="post" action="<?= e(url('/ia/creditos/' . $sc['provedor'] . '/reativar')) ?>" class="mt-2">
+                    <?= csrf_field() ?><input type="hidden" name="voltar" value="<?= e($caminho) ?>">
+                    <?= botao('Já recarreguei', ['tipo' => 'submit', 'variante' => 'outline', 'tamanho' => 'sm', 'icone' => 'rotate-ccw']) ?>
+                </form>
+            </section>
+        </div>
+    </div>
+    <?php endforeach; ?>
 
     <div class="app-corpo">
         <main id="conteudo" class="app-conteudo" tabindex="-1">
