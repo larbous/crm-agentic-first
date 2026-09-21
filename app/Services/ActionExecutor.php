@@ -32,6 +32,7 @@ final class ActionExecutor
         'contatos' => ['status' => 'ativo'],
         'tarefas'  => ['tipo' => 'outro', 'prioridade' => 'media', 'status' => 'pendente', 'recorrencia' => 'nenhuma'],
         'etapas'   => ['tipo' => 'aberta', 'probabilidade_padrao' => 0],
+        'chamados' => ['prioridade' => 'media', 'status' => 'aberto'],
         'servicos' => ['categoria' => 'outro', 'unidade' => 'projeto'],
         'propostas' => ['desconto_tipo' => 'valor'],
         'contratos' => ['recorrencia' => 'unica', 'indice_reajuste' => 'nenhum'],
@@ -41,7 +42,7 @@ final class ActionExecutor
     private const TIPOS_CONTATO = ['ligacao', 'whatsapp', 'email', 'reuniao', 'visita'];
 
     /** Entidades cujo nome deve ser único entre os registros ativos (com escopo opcional). */
-    private const NOME_UNICO = ['origens' => [], 'motivos_perda' => [], 'tags' => [], 'pipelines' => [], 'etapas' => ['pipeline_id'], 'contrato_tipos' => []];
+    private const NOME_UNICO = ['origens' => [], 'motivos_perda' => [], 'tags' => [], 'pipelines' => [], 'etapas' => ['pipeline_id'], 'contrato_tipos' => [], 'areas' => []];
 
     /** @var list<array{0:string,1:array}> */
     private array $eventos = [];
@@ -234,6 +235,60 @@ final class ActionExecutor
     public function concluirTarefa(int $tarefaId, string $origem = 'humano'): Resultado
     {
         return $this->atualizar('tarefas', $tarefaId, ['status' => 'concluida'], $origem, 'concluir');
+    }
+
+    // ---- Chamados: status e checklist (Fase 13) -----------------------------------------
+
+    /** Muda o status de um chamado (aberto, andamento, aguardando, concluido, cancelado); a resolução é opcional ao fechar. */
+    public function mudarStatusChamado(int $id, string $status, ?string $resolucao = null, string $origem = 'humano'): Resultado
+    {
+        $dados = ['status' => $status];
+        if ($resolucao !== null && trim($resolucao) !== '') {
+            $dados['resolucao'] = $resolucao;
+        }
+        return $this->atualizar('chamados', $id, $dados, $origem, 'mudar_status');
+    }
+
+    /** Marca ou desmarca o item $indice (0-based) do checklist. */
+    public function alternarItemChecklist(int $id, int $indice, string $origem = 'humano'): Resultado
+    {
+        return $this->editarChecklist($id, $origem, 'checklist_alternar', static function (array $itens) use ($indice): ?array {
+            if (!isset($itens[$indice])) {
+                return null;
+            }
+            $itens[$indice]['feito'] = $itens[$indice]['feito'] === 1 ? 0 : 1;
+            return $itens;
+        });
+    }
+
+    public function adicionarItemChecklist(int $id, string $texto, string $origem = 'humano'): Resultado
+    {
+        return $this->editarChecklist($id, $origem, 'checklist_adicionar', static fn (array $itens): array => [...$itens, ['texto' => $texto, 'feito' => 0]]);
+    }
+
+    public function removerItemChecklist(int $id, int $indice, string $origem = 'humano'): Resultado
+    {
+        return $this->editarChecklist($id, $origem, 'checklist_remover', static function (array $itens) use ($indice): ?array {
+            if (!isset($itens[$indice])) {
+                return null;
+            }
+            array_splice($itens, $indice, 1);
+            return $itens;
+        });
+    }
+
+    /** @param callable(list<array{texto:string,feito:int}>):?list<array> $mudar devolve os novos itens (null = índice inexistente) */
+    private function editarChecklist(int $id, string $origem, string $acao, callable $mudar): Resultado
+    {
+        $chamado = Repositorios::chamados()->encontrar($id);
+        if ($chamado === null) {
+            return Resultado::erroGeral('Chamado não encontrado.');
+        }
+        $novos = $mudar(Checklist::itens($chamado['checklist']));
+        if ($novos === null) {
+            return Resultado::erroGeral('Item do checklist não encontrado.');
+        }
+        return $this->atualizar('chamados', $id, ['checklist' => $novos], $origem, $acao);
     }
 
     public function converterCliente(int $empresaId, string $origem = 'humano'): Resultado
@@ -494,6 +549,16 @@ final class ActionExecutor
                 $saida[$chave] = CamposExtras::normalizar($entidade, $valor, $atual['campos_extras'] ?? null, $exigirExtras, $erros);
                 continue;
             }
+            if ($def['t'] === 'checklist') {
+                $erroChecklist = null;
+                $json = Checklist::normalizar($valor, $erroChecklist);
+                if ($json === false) {
+                    $erros[$chave] = (string) $erroChecklist;
+                } else {
+                    $saida[$chave] = $json;
+                }
+                continue;
+            }
             $erro = null;
             $saida[$chave] = $this->converter($def, $valor, $erro);
             if ($erro !== null) {
@@ -737,6 +802,13 @@ final class ActionExecutor
                 $extra['data_fim'] = Metas::fimDoPeriodo((string) $v['data_inicio'], (string) $v['periodo']);
                 break;
 
+            case 'chamados':
+                $extra['codigo'] = Repositorios::chamados()->proximoCodigo((int) date('Y'));
+                if (($v['status'] ?? 'aberto') === 'concluido') {
+                    $extra['concluido_em'] = agora();
+                }
+                break;
+
             case 'modelos_documento':
                 $v['conteudo'] ??= '';
                 if (($v['tipo'] ?? '') === 'contrato') {
@@ -811,6 +883,16 @@ final class ActionExecutor
             case 'metas':
                 // O fim do período acompanha o tipo de período e a data de início.
                 $derivados['data_fim'] = Metas::fimDoPeriodo((string) ($novos['data_inicio'] ?? $atual['data_inicio']), (string) ($novos['periodo'] ?? $atual['periodo']));
+                break;
+
+            case 'chamados':
+                // Concluído carimba a data; sair de concluído (reabrir) limpa.
+                $statusNovo = $novos['status'] ?? $atual['status'];
+                if ($statusNovo === 'concluido' && $atual['status'] !== 'concluido') {
+                    $derivados['concluido_em'] = agora();
+                } elseif ($statusNovo !== 'concluido' && $atual['concluido_em'] !== null) {
+                    $derivados['concluido_em'] = null;
+                }
                 break;
         }
 

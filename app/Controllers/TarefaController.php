@@ -8,9 +8,10 @@ use App\Core\Response;
 use App\Core\Router;
 use App\Core\View;
 use App\Repositories\Repositorios;
+use App\Services\Opcoes;
 use App\Services\Schema;
 
-/** Tarefas: tela Hoje / Atrasadas / Próximos 7 dias / Todas, conclusão rápida e formulário. */
+/** Tarefas e chamados: tela Hoje / Atrasadas / Próximos 7 dias / Todas, conclusão rápida e formulário. */
 final class TarefaController extends CrudController
 {
     protected function entidade(): string
@@ -111,19 +112,57 @@ final class TarefaController extends CrudController
 
     // ---- Tela principal --------------------------------------------------------------
 
+    /**
+     * Tarefas e chamados na mesma tela. Filtros: `tipo` (todos | tarefas | chamados) e `area` (só chamados têm área).
+     * Os dois entram nos mesmos grupos (hoje, atrasadas, próximos 7 dias, todas) e são ordenados juntos pelo vencimento.
+     */
     public function index(): Response
     {
         $hoje = hoje();
         $limite = date('Y-m-d', strtotime('+7 days'));
         $visao = in_array($_GET['visao'] ?? '', ['hoje', 'atrasadas', 'proximas', 'todas'], true) ? $_GET['visao'] : 'hoje';
-        $repo = Repositorios::tarefas();
+        $areas = Opcoes::para('areas');
+        $area = ctype_digit((string) ($_GET['area'] ?? '')) && isset($areas[(int) $_GET['area']]) ? (int) $_GET['area'] : 0;
+        $tipo = in_array($_GET['tipo'] ?? '', ['tarefas', 'chamados'], true) ? $_GET['tipo'] : 'todos';
+        if ($area > 0) {
+            $tipo = 'chamados'; // tarefa não tem área
+        }
+        $comTarefas = $tipo !== 'chamados';
+        $comChamados = $tipo !== 'tarefas';
+
+        $itens = [];
+        foreach ($comTarefas ? Repositorios::tarefas()->grupo($visao, $hoje, $limite) : [] as $t) {
+            $itens[] = ['tipo' => 'tarefa', 'aberto' => tarefa_aberta($t), 'r' => $t];
+        }
+        foreach ($comChamados ? Repositorios::chamados()->grupo($visao, $hoje, $limite, $area ?: null) : [] as $c) {
+            $itens[] = ['tipo' => 'chamado', 'aberto' => chamado_aberto($c), 'r' => $c];
+        }
+        // Mesma ordem das listas separadas: (em "todas", abertos primeiro) sem prazo por último, prazo crescente, mais novo primeiro.
+        usort($itens, static function (array $x, array $y) use ($visao): int {
+            $vx = (string) ($x['r']['vencimento'] ?? '');
+            $vy = (string) ($y['r']['vencimento'] ?? '');
+            return [$visao === 'todas' && !$x['aberto'] ? 1 : 0, $vx === '' ? 1 : 0, $vx, -(int) $x['r']['id']]
+                <=> [$visao === 'todas' && !$y['aberto'] ? 1 : 0, $vy === '' ? 1 : 0, $vy, -(int) $y['r']['id']];
+        });
+
+        $contagens = ['hoje' => 0, 'atrasadas' => 0, 'proximas' => 0, 'todas' => 0];
+        foreach ([$comTarefas ? Repositorios::tarefas()->contagens($hoje, $limite) : [], $comChamados ? Repositorios::chamados()->contagens($hoje, $limite, $area ?: null) : []] as $parte) {
+            foreach ($parte as $chave => $n) {
+                $contagens[$chave] += $n;
+            }
+        }
+        $filtros = array_filter(['tipo' => $tipo !== 'todos' && $area === 0 ? $tipo : null, 'area' => $area ?: null]);
 
         return View::pagina('tarefas/index', [
-            'titulo'     => 'Tarefas',
+            'titulo'     => 'Tarefas e chamados',
             'visao'      => $visao,
-            'tarefas'    => $repo->grupo($visao, $hoje, $limite),
-            'contagens'  => $repo->contagens($hoje, $limite),
-            'voltar'     => '/tarefas?visao=' . $visao,
+            'itens'      => $itens,
+            'contagens'  => $contagens,
+            'tipo'       => $tipo,
+            'area'       => $area,
+            'areas'      => $areas,
+            'filtros'    => $filtros,
+            'voltar'     => '/tarefas?' . http_build_query(['visao' => $visao] + $filtros),
         ]);
     }
 

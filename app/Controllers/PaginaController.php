@@ -25,8 +25,8 @@ final class PaginaController
         return View::pagina('paginas/inicio', [
             'titulo'    => 'Início',
             'painel_chat' => false, // o chat fica central na página
-            'atrasadas' => $repo->grupo('atrasadas', hoje(), $limite),
-            'hoje'      => $repo->grupo('hoje', hoje(), $limite),
+            'atrasadas' => self::juntar($repo->grupo('atrasadas', hoje(), $limite), Repositorios::chamados()->grupo('atrasadas', hoje(), $limite)),
+            'hoje'      => self::juntar($repo->grupo('hoje', hoje(), $limite), Repositorios::chamados()->grupo('hoje', hoje(), $limite)),
             'pipeline'  => $pipeline,
             'funil'     => $pipeline !== null ? Repositorios::negocios()->resumoPorEtapa((int) $pipeline['id']) : [],
             'parados'   => Repositorios::negocios()->parados(self::DIAS_NEGOCIO_PARADO),
@@ -34,6 +34,17 @@ final class PaginaController
             'metas'     => Metas::vigentes(),
             'acoesPendentes' => (new AcaoPendenteRepository())->contarPendentes(),
         ]);
+    }
+
+    /**
+     * Tarefas e chamados de um grupo (hoje, atrasadas) juntos e ordenados pelo prazo; cada item leva `tipo` (tarefa|chamado).
+     * @return list<array>
+     */
+    private static function juntar(array $tarefas, array $chamados): array
+    {
+        $itens = [...array_map(static fn (array $t): array => $t + ['tipo_item' => 'tarefa'], $tarefas), ...array_map(static fn (array $c): array => $c + ['tipo_item' => 'chamado'], $chamados)];
+        usort($itens, static fn (array $a, array $b): int => [(string) $a['vencimento'], -(int) $a['id']] <=> [(string) $b['vencimento'], -(int) $b['id']]);
+        return $itens;
     }
 
     /** Opções da rota: titulo, icone, fase. */

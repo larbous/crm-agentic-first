@@ -10,6 +10,7 @@ use App\Controllers\AuditoriaController;
 use App\Controllers\AuthController;
 use App\Controllers\BuscaController;
 use App\Controllers\ChatController;
+use App\Controllers\ChamadoController;
 use App\Controllers\ConfiguracaoController;
 use App\Controllers\ContatoController;
 use App\Controllers\ContratoController;
@@ -63,6 +64,10 @@ return static function (Router $r): void {
         NegocioController::registrarExtras($r);
         TarefaController::registrarRotas($r);
 
+        // Chamados por área (aparecem também na tela de Tarefas)
+        CrudController::registrar($r, '/chamados', ChamadoController::class);
+        ChamadoController::registrarExtras($r);
+
         // Comercial: catálogo, modelos, propostas e contratos
         CrudController::registrar($r, '/servicos', ServicoController::class);
         CrudController::registrar($r, '/modelos', ModeloController::class);
@@ -104,7 +109,7 @@ return static function (Router $r): void {
         $r->post('/desfazer', [AuditoriaController::class, 'desfazerUltima']);
 
         // Configurações
-        $tipos = 'pipelines|etapas|origens|motivos-perda|tags|contrato-tipos|campos-extras';
+        $tipos = 'pipelines|etapas|origens|motivos-perda|tags|contrato-tipos|areas|campos-extras';
         $r->get('/configuracoes', [ConfiguracaoController::class, 'index']);
         $r->post('/configuracoes/agencia', [ConfiguracaoController::class, 'salvarAgencia']);
         $r->post("/configuracoes/{tipo:{$tipos}}", [ConfiguracaoController::class, 'criar']);

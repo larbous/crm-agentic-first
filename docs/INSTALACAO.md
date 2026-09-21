@@ -128,3 +128,7 @@ Aponte o document root para `/public`. `storage/`, `app/`, `migrations/`, `cron/
 ### Atualizar agentes da biblioteca depois de uma fase
 
 O seed nunca sobrescreve agentes já importados. Depois da Fase 11, em bancos existentes importe `library/qualificador.agent.json` e `library/resumidor-reuniao.agent.json` em Agentes → Importar (geram a versão 2, com CHAMP; a versão 1 continua no histórico). Sem isso, os agentes antigos seguem gravando `temperatura` direto e não preenchem o CHAMP.
+
+### Áreas dos chamados (Fase 13)
+
+`php scripts/seed.php` cria as áreas padrão (Tráfego Pago, Design, Social Media, Web, Redação) que ainda não existem; rode-o depois de `php scripts/migrate.php` em bancos já em uso. Depois é só editar a lista em Configurações → Áreas (chamados).

@@ -57,7 +57,7 @@ final class SeedRepository
     /** @param list<string> $nomes */
     public function garantirNomes(string $tabela, array $nomes): void
     {
-        if (!in_array($tabela, ['origens', 'motivos_perda', 'contrato_tipos'], true)) {
+        if (!in_array($tabela, ['origens', 'motivos_perda', 'contrato_tipos', 'areas'], true)) {
             throw new \InvalidArgumentException("Tabela não permitida no seed: {$tabela}");
         }
         $existe = $this->pdo->prepare("SELECT 1 FROM {$tabela} WHERE nome = :nome");

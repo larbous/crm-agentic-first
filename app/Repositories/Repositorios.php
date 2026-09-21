@@ -33,6 +33,8 @@ final class Repositorios
             'contratos'     => new ContratoRepository(),
             'campos_extras_def' => new CampoExtraRepository(),
             'metas'         => new MetaRepository(),
+            'areas'         => new SimplesRepository('areas'),
+            'chamados'      => new ChamadoRepository(),
             default        => throw new InvalidArgumentException("Entidade desconhecida: {$entidade}"),
         };
     }
@@ -42,6 +44,7 @@ final class Repositorios
     public static function negocios(): NegocioRepository { return self::para('negocios'); }
     public static function atividades(): AtividadeRepository { return self::para('atividades'); }
     public static function tarefas(): TarefaRepository { return self::para('tarefas'); }
+    public static function chamados(): ChamadoRepository { return self::para('chamados'); }
     public static function anexos(): AnexoRepository { return self::para('anexos'); }
     public static function tags(): TagRepository { return self::para('tags'); }
     public static function pipelines(): PipelineRepository { return self::para('pipelines'); }

@@ -5,6 +5,7 @@
  * @var list<array> $pipelines
  * @var array<int,list<array>> $etapas
  * @var list<array> $origens
+ * @var list<array> $areas
  * @var list<array> $motivos
  * @var list<array> $tags
  * @var list<array> $tiposContrato
@@ -167,6 +168,7 @@ $paineis = [
     'motivos'   => ['Motivos de perda', $listaSimples('motivos-perda', $motivos, 'Novo motivo de perda')],
     'tags'      => ['Tags', $painelTags],
     'contratos' => ['Tipos de contrato', $listaSimples('contrato-tipos', $tiposContrato, 'Novo tipo de contrato')],
+    'areas'     => ['Áreas (chamados)', $listaSimples('areas', $areas, 'Nova área')],
     'extras'    => ['Campos extras', $painelExtras],
     'agencia'   => ['Dados da agência', $painelAgencia],
 ];

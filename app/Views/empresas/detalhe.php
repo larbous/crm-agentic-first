@@ -44,6 +44,7 @@ foreach ($negocios as $n) {
     ];
 }
 
+$chamadosEmpresa = \App\Repositories\Repositorios::chamados()->daEmpresa($id);
 $abas = [
     ['rotulo' => 'Timeline', 'html' => atividade_form(['empresa_id' => $id], $voltar) . timeline_ia('empresas', $id) . timeline($atividades, ['voltar' => $voltar, 'contexto' => true])],
     ['rotulo' => 'Contatos', 'contagem' => count($contatos), 'html' =>
@@ -55,6 +56,7 @@ $abas = [
     ['rotulo' => 'Propostas', 'contagem' => count($propostas), 'html' => tabela_propostas($propostas, 'Crie propostas a partir de um negócio desta empresa.')],
     ['rotulo' => 'Contratos', 'contagem' => count($contratos), 'html' => tabela_contratos($contratos)],
     ['rotulo' => 'Tarefas', 'contagem' => count(array_filter($tarefas, 'tarefa_aberta')), 'html' => tarefas_mini($tarefas, 'empresa_id', $id, $voltar)],
+    ['rotulo' => 'Chamados', 'contagem' => count($chamadosEmpresa), 'html' => chamados_mini($chamadosEmpresa, $id, $voltar)],
     ['rotulo' => 'Pesquisas NPS', 'html' => pesquisas_empresa($id, $voltar)],
     ['rotulo' => 'Anexos', 'contagem' => count($anexos), 'html' => anexos_painel($anexos, 'empresas', $id, $voltar)],
 ];

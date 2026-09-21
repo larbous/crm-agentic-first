@@ -35,16 +35,16 @@ $primeiroNome = explode(' ', trim($usuario['nome']))[0];
     $todas = array_merge($atrasadas, $hoje);
     $lista = '<ul>';
     foreach (array_slice($todas, 0, 8) as $t) {
-        $lista .= tarefa_linha($t, '/');
+        $lista .= $t['tipo_item'] === 'chamado' ? chamado_linha($t, '/') : tarefa_linha($t, '/');
     }
     $lista .= '</ul>';
     ?>
     <?= card([
-        'titulo'     => 'Tarefas de hoje',
+        'titulo'     => 'Tarefas e chamados de hoje',
         'descricao'  => count($atrasadas) . ' atrasada(s) · ' . count($hoje) . ' para hoje',
         'corpo_html' => $todas === []
-            ? vazio('Sem tarefas', 'Nada para hoje.', ['icone' => 'list-checks'])
-            : $lista . (count($todas) > 8 ? '<p class="pt-2 text-sm">' . link_para('/tarefas', 'Ver todas as tarefas', 'underline') . '</p>' : ''),
+            ? vazio('Nada para hoje', 'Sem tarefas ou chamados com prazo hoje.', ['icone' => 'list-checks'])
+            : $lista . (count($todas) > 8 ? '<p class="pt-2 text-sm">' . link_para('/tarefas', 'Ver tudo em Tarefas e chamados', 'underline') . '</p>' : ''),
     ]) ?>
 
     <?php

@@ -66,6 +66,8 @@ final class Schema
             'contratos'     => self::contratos(),
             'campos_extras_def' => self::camposExtrasDef(),
             'metas'         => self::metas(),
+            'areas'         => self::nomeSimples('areas', 'Área', 'Áreas', 'f'),
+            'chamados'      => self::chamados(),
         ];
     }
 
@@ -106,6 +108,7 @@ final class Schema
             'tipo_atividade'  => ['nota' => 'Nota', 'ligacao' => 'Ligação', 'whatsapp' => 'WhatsApp', 'email' => 'E-mail', 'reuniao' => 'Reunião', 'visita' => 'Visita', 'proposta' => 'Proposta', 'contrato' => 'Contrato', 'sistema' => 'Sistema'],
             'direcao'         => ['entrada' => 'Entrada', 'saida' => 'Saída'],
             'tipo_tarefa'     => ['ligar' => 'Ligar', 'enviar' => 'Enviar', 'reuniao' => 'Reunião', 'followup' => 'Follow-up', 'interno' => 'Interno', 'outro' => 'Outro'],
+            'status_chamado'  => ['aberto' => 'Aberto', 'andamento' => 'Em andamento', 'aguardando' => 'Aguardando', 'concluido' => 'Concluído', 'cancelado' => 'Cancelado'],
             'prioridade_tar'  => ['baixa' => 'Baixa', 'media' => 'Média', 'alta' => 'Alta', 'urgente' => 'Urgente'],
             'status_tarefa'   => ['pendente' => 'Pendente', 'andamento' => 'Em andamento', 'concluida' => 'Concluída', 'cancelada' => 'Cancelada'],
             'recorrencia'     => ['nenhuma' => 'Nenhuma', 'diaria' => 'Diária', 'semanal' => 'Semanal', 'mensal' => 'Mensal', 'anual' => 'Anual'],
@@ -122,7 +125,7 @@ final class Schema
             'tipo_extra'      => ['texto' => 'Texto', 'numero' => 'Número', 'data' => 'Data', 'select' => 'Lista de opções', 'checkbox' => 'Sim/Não', 'url' => 'Link (URL)', 'textarea' => 'Texto longo'],
             'tipo_meta'       => ['faturamento' => 'Faturamento', 'mrr' => 'MRR', 'novos_clientes' => 'Novos clientes', 'propostas_enviadas' => 'Propostas enviadas', 'negocios_ganhos' => 'Negócios ganhos'],
             'periodo_meta'    => ['mensal' => 'Mensal', 'trimestral' => 'Trimestral', 'anual' => 'Anual'],
-            'entidade_anexo'  => ['empresas' => 'Empresa', 'contatos' => 'Contato', 'negocios' => 'Negócio', 'propostas' => 'Proposta', 'contratos' => 'Contrato'],
+            'entidade_anexo'  => ['empresas' => 'Empresa', 'contatos' => 'Contato', 'negocios' => 'Negócio', 'propostas' => 'Proposta', 'contratos' => 'Contrato', 'chamados' => 'Chamado'],
         ][$nome];
     }
 
@@ -315,6 +318,28 @@ final class Schema
             'contato_id'  => $f('fk', 'Contato', 'vinculos', ['fk' => 'contatos']),
             'negocio_id'  => $f('fk', 'Negócio', 'vinculos', ['fk' => 'negocios']),
             'contrato_id' => $f('fk', 'Contrato', 'vinculos', ['fk' => 'contratos']),
+        ]];
+    }
+
+    /** Chamados (Fase 13): demanda de execução por área, com checklist (JSON) e código CH-AAAA-NNNN. */
+    private static function chamados(): array
+    {
+        $f = self::f(...);
+        return ['tabela' => 'chamados', 'singular' => 'Chamado', 'plural' => 'Chamados', 'genero' => 'm', 'campos' => [
+            'codigo'      => $f('texto', 'Código', 'dados', ['sis' => true]),
+            'titulo'      => $f('texto', 'Título', 'dados', ['req' => true, 'max' => 200, 'l' => 2]),
+            'descricao'   => $f('textarea', 'Descrição', 'dados', ['l' => 2]),
+            'area_id'     => $f('fk', 'Área', 'dados', ['fk' => 'areas', 'req' => true]),
+            'prioridade'  => $f('enum', 'Prioridade', 'dados', ['op' => 'prioridade_tar', 'req' => true]),
+            'status'      => $f('enum', 'Status', 'dados', ['op' => 'status_chamado', 'req' => true]),
+            'vencimento'  => $f('vencimento', 'Prazo de entrega', 'dados'),
+            'resolucao'   => $f('textarea', 'Resolução (o que foi entregue)', 'dados', ['l' => 2]),
+            'concluido_em' => $f('datahora', 'Concluído em', 'dados', ['sis' => true]),
+            'empresa_id'  => $f('fk', 'Empresa', 'vinculos', ['fk' => 'empresas']),
+            'contato_id'  => $f('fk', 'Contato', 'vinculos', ['fk' => 'contatos']),
+            'negocio_id'  => $f('fk', 'Negócio', 'vinculos', ['fk' => 'negocios']),
+            'contrato_id' => $f('fk', 'Contrato', 'vinculos', ['fk' => 'contratos']),
+            'checklist'   => $f('checklist', 'Checklist', 'checklist'),
         ]];
     }
 

@@ -193,3 +193,17 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 **Pronto quando:** uma pesquisa criada no construtor gera links individuais (à mão ou pelo worker), o cliente responde pelo link e o NPS aparece calculado em Pesquisas NPS.
 
 > **Verificado (2026-09-21):** `tests/PesquisasTest.php` cobre a definição (nota obrigatória, tipo imutável, gatilhos e validade), a separação do formulário de captação, a criação do envio (token, contato, timeline, eventos, tarefa), a resposta (categoria, extras, validação, uso único, expirado/cancelado/inativo, tarefa de detrator, gatilho de agente por evento), a página pública (escala, erros, cabeçalhos, reabrir), as rotinas do worker (contrato, periódica, janela, sem duplicar, limite de 50, expiração), a matemática do NPS e as telas (índice, filtros, envio com `wa.me`/`mailto`, aba da empresa, redirecionamento só para caminhos internos). Também rodado por HTTP real (`php -S` com cópia do banco): o link abriu com a escala, recusou envio sem nota (422), gravou a nota 4 como detrator com tarefa de ligação, e o segundo acesso mostrou "já foi respondida". **Não verificado:** as telas administrativas e o construtor em modo pesquisa em um navegador (arrastar, pré-visualização da escala, copiar link e os atalhos `wa.me`/`mailto`); só foram renderizados pelos testes e o JS teve a sintaxe checada. Nenhum envio real por WhatsApp ou e-mail (não existe ainda).
+
+---
+
+## Fase 13 — Chamados e demandas operacionais
+
+- [x] Migração `0011`: tabelas `areas` e `chamados` (código, área, status, prazo, vínculos, checklist JSON, resolução)
+- [x] Áreas configuráveis em Configurações (seed com as cinco padrão)
+- [x] Chamados: abrir, editar, status (aberto, andamento, aguardando, concluído, cancelado), fechar com resolução, arquivar, anexos; tudo pelo ActionExecutor com auditoria e Desfazer
+- [x] Checklist de execução vinculado ao chamado (marcar, adicionar, remover; progresso)
+- [x] Chamados na mesma tela de Tarefas (grupos, ordenação conjunta, filtro por tipo e por área) e no card do Início; aba na empresa; lista própria
+
+**Pronto quando:** um chamado aberto para uma área com prazo aparece em Tarefas (hoje/atrasadas/próximos), tem checklist que se marca item a item e pode ser concluído com resolução.
+
+> **Verificado (2026-09-21):** `tests/ChamadosTest.php` cobre o serviço do checklist (limites, ida e volta do texto), a criação (código, padrões, área obrigatória, campos de servidor recusados), concluir/reabrir/cancelar com a data e o Desfazer, o checklist pelas ações do ActionExecutor com auditoria, as áreas, a tela unificada (mistura e ordenação, contagens, filtros inválidos, links que mantêm o filtro), o formulário (prazo, checklist em texto, resolução), a lista com filtros, a aba da empresa e o card do Início. Também exercitado por **HTTP real autenticado** (`php -S` com cópia do banco): login, `/tarefas`, criar chamado por POST com CSRF, detalhe com progresso 50%, alternar item (302; sem CSRF devolve 419), concluir com resolução, Início e Configurações → Áreas. **Não verificado em navegador:** a aparência e o uso das telas (o filtro que envia o formulário ao mudar, os botões de item do checklist, o formulário com abas); só foram renderizadas por testes e por `curl`.

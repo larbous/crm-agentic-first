@@ -159,6 +159,12 @@ titulo, descricao, tipo (ligar/enviar/reuniao/followup/interno/outro), prioridad
 
 Recorrência: ao concluir, o worker cria a próxima ocorrência.
 
+### 4.5b chamados e areas (Fase 13)
+
+- **areas:** nome (lista configurável em Configurações → Áreas; padrão: Tráfego Pago, Design, Social Media, Web, Redação).
+- **chamados:** codigo (`CH-AAAA-NNNN`), titulo, descricao, area_id (obrigatória), prioridade (baixa/media/alta/urgente), status (aberto/andamento/aguardando/concluido/cancelado), vencimento (prazo de entrega, data + hora opcional), resolucao, concluido_em, empresa_id, contato_id, negocio_id, contrato_id, checklist (JSON `[{texto, feito}]`, até 50 itens).
+- Chamado é a **demanda de execução** da agência ("criar a campanha", "arte do post"); tarefa é o que o operador precisa fazer. Não há responsável individual: a atribuição é por área (um operador). Sem recorrência.
+
 ### 4.6 servicos
 
 nome, categoria (site/ecommerce/consultoria/manutencao/hospedagem/trafego/outro), descricao, entregaveis, unidade (projeto/hora/mes/ano), preco_base, preco_minimo, recorrente, prazo_padrao_dias, ativo.
@@ -350,7 +356,7 @@ Botões em campos de texto longos e na timeline, cada um = 1 chamada Haiku, resu
 | Negócios | Lista + kanban por etapa com arrastar (mudança passa pelo ActionExecutor, com modais de ganho/perda); detalhe com propostas, contatos, timeline |
 | Propostas | Lista; editor com itens do catálogo e totais em tempo real; visualização de impressão; link público com aceite/recusa |
 | Contratos | Lista (filtros por status/tipo/vencimento); editor a partir de modelo; impressão; link público com assinatura; botão Renovar |
-| Tarefas | Hoje / atrasadas / próximos 7 dias / todas; conclusão rápida |
+| Tarefas e chamados | Hoje / atrasadas / próximos 7 dias / todas, com tarefas e chamados juntos (filtro por tipo e por área); conclusão rápida. Chamados também têm lista (filtros por área/status/prioridade), formulário com checklist e detalhe (andamento, checklist, anexos, histórico) |
 | Serviços | Catálogo |
 | Modelos | Editor com lista de variáveis e pré-visualização com registro de exemplo |
 | Formulários | Lista; construtor (arrastar campos, largura, obrigatório); código de incorporação; submissões |
@@ -360,7 +366,7 @@ Botões em campos de texto longos e na timeline, cada um = 1 chamada Haiku, resu
 | Execuções | Histórico, status, tokens, erros; totais de tokens do mês por modelo |
 | Ações pendentes | Aprovar/rejeitar individual ou em lote, com diff |
 | Auditoria | Log filtrável com botão Desfazer |
-| Configurações | Pipelines/etapas, origens, motivos de perda, tags, tipos de contrato, campos extras, dados da empresa, modelos de IA e limites, usuário |
+| Configurações | Pipelines/etapas, origens, motivos de perda, tags, tipos de contrato, áreas, campos extras, dados da empresa, modelos de IA e limites, usuário |
 
 **Busca global** no topo (atalho `/`): empresas, contatos, negócios, propostas, contratos.
 
