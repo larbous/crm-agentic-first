@@ -1,17 +1,17 @@
 {
   "slug": "qualificador",
   "nome": "Qualificador de Lead",
-  "descricao": "Classifica a empresa (A/B/C) e o negócio (temperatura, prioridade, dor provável)",
-  "versao": 1,
+  "descricao": "Qualifica o negócio pelo método CHAMP (temperatura calculada pelo servidor) e classifica a empresa (A/B/C)",
+  "versao": 2,
   "modelo": "claude-haiku-4-5-20251001",
-  "max_tokens": 900,
+  "max_tokens": 1200,
   "web_search": false,
   "entrada": "negocios",
-  "contexto": ["titulo", "valor_estimado", "tipo_receita", "origem_id", "etapa_id", "temperatura", "prioridade", "dor_principal", "objetivo_cliente", "orcamento_cliente", "prazo_desejado", "criterio_decisao", "concorrentes", "proximo_passo", "previsao_fechamento"],
+  "contexto": ["titulo", "valor_estimado", "tipo_receita", "origem_id", "etapa_id", "prioridade", "dor_principal", "objetivo_cliente", "orcamento_cliente", "prazo_desejado", "criterio_decisao", "concorrentes", "proximo_passo", "previsao_fechamento", "temperatura", "champ_desafios", "champ_autoridade", "champ_dinheiro", "champ_prioridade", "champ_resumo"],
   "contexto_relacionado": {"empresa": 1, "contatos": 3, "atividades": 10},
-  "prompt": "Você qualifica oportunidades comerciais de uma agência de sites e marketing digital. Com os dados do negócio, da empresa e do histórico, decida: (1) a classificação da empresa: A (bom porte, orçamento compatível e decisor acessível), B (potencial médio ou informações incompletas) ou C (baixo potencial ou sem aderência); (2) a temperatura do negócio (frio, morno, quente) e a prioridade (baixa, media, alta); (3) a dor principal provável, em uma frase, somente se o campo estiver vazio ou for claramente melhorável com o histórico. Use a ação atualizar: entidade empresas para a classificação; entidade negocios para temperatura, prioridade e dor_principal. Altere apenas o que os dados sustentam; se faltar informação, não grave e diga o que falta no resumo. No resumo, justifique a classificação em até 2 frases. Responda em português do Brasil.",
+  "prompt": "Você qualifica oportunidades comerciais de uma agência de sites e marketing digital pelo método CHAMP. Com os dados do negócio, da empresa e do histórico, avalie cada dimensão como \"confirmado\" (há evidência clara nos dados ou no histórico), \"parcial\" (há indício, mas incompleto ou indireto) ou \"nao_identificado\" (nada nos dados sustenta): (1) champ_desafios: o cliente tem uma dor ou desafio concreto que os serviços da agência resolvem (dor_principal, objetivo_cliente, histórico); (2) champ_autoridade: sabemos quem decide e temos acesso a essa pessoa (decisor, papel dos contatos, critério_decisao); (3) champ_dinheiro: há orçamento informado ou compatível com o porte da empresa e com o valor estimado (orcamento_cliente, valor_estimado); (4) champ_prioridade: há urgência ou prazo definido para resolver (prazo_desejado, previsao_fechamento, proximo_passo). Não presuma: na dúvida, use \"nao_identificado\". Não grave temperatura: o servidor calcula frio, morno, quente ou fervendo a partir das quatro dimensões. Grave também: champ_resumo (justificativa em uma linha por dimensão, no formato \"D: ...; A: ...; M: ...; P: ...\", citando o dado usado); a classificação da empresa: A (bom porte, orçamento compatível e decisor acessível), B (potencial médio ou informações incompletas) ou C (baixo potencial ou sem aderência); a prioridade do negócio (baixa, media, alta); e a dor_principal em uma frase, somente se o campo estiver vazio ou for claramente melhorável com o histórico. Use a ação atualizar: entidade empresas para a classificação; entidade negocios para os demais campos. Se uma dimensão já estiver \"confirmado\", só a altere com evidência nova. No resumo, justifique em até 2 frases e diga o que perguntar ao cliente para esquentar o negócio. Responda em português do Brasil.",
   "acoes_permitidas": ["atualizar"],
-  "campos_gravaveis": ["classificacao", "temperatura", "prioridade", "dor_principal"],
+  "campos_gravaveis": ["classificacao", "champ_desafios", "champ_autoridade", "champ_dinheiro", "champ_prioridade", "champ_resumo", "prioridade", "dor_principal"],
   "aprovacao": "escritas",
   "gatilho": {"tipo": "manual"}
 }

@@ -16,6 +16,8 @@ final class RespostaIA
         public readonly int $duracaoMs,
         /** stop_reason da API (end_turn, max_tokens, pause_turn…). */
         public readonly ?string $parada = null,
+        /** Provedor que respondeu (anthropic, gemini). */
+        public readonly ?string $provedor = null,
     ) {
     }
 }

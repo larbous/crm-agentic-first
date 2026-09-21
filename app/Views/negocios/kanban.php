@@ -6,6 +6,7 @@
  * @var list<array> $etapas
  * @var array<int,list<array>> $porEtapa
  * @var array $motivosPerda
+ * @var string $temperatura filtro de temperatura ('' = todas)
  */
 use App\Services\Schema;
 
@@ -17,12 +18,16 @@ $limiteFechados = 50;
         <p class="text-muted-foreground">Arraste os cartões entre as etapas.</p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
-        <?php if (count($pipelines) > 1 && $pipeline): ?>
-            <form method="get" action="<?= e(url('/negocios/kanban')) ?>">
+        <form method="get" action="<?= e(url('/negocios/kanban')) ?>" class="flex flex-wrap items-center gap-2">
+            <?php if (count($pipelines) > 1 && $pipeline): ?>
                 <label class="sr-only" for="kanban-pipeline">Pipeline</label>
                 <?= select('pipeline', $pipelines, $pipeline['id'], ['id' => 'kanban-pipeline', 'attrs' => ['class' => 'select w-auto', 'onchange' => 'this.form.requestSubmit()']]) ?>
-            </form>
-        <?php endif; ?>
+            <?php elseif ($pipeline): ?>
+                <input type="hidden" name="pipeline" value="<?= (int) $pipeline['id'] ?>">
+            <?php endif; ?>
+            <label class="sr-only" for="kanban-temperatura">Temperatura</label>
+            <?= select('temperatura', ['' => 'Todas as temperaturas'] + Schema::opcoes('temperatura'), $temperatura, ['id' => 'kanban-temperatura', 'attrs' => ['class' => 'select w-auto', 'onchange' => 'this.form.requestSubmit()']]) ?>
+        </form>
         <div class="button-group">
             <?= botao('Lista', ['variante' => 'outline', 'icone' => 'list-checks', 'href' => url('/negocios')]) ?>
             <?= botao('Kanban', ['variante' => 'primary', 'icone' => 'layout-dashboard', 'attrs' => ['aria-current' => 'page']]) ?>
@@ -58,7 +63,7 @@ $limiteFechados = 50;
                         <?php if ($n['empresa_nome']): ?><div class="text-muted-foreground truncate text-xs"><?= e($n['empresa_nome']) ?></div><?php endif; ?>
                         <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs">
                             <span class="font-medium"><?= e(moeda((int) ($ehGanho ? $n['valor_fechado'] : $n['valor_estimado']))) ?></span>
-                            <?php if ($n['temperatura']): ?><span class="text-temp-<?= e($n['temperatura']) ?>"><?= e(Schema::opcoes('temperatura')[$n['temperatura']]) ?></span><?php endif; ?>
+                            <?php if ($n['temperatura']): ?><span class="text-temp-<?= e($n['temperatura']) ?> font-medium"<?= $n['champ_pontos'] !== null ? ' title="CHAMP ' . (int) $n['champ_pontos'] . '/' . \App\Services\Champ::MAXIMO . '"' : '' ?>><?= e(Schema::opcoes('temperatura')[$n['temperatura']]) ?></span><?php endif; ?>
                         </div>
                         <?php if ($e['tipo'] === 'aberta' && dias_entre($n['entrou_etapa_em'], hoje()) !== null): ?>
                             <?php $dias = dias_entre($n['entrou_etapa_em'], hoje()); ?>

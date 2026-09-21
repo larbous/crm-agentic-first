@@ -137,7 +137,7 @@ Calculados na exibição: `ltv` (soma de negócios ganhos), `mrr` (soma de contr
 | Básico | titulo (obrigatório), codigo (NEG-AAAA-NNNN, automático), empresa_id, contato_principal_id, decisor_id, pipeline_id, etapa_id, status (aberto/ganho/perdido/pausado) |
 | Valores | valor_estimado, valor_fechado, tipo_receita (unico/mensal/anual), valor_recorrente, probabilidade (0–100, padrão da etapa) |
 | Datas | previsao_fechamento, data_fechamento, entrou_etapa_em |
-| Qualificação | temperatura (frio/morno/quente), prioridade (baixa/media/alta), dor_principal, objetivo_cliente, orcamento_cliente, prazo_desejado, criterio_decisao, concorrentes |
+| Qualificação | temperatura (frio/morno/quente/fervendo), prioridade (baixa/media/alta), dor_principal, objetivo_cliente, orcamento_cliente, prazo_desejado, criterio_decisao, concorrentes; CHAMP: champ_desafios, champ_autoridade, champ_dinheiro, champ_prioridade (confirmado/parcial/nao_identificado), champ_resumo, champ_pontos (0–8, calculado), champ_avaliado_em (Fase 11) |
 | Andamento | proximo_passo, proximo_passo_em, motivo_perda_id, detalhe_perda |
 | Aquisição | origem_id, formulario_id, submissao_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content |
 | Controle | notas, campos_extras |
@@ -282,7 +282,7 @@ Eventos disparados por agentes não re-disparam o mesmo agente (proteção contr
 | Slug | Modelo | Função |
 |---|---|---|
 | pesquisador | Haiku + web | Presença digital e dados públicos → atualiza empresa + nota |
-| qualificador | Haiku | Classificação A/B/C, temperatura, dor provável → atualiza empresa/negócio |
+| qualificador | Haiku | Classificação A/B/C e qualificação CHAMP do negócio (a temperatura é calculada pelo servidor), dor provável → atualiza empresa/negócio |
 | triagem-formulario | Haiku | Classifica submissão (lead/spam/suporte), extrai dor e orçamento de campos livres |
 | redator-followup | Sonnet | Rascunho de WhatsApp/email a partir do modelo e do histórico → nota |
 | resumidor-reuniao | Haiku | Notas/transcrição → atividade reunião + tarefas + qualificação do negócio |

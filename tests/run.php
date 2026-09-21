@@ -9,6 +9,14 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/app/bootstrap.php';
 
+/** Configuração sem chaves de IA: mesmo que config.local.php tenha as reais, nenhum teste chama a rede. */
+function configNeutra(): array
+{
+    return array_replace_recursive(require dirname(__DIR__) . '/config.php', ['anthropic' => ['api_key' => ''], 'gemini' => ['api_key' => '']]);
+}
+
+\App\Core\Config::definir(configNeutra());
+
 /** @var list<array{string,callable}> $GLOBALS['__testes'] */
 $GLOBALS['__testes'] = [];
 

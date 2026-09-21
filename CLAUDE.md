@@ -17,7 +17,7 @@ Antes de implementar qualquer coisa, leia a seção correspondente do SPEC. Ao c
 - **SQLite** via PDO. Arquivo em `/storage/db/crm.sqlite` (fora da pasta pública).
 - **Frontend:** HTML renderizado em PHP (views), **JavaScript vanilla** (ES modules, `fetch`). Visual **shadcn/ui** implementado com **Basecoat** (porte do shadcn/ui para HTML + Tailwind, sem React) e **Tailwind CSS v4** compilado pelo executável standalone (sem Node). O CSS compilado é versionado; o servidor nunca roda build (SPEC §12).
 - **Assets de terceiros permitidos (versionados no repositório, nada de CDN):** Basecoat, fonte Inter (woff2), ícones Lucide (sprite SVG). Nada além disso sem instrução explícita.
-- **IA:** API da Anthropic via cURL (`App\Services\AI\Client`). Nenhuma outra forma de chamar IA.
+- **IA:** `App\Services\AI\Client` é o único ponto de chamada, via cURL, com provedores em `App\Services\AI\Provedor*`: **Anthropic** (primário) e **Google Gemini** (secundário, failover). Nenhuma outra forma de chamar IA; novo provedor = nova classe `Provedor`, nunca cURL solto.
 - **Background:** `cron/worker.php` executado por cron a cada minuto.
 - **PDF:** não usar biblioteca. Propostas e contratos têm uma view otimizada para impressão (`@media print`); o usuário gera o PDF pelo navegador.
 - Deve rodar em hospedagem compartilhada comum (PHP + cron). Nada de processos persistentes, WebSockets ou extensões incomuns. Extensões exigidas: `pdo_sqlite`, `curl`, `mbstring`, `json`, `fileinfo`.
@@ -90,15 +90,16 @@ config.php         # fora de /public; lê config.local.php (não versionado)
 3. **Respostas ao operador são templates do servidor**, não texto gerado pela IA (exceto saídas de agentes de redação).
 4. **Resolução de nomes é do servidor** (busca no banco). Ambiguidade → botões de escolha, sem nova chamada à IA.
 5. Prompts de sistema curtos, fixos e com prompt caching.
-6. Toda chamada registra em `execucoes`: modelo, tokens de entrada/saída, duração, status.
-7. Agentes só executam as `acoes_permitidas` do seu JSON; com `aprovacao` ativa, as ações vão para `acoes_pendentes`.
+6. Toda chamada registra em `execucoes`: modelo, provedor, tentativas, tokens de entrada/saída, duração, status.
+7. Agentes só executam as `acoes_permitidas` do seu JSON; com `aprovacao` ativa, as ações vão para `acoes_pendentes`. Além disso, todo agente devolve `confianca` (0–1): abaixo do corte (`confianca_minima` do agente, senão `ia.confianca_minima`, padrão 0,7) as ações vão para aprovação **mesmo com `aprovacao: nunca`**; saída sem `confianca` conta como 0. Teto de execuções por hora por agente e por squad (`ia.limite_hora`, padrão 30), em qualquer origem.
 8. Arquivamento e alterações em lote pedidas pelo chat **sempre** exigem confirmação.
-9. Modelos padrão: roteador e tarefas simples `claude-haiku-4-5-20251001`; agentes de redação e análise `claude-sonnet-5`. Sempre lidos de `configuracoes` / JSON do agente, nunca hardcoded fora de defaults.
+9. Modelos padrão: roteador e tarefas simples `claude-haiku-4-5-20251001`; agentes de redação e análise `claude-sonnet-5`. Sempre lidos de `configuracoes` / JSON do agente, nunca hardcoded fora de defaults. No failover, o modelo Claude pedido é traduzido por classe (Haiku → `ia.modelo_gemini_rapido`; demais → `ia.modelo_gemini_redacao`).
+10. Failover: erro de rede, timeout, 429/529/5xx (depois de 1 nova tentativa) troca de provedor dentro de um orçamento total de tempo (`ia.deadline_total`, padrão 100 s); 3 falhas seguidas em 5 min abrem o disjuntor do provedor por 5 min. 401/403 e outros 4xx **não** trocam (erro de configuração aparece ao operador). Busca na web é só da Anthropic.
 
 ## Como trabalhar
 
 - Implemente **uma fase por vez**, na ordem do ROADMAP.
 - Ao terminar cada fase: rode `php scripts/migrate.php`, `php tests/run.php`, teste manualmente com `php -S localhost:8000 -t public`, marque o checklist e faça commit (`fase N: <resumo>`).
 - Não implemente itens de fases futuras "por antecipação".
-- Não adicione dependências, frameworks ou serviços externos.
+- Não adicione dependências, frameworks ou serviços externos, **exceto os previstos em `docs/roadmap-fases-10-17-crm-larbous.md`**: Gemini (Fase 10), WhatsApp Cloud API, e-mail e Instagram (Fase 14) e Asaas (Fase 17), cada um só na sua fase.
 - Se uma instrução do SPEC parecer impossível ou conflitante, pare e pergunte.

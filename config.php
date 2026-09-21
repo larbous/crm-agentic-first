@@ -26,6 +26,9 @@ $padrao = [
     'anthropic' => [
         'api_key' => '', // definir em config.local.php
     ],
+    'gemini' => [
+        'api_key' => '', // definir em config.local.php; provedor secundário (failover), opcional
+    ],
     'caminhos' => [
         'raiz'       => __DIR__,
         'migracoes'  => __DIR__ . '/migrations',

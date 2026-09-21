@@ -149,3 +149,32 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 **Pronto quando:** as ações rápidas funcionam em qualquer campo longo e o relatório semanal compara realizado × meta.
 
 > **Verificado (2026-09-20):** `tests/MetasTest.php` (fim do período, validação, progresso dos 5 tipos, ritmo, filtros, contexto do analista, card do Início) e `tests/AcoesRapidasTest.php` (prompts, limites, contexto de resumir/responder montado pelo servidor, registro em `execucoes`, botões renderizados) passam. Manualmente (`php -S` com banco descartável via `CRM_DB_CAMINHO`): meta criada pelo formulário com valor em reais e com milhar, detalhe, edição, lista e card do Início; as cinco ações rápidas rodaram contra a API real da Anthropic (Haiku) e aparecem em Execuções como "Ação rápida". **Não verificado em navegador:** o comportamento do `ia-rapida.js` (painel, "Usar este texto", preenchimento do campo Detalhes) só teve a sintaxe checada (`node --check`) e o HTML/endpoint testados; nenhum clique foi exercitado. O agente `analista-pipeline` v2 não rodou contra a API com metas reais (só a montagem do contexto foi testada).
+
+---
+
+## Fase 10 — Infraestrutura de IA resiliente
+
+- [x] Migração `0008`: `execucoes.provedor/tentativas/confianca`, `acoes_pendentes.motivo`, `ia_saude_provedor`
+- [x] Camada de provedores: interface `Provedor`, `ProvedorAnthropic` (comportamento anterior extraído) e `ProvedorGemini`
+- [x] Failover por erro/timeout com disjuntor e orçamento total de tempo; provedor, modelo usado e tentativas em `execucoes`
+- [x] Limiar de confiança (`confianca` na saída do agente, `confianca_minima` por agente e global) → ações para aprovação com motivo
+- [x] Teto de execuções por hora por agente e por squad, em qualquer origem (`ia.limite_hora`)
+- [x] Atualizar `CLAUDE.md`, `DECISOES.md` e `INSTALACAO.md`
+
+**Pronto quando:** com a Anthropic fora do ar, o chat e os agentes continuam respondendo pelo Gemini; ação de baixa confiança nunca é gravada sem aprovação; nenhum agente/squad passa do teto por hora.
+
+> **Verificado (2026-09-21):** `tests/IaResilienteTest.php` (transportes simulados) cobre failover por 5xx/429/timeout, ausência de failover em 401/403/400, disjuntor (abre, meio aberto, reabre, zera, janela), tradução de modelo, requisição e parada do Gemini, confiança (corte global, por agente, ausente, simulação) e teto por hora (agente, fila, squad); suíte completa passa. **Não verificado contra a API real do Gemini**: o formato de requisição/resposta segue a documentação `generateContent`, mas nenhuma chamada real foi feita (falta a chave) e os ids de modelo padrão (`gemini-2.5-flash`/`-pro`) precisam ser confirmados na conta. Telas (Execuções, Ações pendentes, resultado do teste de agente) só tiveram sintaxe checada e o teste de banco; não foram abertas no navegador.
+
+---
+
+## Fase 11 — Lead scoring com temperatura
+
+- [x] Migração `0009`: recria `negocios` com temperatura `fervendo` e colunas CHAMP; runner com `-- @fk-off`
+- [x] `Services/Champ`: pontuação 0–8 e temperatura derivada (com trava sem desafio), ligada ao `ActionExecutor`
+- [x] Agentes `qualificador` e `resumidor-reuniao` v2 gravando as dimensões CHAMP (sem gravar temperatura)
+- [x] Temperatura visível no cartão do kanban, filtro de temperatura no kanban e na lista, card CHAMP no detalhe
+- [x] Cor "fervendo" no tema e ordenação por temperatura corrigida
+
+**Pronto quando:** rodar o Qualificador num negócio (aprovando as ações) deixa a temperatura calculada pelo CHAMP, visível no kanban e filtrável na lista.
+
+> **Verificado (2026-09-21):** `tests/LeadScoringTest.php` cobre a tabela de pontuação e a trava, derivação em criar/atualizar/desfazer, auditoria, temperatura explícita, ordenação e filtro, kanban (com filtro) e detalhe renderizados, os dois agentes v2 (válidos, sem `temperatura` gravável, fluxo com aprovação) e a migração (dados/FKs/índices preservados, `CHECK` novo, rollback quando há violação de FK). A migração também foi aplicada com sucesso numa cópia do banco local antes de ir ao original. **Não verificado:** o Qualificador v2 contra uma IA real (sem chave da Anthropic e o Gemini sem créditos, ver Fase 10): a qualidade da avaliação CHAMP pelo modelo não foi medida; e as telas só foram renderizadas pelos testes, não abertas no navegador (nem o arrastar do kanban com o filtro ativo).

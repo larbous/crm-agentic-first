@@ -73,7 +73,8 @@ foreach ($resultado['linhas'] as $x) {
         'quando'  => datahora_br((string) $x['iniciado_em']),
         'origem'  => ['html' => $origem . ((int) $x['simulacao'] === 1 ? ' ' . badge('simulação', 'outline') : '')],
         'alvo'    => ['html' => $alvo],
-        'modelo'  => (string) $x['modelo'],
+        'modelo'  => (string) $x['modelo'] . ($x['provedor'] !== null && $x['provedor'] !== 'anthropic' ? ' (' . $x['provedor'] . ')' : '')
+            . ((int) ($x['tentativas'] ?? 0) > 1 ? ' · ' . (int) $x['tentativas'] . ' tentativas' : ''),
         'tokens'  => $x['tokens_entrada'] !== null ? $num((int) $x['tokens_entrada']) . ' / ' . $num((int) $x['tokens_saida']) : '—',
         'duracao' => $x['duracao_ms'] !== null ? number_format((int) $x['duracao_ms'] / 1000, 1, ',', '.') . ' s' : '—',
         'status'  => ['html' => badge($statusRotulos[$x['status']] ?? $x['status'], $variantes[$x['status']] ?? 'secondary')],

@@ -40,7 +40,10 @@ teste('migrações criam o banco do zero com todas as tabelas da Fase 1', functi
 teste('migrações são idempotentes e registradas em migracoes', function () {
     $pdo = bancoDeTeste();
     $repo = new MigracaoRepository($pdo);
-    igual(['0001_nucleo.sql', '0002_comercial.sql', '0003_chat.sql', '0004_agentes.sql', '0005_squads.sql', '0006_formularios.sql', '0007_metas.sql'], $repo->aplicadas());
+    $arquivos = array_map('basename', glob(Config::obter('caminhos.migracoes') . '/*.sql') ?: []);
+    sort($arquivos);
+    igual($arquivos, $repo->aplicadas());
+    verdadeiro(count($arquivos) >= 9);
 });
 
 teste('tabelas de negócio têm colunas padrão e valores monetários em INTEGER', function () {

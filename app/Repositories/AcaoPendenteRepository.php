@@ -9,13 +9,13 @@ use App\Core\DB;
 /** Tabela acoes_pendentes: ações de agentes aguardando aprovação do operador. */
 final class AcaoPendenteRepository
 {
-    public function inserir(int $execucaoId, array $acao, string $resumo): int
+    public function inserir(int $execucaoId, array $acao, string $resumo, ?string $motivo = null): int
     {
         DB::conexao()->prepare(
-            'INSERT INTO acoes_pendentes (execucao_id, acao, resumo, status, criado_em) VALUES (:e, :a, :r, \'pendente\', :q)'
+            'INSERT INTO acoes_pendentes (execucao_id, acao, resumo, motivo, status, criado_em) VALUES (:e, :a, :r, :m, \'pendente\', :q)'
         )->execute([
             'e' => $execucaoId, 'a' => json_encode($acao, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
-            'r' => mb_substr($resumo, 0, 500), 'q' => agora(),
+            'r' => mb_substr($resumo, 0, 500), 'm' => $motivo, 'q' => agora(),
         ]);
         return (int) DB::conexao()->lastInsertId();
     }

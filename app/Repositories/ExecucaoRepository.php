@@ -13,6 +13,7 @@ final class ExecucaoRepository
     private const COLUNAS = [
         'agente_id', 'squad_id', 'squad_execucao_id', 'etapa_ordem', 'entidade', 'registro_id', 'entrada', 'saida',
         'status', 'modelo', 'tokens_entrada', 'tokens_saida', 'duracao_ms', 'erro', 'iniciado_em', 'concluido_em', 'simulacao', 'acao_rapida',
+        'provedor', 'tentativas', 'confianca',
     ];
 
     public function iniciar(array $dados): int
@@ -147,11 +148,11 @@ final class ExecucaoRepository
     }
 
     /** Quantas execuções (fora as etapas de squad) do agente/squad começaram desde o instante indicado. */
-    public function iniciadasDesde(string $tipo, int $donoId, string $desde): int
+    public function iniciadasDesde(string $tipo, int $donoId, string $desde, ?int $exceto = null): int
     {
         $coluna = $tipo === 'agente' ? 'agente_id' : 'squad_id';
-        $st = DB::conexao()->prepare("SELECT COUNT(*) FROM execucoes WHERE {$coluna} = :d AND squad_execucao_id IS NULL AND iniciado_em >= :s");
-        $st->execute(['d' => $donoId, 's' => $desde]);
+        $st = DB::conexao()->prepare("SELECT COUNT(*) FROM execucoes WHERE {$coluna} = :d AND squad_execucao_id IS NULL AND iniciado_em >= :s AND id <> :x");
+        $st->execute(['d' => $donoId, 's' => $desde, 'x' => $exceto ?? 0]);
         return (int) $st->fetchColumn();
     }
 

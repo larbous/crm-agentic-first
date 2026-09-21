@@ -53,6 +53,7 @@ final class SquadRunner
         } else {
             $registroId = null;
         }
+        Guardrails::verificarLimite('squad', $squad);
 
         $etapas = [];
         foreach ($def['etapas'] as $i => $e) {

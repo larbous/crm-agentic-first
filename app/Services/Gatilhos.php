@@ -8,6 +8,7 @@ use App\Repositories\AgenteRepository;
 use App\Repositories\ExecucaoRepository;
 use App\Repositories\SquadRepository;
 use App\Services\AI\AcaoAgente;
+use App\Services\AI\Guardrails;
 use App\Services\AI\SquadRunner;
 use DateTimeImmutable;
 
@@ -22,7 +23,7 @@ use DateTimeImmutable;
 final class Gatilhos
 {
     /** Teto de execuções disparadas por hora para um mesmo agente ou squad (freio contra cadeias A→B→A). */
-    public const LIMITE_POR_HORA = 30;
+    public const LIMITE_POR_HORA = Guardrails::LIMITE_POR_HORA_PADRAO;
 
     /** Assina os eventos. Chamado na inicialização (bootstrap); repetir a chamada duplica os ouvintes. */
     public static function registrar(): void
@@ -95,8 +96,9 @@ final class Gatilhos
             return null;
         }
         $desde = (new DateTimeImmutable('-1 hour'))->format('Y-m-d H:i:s');
-        if ($execucoes->iniciadasDesde($tipo, $donoId, $desde) >= self::LIMITE_POR_HORA) {
-            error_log("Gatilho barrado: {$tipo} \"{$dono['slug']}\" chegou ao teto de " . self::LIMITE_POR_HORA . ' execuções por hora.');
+        $limite = Guardrails::limitePorHora();
+        if ($execucoes->iniciadasDesde($tipo, $donoId, $desde) >= $limite) {
+            error_log("Gatilho barrado: {$tipo} \"{$dono['slug']}\" chegou ao teto de {$limite} execuções por hora.");
             return null;
         }
 

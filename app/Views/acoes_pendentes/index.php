@@ -20,7 +20,9 @@ foreach ($grupos as $g) {
         $linhas .= '<li class="grid gap-2 border-b py-3 last:border-b-0">'
             . '<div class="flex flex-wrap items-start gap-3">'
             . '<input type="checkbox" class="input mt-1" name="ids[]" value="' . $aid . '" form="form-lote" aria-label="Selecionar: ' . e($a['resumo']) . '">'
-            . '<div class="min-w-0 flex-1"><div class="text-sm font-medium">' . e($a['resumo']) . '</div>' . acao_pendente_diff($a) . $erro . '</div>'
+            . '<div class="min-w-0 flex-1"><div class="text-sm font-medium">' . e($a['resumo']) . '</div>'
+            . (!empty($a['motivo']) ? '<div class="mt-1">' . badge('Revisão exigida', 'warning') . ' <span class="text-muted-foreground text-xs">' . e($a['motivo']) . '</span></div>' : '')
+            . acao_pendente_diff($a) . $erro . '</div>'
             . '<div class="flex items-center gap-1">'
             . '<form method="post" action="' . e(url("/acoes-pendentes/{$aid}/aprovar")) . '">' . csrf_field() . botao('Aprovar', ['tipo' => 'submit', 'tamanho' => 'sm', 'icone' => 'check']) . '</form>'
             . '<form method="post" action="' . e(url("/acoes-pendentes/{$aid}/rejeitar")) . '">' . csrf_field() . botao('Rejeitar', ['tipo' => 'submit', 'tamanho' => 'sm', 'variante' => 'ghost', 'icone' => 'x']) . '</form>'

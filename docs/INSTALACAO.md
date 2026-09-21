@@ -71,6 +71,28 @@ Comandos com `/` funcionam sem IA. Para linguagem natural, defina em `config.loc
 No Windows, se aparecer `unable to get local issuer certificate`, baixe <https://curl.se/ca/cacert.pem> para `storage/cacert.pem` e use `'cacert' => __DIR__ . '/storage/cacert.pem'` (não desative a verificação de TLS).
 
 O modelo do roteador é `claude-haiku-4-5-20251001`; para trocar, grave `ia.modelo_roteador` em `configuracoes`.
+
+### Failover (Gemini) e guardrails
+
+Provedor secundário opcional: com a chave abaixo, se a Anthropic estiver instável (rede, timeout, 429/5xx) a chamada passa para o Gemini sozinha. Sem a chave, tudo funciona só com a Anthropic.
+
+```php
+'gemini' => ['api_key' => 'AIza...'],   // Google AI Studio; nunca no banco nem no repositório
+```
+
+Ajustes opcionais em `configuracoes` (chave → valor; padrão entre parênteses):
+
+| Chave | Efeito |
+|---|---|
+| `ia.provedores` (`anthropic,gemini`) | Ordem de tentativa; só entram os que têm chave. |
+| `ia.modelo_gemini_rapido` (`gemini-3.5-flash`) | Equivalente do Haiku (roteador, ações rápidas). |
+| `ia.modelo_gemini_redacao` (`gemini-3.1-pro-preview`) | Equivalente do Sonnet (agentes de redação e análise). |
+| `ia.deadline_total` (`100`) | Orçamento total, em segundos, somando todas as tentativas de uma chamada. |
+| `ia.confianca_minima` (`0.7`) | Abaixo disso, ações de agente vão para aprovação, mesmo com `aprovacao: nunca`. |
+| `ia.limite_hora` (`30`) | Execuções por hora de cada agente e de cada squad. |
+
+Cada agente pode ter o seu corte em `confianca_minima` (0 a 1) no JSON. A tela Execuções mostra o provedor quando não é a Anthropic e quantas tentativas foram necessárias.
+Limitações no Gemini: sem busca na web (o `pesquisador` só roda com a Anthropic) e sem prompt caching (custo de entrada maior).
 Para medir o acerto do roteador (meta ≥ 90%): `php scripts/avaliar-roteador.php` (`--offline` só valida o fixture; `--verbose` mostra as saídas). A avaliação usa um banco em memória, mas **chama a API real e consome tokens**.
 
 ## Agentes de IA
@@ -102,3 +124,7 @@ Aponte o document root para `/public`. `storage/`, `app/`, `migrations/`, `cron/
 
 - `app.url_publica` (em `config.local.php`) define a URL absoluta usada nos links de proposta/contrato copiados na tela (ex.: `https://crm.larbous.com.br`). Vazio = host da requisição.
 - Para testar sem tocar no banco de uso: `CRM_DB_CAMINHO=/caminho/teste.sqlite php scripts/migrate.php` (idem `seed.php`, `criar-usuario.php` e `php -S`).
+
+### Atualizar agentes da biblioteca depois de uma fase
+
+O seed nunca sobrescreve agentes já importados. Depois da Fase 11, em bancos existentes importe `library/qualificador.agent.json` e `library/resumidor-reuniao.agent.json` em Agentes → Importar (geram a versão 2, com CHAMP; a versão 1 continua no histórico). Sem isso, os agentes antigos seguem gravando `temperatura` direto e não preenchem o CHAMP.

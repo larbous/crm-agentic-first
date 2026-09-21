@@ -144,12 +144,20 @@ final class NegocioController extends CrudController
         }
         $pipeline ??= Repositorios::pipelines()->padrao();
 
+        $temperatura = (string) ($_GET['temperatura'] ?? '');
+        $temperatura = isset(Schema::opcoes('temperatura')[$temperatura]) ? $temperatura : '';
+        $porEtapa = $pipeline ? Repositorios::negocios()->kanban((int) $pipeline['id']) : [];
+        if ($temperatura !== '') {
+            $porEtapa = array_map(static fn (array $cards): array => array_values(array_filter($cards, static fn (array $n): bool => $n['temperatura'] === $temperatura)), $porEtapa);
+        }
+
         return View::pagina('negocios/kanban', [
             'titulo'       => 'Negócios — Kanban',
             'pipelines'    => array_column($pipelines, 'nome', 'id'),
             'pipeline'     => $pipeline,
             'etapas'       => $pipeline ? Repositorios::etapas()->doPipeline((int) $pipeline['id']) : [],
-            'porEtapa'     => $pipeline ? Repositorios::negocios()->kanban((int) $pipeline['id']) : [],
+            'porEtapa'     => $porEtapa,
+            'temperatura'  => $temperatura,
             'motivosPerda' => Opcoes::para('motivos_perda'),
         ]);
     }

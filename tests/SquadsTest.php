@@ -32,6 +32,7 @@ function iaPorAgente(array $respostas): void
         preg_match('/AGENTE:([a-z0-9-]+)/', $sistema, $m);
         $GLOBALS['__chamadas_ia'][] = ['slug' => $m[1] ?? '?', 'usuario' => (string) $req['corpo']['messages'][0]['content']];
         $saida = $respostas[$m[1] ?? ''] ?? ['acoes' => [], 'resumo' => 'sem resposta configurada'];
+        $saida += ['confianca' => 0.95];
         return [
             'status' => 200,
             'corpo' => json_encode(['content' => [['type' => 'text', 'text' => json_encode($saida, JSON_UNESCAPED_UNICODE)]], 'usage' => ['input_tokens' => 100, 'output_tokens' => 20]]),

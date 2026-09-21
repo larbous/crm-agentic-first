@@ -32,7 +32,7 @@ final class NegocioRepository extends BaseRepository
             'codigo' => 'a.codigo', 'titulo' => 'a.titulo COLLATE pt_br', 'empresa_nome' => 'e.nome_fantasia COLLATE pt_br',
             'etapa_nome' => 'et.ordem', 'valor_estimado' => 'a.valor_estimado', 'valor_ponderado' => 'valor_ponderado',
             'probabilidade' => 'a.probabilidade', 'previsao_fechamento' => 'a.previsao_fechamento', 'status' => 'a.status',
-            'temperatura' => 'a.temperatura', 'entrou_etapa_em' => 'a.entrou_etapa_em', 'criado_em' => 'a.criado_em',
+            'temperatura' => "CASE a.temperatura WHEN 'frio' THEN 1 WHEN 'morno' THEN 2 WHEN 'quente' THEN 3 WHEN 'fervendo' THEN 4 END", 'entrou_etapa_em' => 'a.entrou_etapa_em', 'criado_em' => 'a.criado_em',
         ];
     }
 

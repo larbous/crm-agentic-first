@@ -15,6 +15,9 @@ return [
     'anthropic' => [
         'api_key' => '', // chave da API Anthropic (linguagem natural no chat)
         // 'timeout' => 30,
-        // 'cacert'  => '', // caminho do cacert.pem, se o cURL não achar os certificados
+        // 'cacert'  => '', // caminho do cacert.pem, se o cURL não achar os certificados (vale para todos os provedores)
+    ],
+    'gemini' => [
+        'api_key' => '', // chave do Google AI Studio; provedor secundário: assume se a Anthropic estiver instável
     ],
 ];

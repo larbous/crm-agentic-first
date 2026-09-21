@@ -679,6 +679,7 @@ final class ActionExecutor
                 $this->aplicarEtapaNegocio($v, null, $extra, $erros);
                 if ($erros === []) {
                     $extra['codigo'] = Repositorios::negocios()->proximoCodigo((int) date('Y'));
+                    $extra += Champ::derivar([], $v);
                 }
                 break;
 
@@ -763,6 +764,7 @@ final class ActionExecutor
 
             case 'negocios':
                 $this->aplicarEtapaNegocio($novos, $atual, $derivados, $erros);
+                $derivados += Champ::derivar($atual, $novos);
                 break;
 
             case 'tarefas':

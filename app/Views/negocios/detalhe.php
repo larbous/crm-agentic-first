@@ -22,6 +22,7 @@ $id = (int) $r['id'];
 $voltar = '/negocios/' . $id;
 $op = static fn (string $grupo, ?string $v) => $v !== null ? (Schema::opcoes($grupo)[$v] ?? $v) : '';
 $dinheiro = static fn (?int $c) => $c !== null ? moeda($c) : '';
+$temperatura = $r['temperatura'] ? ['html' => '<span class="text-temp-' . e($r['temperatura']) . ' font-medium">' . e($op('temperatura', $r['temperatura'])) . '</span>'] : '';
 
 $linksContato = static function (?int $cid, ?string $nome): array|string {
     return $cid && $nome ? ['html' => link_para('/contatos/' . $cid, $nome)] : '';
@@ -107,12 +108,17 @@ foreach ($etapas as $e) {
             'Decisor' => $decisor, 'Origem' => (string) $r['origem_nome'],
         ])]) ?>
         <?= card(['tamanho' => 'sm', 'titulo' => 'Qualificação e andamento', 'corpo_html' => ficha([
-            'Temperatura' => $op('temperatura', $r['temperatura']), 'Prioridade' => $op('prioridade_neg', $r['prioridade']),
+            'Temperatura' => $temperatura, 'Prioridade' => $op('prioridade_neg', $r['prioridade']),
             'Dor principal' => (string) $r['dor_principal'], 'Objetivo' => (string) $r['objetivo_cliente'],
             'Orçamento do cliente' => (string) $r['orcamento_cliente'], 'Prazo desejado' => (string) $r['prazo_desejado'],
             'Critério de decisão' => (string) $r['criterio_decisao'], 'Concorrentes' => (string) $r['concorrentes'],
             'Próximo passo' => (string) $r['proximo_passo'], 'Próximo passo em' => data_br($r['proximo_passo_em']),
             'Motivo da perda' => (string) $r['motivo_perda_nome'], 'Detalhe da perda' => (string) $r['detalhe_perda'],
+        ], 1)]) ?>
+        <?= card(['tamanho' => 'sm', 'titulo' => 'Qualificação CHAMP', 'descricao' => $r['champ_pontos'] !== null ? 'Pontuação ' . (int) $r['champ_pontos'] . ' de ' . \App\Services\Champ::MAXIMO . ' · avaliado em ' . datahora_br((string) $r['champ_avaliado_em']) : 'Ainda não avaliado. Rode o agente Qualificador de Lead ou preencha ao editar o negócio.', 'corpo_html' => ficha([
+            'Desafios (dor confirmada)' => $op('champ', $r['champ_desafios']), 'Autoridade (decisor)' => $op('champ', $r['champ_autoridade']),
+            'Dinheiro (orçamento)' => $op('champ', $r['champ_dinheiro']), 'Prioridade (urgência)' => $op('champ', $r['champ_prioridade']),
+            'Justificativa' => (string) $r['champ_resumo'],
         ], 1)]) ?>
         <?= card_campos_extras('negocios', $r) ?>
         <?php if ($r['notas']): ?>

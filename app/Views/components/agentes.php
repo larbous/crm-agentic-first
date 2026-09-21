@@ -75,14 +75,16 @@ function agente_resultado_html(array $r): string
     }
     foreach ($r['previas'] as $p) {
         $html .= '<div class="rounded-md border p-3"><div class="mb-2 flex flex-wrap items-center gap-2 text-sm font-medium">' . e($p['descricao'])
-            . ($p['direto'] ? badge('aplicaria direto', 'secondary') : badge('pediria aprovação', 'warning')) . '</div>'
+            . ($p['direto'] ? badge('aplicaria direto', 'secondary') : badge('pediria aprovação', 'warning'))
+            . (!empty($p['motivo']) ? ' <span class="text-muted-foreground text-xs font-normal">' . e($p['motivo']) . '</span>' : '') . '</div>'
             . diff_html($p['antes'], $p['depois'], $p['entidade']) . '</div>';
     }
     foreach ($r['aplicadas'] as $a) {
         $html .= '<div class="flex items-center gap-2 text-sm">' . icone('circle-check', 'size-4 text-[var(--success)]') . e($a['descricao']) . '</div>';
     }
     foreach ($r['pendentes'] as $p) {
-        $html .= '<div class="flex items-center gap-2 text-sm">' . icone('clock', 'size-4') . e($p['descricao']) . ' ' . badge('aguardando aprovação', 'warning') . '</div>';
+        $html .= '<div class="flex items-center gap-2 text-sm">' . icone('clock', 'size-4') . e($p['descricao']) . ' ' . badge('aguardando aprovação', 'warning')
+            . (!empty($p['motivo']) ? ' <span class="text-muted-foreground text-xs">' . e($p['motivo']) . '</span>' : '') . '</div>';
     }
     if ($r['pendentes'] !== []) {
         $html .= '<div>' . botao('Revisar ações pendentes', ['href' => url('/acoes-pendentes'), 'variante' => 'outline', 'tamanho' => 'sm', 'icone' => 'inbox']) . '</div>';

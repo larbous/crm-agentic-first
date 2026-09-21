@@ -31,7 +31,7 @@ final class AgenteDefinicao
 
     private const CHAVES = [
         'slug', 'nome', 'descricao', 'versao', 'modelo', 'max_tokens', 'web_search', 'entrada', 'contexto', 'contexto_relacionado',
-        'prompt', 'acoes_permitidas', 'campos_gravaveis', 'aprovacao', 'gatilho',
+        'prompt', 'acoes_permitidas', 'campos_gravaveis', 'aprovacao', 'confianca_minima', 'gatilho',
     ];
 
     /** Nunca vão para a IA: tokens de links públicos e IP de quem aceitou/assinou. */
@@ -156,17 +156,27 @@ final class AgenteDefinicao
             $erros[] = '"aprovacao" deve ser um de: ' . implode(', ', self::APROVACOES) . '.';
         }
 
+        $confianca = $entrada['confianca_minima'] ?? null;
+        if ($confianca !== null && ((!is_int($confianca) && !is_float($confianca)) || $confianca < 0 || $confianca > 1)) {
+            $erros[] = '"confianca_minima" deve ser um número entre 0 e 1 (ex.: 0.7) ou ficar de fora para usar o padrão do sistema.';
+            $confianca = null;
+        }
+
         $gatilho = self::gatilho($entrada['gatilho'] ?? ['tipo' => 'manual'], $alvo, $erros);
 
         if ($erros !== []) {
             return self::falha($erros);
         }
-        return ['ok' => true, 'erros' => [], 'definicao' => [
+        $definicao = [
             'slug' => $slug, 'nome' => trim($nome), 'descricao' => trim($descricao), 'versao' => $versao, 'modelo' => $modelo,
             'max_tokens' => $maxTokens, 'web_search' => $webSearch, 'entrada' => $alvo, 'contexto' => $contexto,
             'contexto_relacionado' => $relacionado, 'prompt' => trim($prompt),
             'acoes_permitidas' => $acoes, 'campos_gravaveis' => $gravaveis, 'aprovacao' => $aprovacao, 'gatilho' => $gatilho,
-        ]];
+        ];
+        if ($confianca !== null) {
+            $definicao['confianca_minima'] = (float) $confianca;
+        }
+        return ['ok' => true, 'erros' => [], 'definicao' => $definicao];
     }
 
     /** Nomes de campo que um agente pode listar em `campos_gravaveis` (campos do Schema sem fk + nomes especiais). */

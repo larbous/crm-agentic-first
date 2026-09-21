@@ -20,6 +20,10 @@ use App\Services\ConsultaChat;
 /** Transporte de IA falso: devolve $saida (array → JSON) como se fosse o modelo. Guarda a última requisição. */
 function iaResponde(array|string $saida, int $status = 200): void
 {
+    // Saída de agente (tem "acoes") sem confiança declarada contaria como baixa: os testes assumem confiança alta, salvo se informarem.
+    if (is_array($saida) && array_key_exists('acoes', $saida) && !array_key_exists('confianca', $saida)) {
+        $saida['confianca'] = 0.95;
+    }
     $GLOBALS['__ia_requisicoes'] = [];
     Client::definirTransporte(static function (array $req) use ($saida, $status): array {
         $GLOBALS['__ia_requisicoes'][] = $req;
@@ -363,12 +367,11 @@ teste('IA: falha da API vira mensagem ao operador e execução com status erro',
 
     // Sem transporte falso e sem chave (mesmo que config.local.php tenha uma): nunca chama a rede.
     Client::definirTransporte(null);
-    $config = require dirname(__DIR__) . '/config.php';
-    Config::definir(array_replace_recursive($config, ['anthropic' => ['api_key' => '']]));
+    Config::definir(configNeutra());
     try {
         $sem = $chat->enviar('cria empresa X', null);
     } finally {
-        Config::definir($config);
+        Config::definir(configNeutra());
     }
     contem('não está configurada', $sem['resposta']['conteudo']);
 });

@@ -22,7 +22,7 @@ $grupo = static fn (string $rotulo, string $html): string =>
     . '<div class="ui-amostra">' . $html . '</div></div>';
 
 $cores = ['background', 'foreground', 'card', 'primary', 'secondary', 'muted', 'accent', 'destructive', 'border', 'ring',
-    'success', 'warning', 'info', 'temp-frio', 'temp-morno', 'temp-quente', 'chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5'];
+    'success', 'warning', 'info', 'temp-frio', 'temp-morno', 'temp-quente', 'temp-fervendo', 'chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5'];
 ?>
 <div class="page-cabecalho">
     <div>
@@ -80,7 +80,7 @@ $etapas = [['Novo lead', '#64748b'], ['Qualificado', '#0ea5e9'], ['Reunião', '#
 $pe = '';
 foreach ($etapas as [$nome, $cor]) { $pe .= pill_etapa($nome, $cor); }
 $temp = badge('Frio', 'outline', ['classe' => 'text-temp-frio']) . badge('Morno', 'outline', ['classe' => 'text-temp-morno'])
-    . badge('Quente', 'outline', ['classe' => 'text-temp-quente']);
+    . badge('Quente', 'outline', ['classe' => 'text-temp-quente']) . badge('Fervendo', 'outline', ['classe' => 'text-temp-fervendo font-semibold']);
 echo $secao('badges', 'Badges e etapas', $grupo('Badges', $bd) . $grupo('Pílulas de etapa (cor vem do banco)', $pe)
     . $grupo('Temperatura', $temp) . $grupo('Com ícone', badge('Verificado', 'success', ['icone' => 'check'])));
 
