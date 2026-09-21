@@ -49,7 +49,147 @@ final class Rotinas
             'audios_transcritos'  => $this->transcreverAudios(),
             'conversas_resumidas' => $this->resumirConversas(),
             'followups'           => $this->followups(),
+            'clientes_em_risco'   => $this->clientesEmRisco(),
+            'chamados_parados'    => $this->chamadosParados(),
         ];
+    }
+
+    /** Silêncio (dias) do cliente ativo que dispara o alerta de churn; `churn.dias_sem_interacao` em `configuracoes` sobrescreve, 0 desliga. */
+    public const CHURN_DIAS_PADRAO = 30;
+    /** Chamado em andamento sem alteração por tantos dias vira alerta; `churn.dias_chamado_parado` sobrescreve, 0 desliga. */
+    public const CHAMADO_PARADO_DIAS_PADRAO = 5;
+    /** Máximo de alertas por rodada e por tipo (ligar a rotina numa base antiga não gera uma avalanche de tarefas de uma vez). */
+    private const LIMITE_ALERTAS = 20;
+
+    private function diasConfigurados(string $chave, int $padrao): int
+    {
+        $v = (new ConfiguracaoRepository())->obter($chave);
+        return max(0, $v === null || trim($v) === '' ? $padrao : (int) $v);
+    }
+
+    /**
+     * Cliente ativo sem interação real há N dias (30 por padrão) → tarefa "Risco de churn" com o briefing, uma vez por silêncio (uma interação
+     * nova zera e permite alertar de novo). Se o último contato foi do cliente, a bola está com o operador e o alerta sai mesmo assim: ele
+     * é quem está devendo resposta. O briefing é montado pelo servidor, sem IA.
+     */
+    private function clientesEmRisco(): int
+    {
+        $dias = $this->diasConfigurados('churn.dias_sem_interacao', self::CHURN_DIAS_PADRAO);
+        if ($dias === 0) {
+            return 0;
+        }
+        $n = 0;
+        $corte = date('Y-m-d H:i:s', strtotime("-{$dias} days"));
+        foreach ($this->repo->clientesSemInteracao($corte, 100) as $e) {
+            if ($n >= self::LIMITE_ALERTAS) {
+                break;
+            }
+            if (!$this->repo->marcar("churn:silencio:{$e['id']}:{$e['ultima']}")) {
+                continue;
+            }
+            $silencio = (int) dias_entre(substr((string) $e['ultima'], 0, 10), hoje());
+            $r = $this->executor->criar('tarefas', [
+                'titulo' => 'Risco de churn: ' . mb_substr((string) $e['nome_fantasia'], 0, 120) . " ({$silencio} dias sem contato)",
+                'descricao' => $this->briefingSilencio($e, $silencio),
+                'tipo' => 'ligar', 'prioridade' => 'alta', 'vencimento' => hoje(), 'empresa_id' => (int) $e['id'],
+            ], 'sistema');
+            if ($r->ok) {
+                $n++;
+            } else {
+                error_log("Worker: alerta de churn da empresa #{$e['id']} não gerou tarefa: {$r->mensagem}");
+            }
+        }
+        return $n;
+    }
+
+    /** Chamado em andamento sem alteração há N dias (5 por padrão) → tarefa "Chamado parado" com o briefing, uma vez por parada. */
+    private function chamadosParados(): int
+    {
+        $dias = $this->diasConfigurados('churn.dias_chamado_parado', self::CHAMADO_PARADO_DIAS_PADRAO);
+        if ($dias === 0) {
+            return 0;
+        }
+        $n = 0;
+        $corte = date('Y-m-d H:i:s', strtotime("-{$dias} days"));
+        foreach ($this->repo->chamadosParados($corte, 100) as $c) {
+            if ($n >= self::LIMITE_ALERTAS) {
+                break;
+            }
+            if (!$this->repo->marcar("churn:chamado:{$c['id']}:{$c['atualizado_em']}")) {
+                continue;
+            }
+            $parado = (int) dias_entre(substr((string) $c['atualizado_em'], 0, 10), hoje());
+            $dados = [
+                'titulo' => "Chamado parado: {$c['codigo']} " . mb_substr((string) $c['titulo'], 0, 100) . " ({$parado} dias)",
+                'descricao' => $this->briefingChamado($c, $parado),
+                'tipo' => 'interno', 'prioridade' => 'alta', 'vencimento' => hoje(),
+            ];
+            foreach (['empresa_id', 'contato_id', 'negocio_id', 'contrato_id'] as $campo) {
+                if ($c[$campo] !== null) {
+                    $dados[$campo] = (int) $c[$campo];
+                }
+            }
+            $r = $this->executor->criar('tarefas', $dados, 'sistema');
+            if ($r->ok) {
+                $n++;
+            } else {
+                error_log("Worker: alerta do chamado #{$c['id']} não gerou tarefa: {$r->mensagem}");
+            }
+        }
+        return $n;
+    }
+
+    /** Texto do briefing de um cliente em silêncio: o que houve por último e o que está em jogo (contratos, negócios, chamados, NPS). */
+    private function briefingSilencio(array $e, int $silencio): string
+    {
+        $direcao = match ($e['ultima_direcao']) {
+            'entrada' => ' (a última mensagem foi do cliente e está sem resposta)',
+            'saida' => ' (a última mensagem foi nossa)',
+            default => '',
+        };
+        $linhas = [
+            "{$e['nome_fantasia']} está há {$silencio} dias sem interação{$direcao}. Última interação: " . data_br(substr((string) $e['ultima'], 0, 10)) . '.',
+        ];
+        $retrato = $this->repo->retratoDaEmpresa((int) $e['id']);
+        if ($retrato['contratos'] === []) {
+            $linhas[] = 'Contratos vigentes: nenhum.';
+        } else {
+            $linhas[] = 'Contratos vigentes:';
+            foreach ($retrato['contratos'] as $c) {
+                $mensal = $c['valor_mensal'] !== null ? ' · ' . moeda($c['valor_mensal']) . '/mês' : '';
+                $fim = $c['data_fim'] !== null ? ' · vence em ' . data_br($c['data_fim']) : '';
+                $linhas[] = "- {$c['numero']} {$c['titulo']}{$mensal}{$fim}";
+            }
+        }
+        if ($retrato['negocios_abertos'] > 0) {
+            $linhas[] = "Negócios abertos: {$retrato['negocios_abertos']} (" . moeda($retrato['negocios_valor']) . ' estimados).';
+        }
+        if ($retrato['chamados_abertos'] > 0) {
+            $linhas[] = "Chamados em andamento: {$retrato['chamados_abertos']}.";
+        }
+        if ($retrato['nps'] !== null) {
+            $linhas[] = "Última pesquisa NPS: nota {$retrato['nps']['nota']} ({$retrato['nps']['categoria']}) em " . data_br(substr((string) $retrato['nps']['respondida_em'], 0, 10)) . '.';
+        }
+        $linhas[] = 'Sugestão: ligar ou mandar uma mensagem hoje e registrar a conversa na timeline (isso zera o alerta).';
+        return implode("\n", $linhas);
+    }
+
+    private function briefingChamado(array $c, int $parado): string
+    {
+        $status = ['aberto' => 'aberto', 'andamento' => 'em andamento', 'aguardando' => 'aguardando retorno'][$c['status']] ?? (string) $c['status'];
+        $linhas = ["O chamado {$c['codigo']} ({$c['area_nome']}) está {$status} e sem nenhuma alteração há {$parado} dias."];
+        if ($c['vencimento'] !== null) {
+            $linhas[] = 'Prazo de entrega: ' . data_br(substr((string) $c['vencimento'], 0, 10)) . (substr((string) $c['vencimento'], 0, 10) < hoje() ? ' (atrasado).' : '.');
+        }
+        if ($c['empresa_id'] !== null) {
+            $retrato = $this->repo->retratoDaEmpresa((int) $c['empresa_id']);
+            $mensal = array_sum(array_map(static fn (array $k): int => (int) $k['valor_mensal'], $retrato['contratos']));
+            $linhas[] = $retrato['contratos'] === []
+                ? 'A empresa não tem contrato vigente.'
+                : 'A empresa tem ' . count($retrato['contratos']) . ' contrato(s) vigente(s)' . ($mensal > 0 ? ' (' . moeda($mensal) . '/mês)' : '') . '.';
+        }
+        $linhas[] = 'Sugestão: dar um retorno ao cliente ou atualizar o status do chamado (qualquer alteração zera o alerta).';
+        return implode("\n", $linhas);
     }
 
     /** Cada rotina de IA desta fase para de abrir chamadas novas depois deste tempo (o worker tem 240 s por rodada, com a fila de agentes ainda por rodar). */

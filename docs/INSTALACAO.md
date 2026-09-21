@@ -120,7 +120,7 @@ Agentes e squads disparados por evento ou agenda, squads executados pelo operado
 - Cada rodada: recupera execuções interrompidas; roda as rotinas (recorrentes, vencidas, expiradas); dispara agendamentos vencidos; e processa a fila (até 5 execuções por rodada, sem começar nada novo depois de 4 minutos). Um squad com várias etapas de IA pode levar minutos: `set_time_limit(0)` no CLI; se a hospedagem limitar o tempo do cron, o restante continua na rodada seguinte.
 - **Sem o worker nada roda sozinho**: os eventos apenas põem a execução na fila (a tela Execuções mostra "Na fila"). Em desenvolvimento, rode `php cron/worker.php --verbose` à mão depois de disparar um squad.
 - Fuso horário das agendas: `app.fuso` (padrão `America/Sao_Paulo`). Expressões cron de 5 campos (`0 8 * * 1` = segunda 08:00); sem nomes de mês/dia nem atalhos como `@daily`.
-- Avisos do worker (`tarefa.vencida`, `contrato.vencendo`, próxima tarefa recorrente) são emitidos uma vez por registro/data (tabela `worker_marcas`). Contratos avisam `aviso_renovacao_dias` antes do fim.
+- Avisos do worker (`tarefa.vencida`, `contrato.vencendo`, próxima tarefa recorrente) são emitidos uma vez por registro/data (tabela `worker_marcas`). Contratos avisam `aviso_renovacao_dias` antes do fim. O worker também abre tarefas de alerta para cliente ativo sem interação há 30 dias e chamado parado há 5 dias (`churn.dias_sem_interacao` e `churn.dias_chamado_parado` em `configuracoes`; 0 desliga), no máximo 20 por rodada.
 
 ## Hospedagem compartilhada
 

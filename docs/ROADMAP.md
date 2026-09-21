@@ -238,3 +238,16 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 
 > **Verificado (2026-09-22):** `tests/MultimodalTest.php` (16 casos, com Gemini e Meta simulados) cobre o fluxo completo da transcrição (áudio anexo em `inline_data`, tipo `audio/ogg; codecs=opus` normalizado, Instagram por URL sem token e tipo pelo conteúdo, lista fixa de intenção e sentimento, mídia expirada e formato não suportado desistem, falha transitória tenta 3 vezes), a falta de crédito (402 e 429 "prepayment credits are depleted", Anthropic 400 "credit balance is too low": alerta, fila sem gastar tentativas, sondagem depois da espera, "já recarreguei", alerta renderizado no layout), o resumo (nota com origem `ia`, sem repetir, 3 tentativas) e o follow-up (passos, cliente por último, negócio fechado ou abandonado, agente desativado, cadência configurável, nota do rascunho não conta como interação). **Não verificado:** nenhuma chamada real ao Gemini com áudio nem download real de mídia da Meta; o formato `inline_data` e os tipos aceitos seguem a documentação. Áudio do Instagram (contêiner mp4) é enviado como `audio/aac` por suposição. As telas não foram abertas em navegador.
 
+---
+
+## Fase 16 — Monitoramento de exceções e prevenção de churn
+
+- [x] Rotina do worker: cliente ativo sem interação real há N dias (`churn.dias_sem_interacao`, padrão 30; 0 desliga), contando empresa, contatos e negócios dela
+- [x] Rotina do worker: chamado aberto, em andamento ou aguardando sem alteração há N dias (`churn.dias_chamado_parado`, padrão 5; 0 desliga)
+- [x] Notificação ao operador: tarefa de prioridade alta para hoje, com briefing montado pelo servidor (última interação, contratos vigentes, negócios, chamados, último NPS); um alerta por silêncio/parada
+- [x] Teto de 20 alertas por rodada e por tipo (ativar a rotina numa base antiga não gera avalanche)
+
+**Pronto quando:** um cliente ativo parado além do limiar aparece em Tarefas como "Risco de churn" com o briefing, e um chamado parado como "Chamado parado"; a mesma situação não alerta duas vezes e uma interação/alteração nova rearma o alerta.
+
+> **Verificado (2026-09-21):** `tests/ChurnTest.php` (5 casos) cobre o limiar, a interação por contato, a nota que não zera o silêncio, o rearme, lead/arquivado fora, limiar configurável e desligável, o conteúdo do briefing (contrato, valor, negócios, chamados), o chamado parado (atrasado, status concluído, alteração que zera) e o teto por rodada; suíte completa passa. **Não verificado:** as tarefas geradas não foram abertas em navegador, e o briefing com NPS só foi lido no código (sem caso de teste).
+
