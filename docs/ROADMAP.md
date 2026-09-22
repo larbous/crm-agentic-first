@@ -279,3 +279,27 @@ Fora do roteiro das 17 fases (nunca foi especificado em `docs/SPEC.md` nem no ro
 - **Custos** (Fase 17) são só descrição + valor + data + categoria em texto livre — pensados para o DRE por cliente, não para gestão de fornecedores ou fluxo de aprovação de compra.
 - **CBS/IBS (Reforma Tributária)**: nenhum campo, cálculo ou regra tributária no CRM. A emissão de NF-e das cobranças é inteiramente delegada ao Asaas (o CRM só guarda `nfe_status`/`nfe_url`, o que o webhook devolve); toda alíquota, CST/classificação tributária e o próprio cálculo de CBS/IBS ficam do lado do Asaas (ou da contabilidade), não deste sistema.
 - **Antes de planejar uma fase para isso**, decidir com o usuário: se fornecedor é uma entidade nova (`fornecedores`) ou uma extensão de `empresas` (ex.: `tipo: cliente|fornecedor|ambos`); se custos por fornecedor viram contas a pagar (com vencimento/status) ou continuam lançamento simples; e se CBS/IBS precisa de algum dado guardado localmente (para relatório, por exemplo) ou se basta continuar 100% delegado ao Asaas/contabilidade, dado que o CRM não emite nota fiscal por conta própria (regra do CLAUDE.md: nenhuma dependência nova sem instrução explícita).
+
+---
+
+## Pendência conhecida — Contato vinculado a mais de uma empresa
+
+Fora do roteiro das 17 fases. Registrado em 2026-09-22 a partir de uma pergunta direta do usuário (caso real:
+uma pessoa é responsável por 3 empresas e usa um único contato/e-mail). Sem escopo definido ainda, então não
+vira checklist de fase até isso acontecer.
+
+- **Hoje `contatos.empresa_id` é uma chave estrangeira única** (`migrations/0001_nucleo.sql:226`): um contato
+  pertence a exatamente uma empresa. Não existe tabela pivô contato↔empresa (só `negocio_contatos`, que liga
+  contato a negócio, não a empresa extra).
+- **Decisão do usuário para agora**: contornar cadastrando a pessoa como um contato duplicado em cada
+  empresa (mesmo nome/e-mail, um registro por empresa). Aceitável porque **contatos ainda não têm login** no
+  sistema (só usuários internos autenticam) — não há identidade única de contato a preservar entre empresas
+  por enquanto, então a duplicação não quebra nada além de exigir atualizar o e-mail/telefone em mais de um
+  lugar se mudar.
+- **Se/quando virar fase**, a solução correta é uma relação muitos-para-muitos de verdade (nova tabela pivô,
+  ex. `contato_empresas`, contato sem `empresa_id` fixo), o que exige revisar: whitelist do
+  `Schema`/`ActionExecutor`, telas de contato e empresa (formulário, listagem, detalhe), resolução de
+  referência no chat (`BuscaRepository::resolver`), destinos de campo em formulários públicos, e toda consulta
+  que hoje assume 1 empresa por contato (ex. LTV, filtros, exportações). Repensar também o que acontece se
+  isso um dia precisar coexistir com login de contato (portal do cliente) — a essa altura "qual empresa esse
+  contato está vendo" deixa de ser implícito.
