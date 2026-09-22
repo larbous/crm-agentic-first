@@ -1,6 +1,7 @@
 -- 0001 — Núcleo: usuários, configurações, auditoria, apoio, empresas, contatos, negócios,
 -- atividades, tarefas, anexos e campos extras (SPEC §4.1–4.5, 4.12, 4.13).
 -- Datas em texto ISO 8601 (America/Sao_Paulo, preenchidas pela aplicação); valores monetários em centavos.
+-- Parte do CRM Lárbous (github.com/larbous/crm-agentic-first) — MIT.
 
 ------------------------------------------------------------------------------
 -- Sistema

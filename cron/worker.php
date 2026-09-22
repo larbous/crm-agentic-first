@@ -7,6 +7,8 @@ declare(strict_types=1);
  *   * * * * * php /caminho/do/projeto/cron/worker.php
  * Só um worker roda por vez (lock de arquivo em storage/worker.lock); uma segunda chamada simultânea sai em silêncio.
  * Não imprime nada quando não há o que fazer (para não gerar e-mail do cron); use --verbose para ver o resumo.
+ *
+ * Parte do CRM Lárbous (github.com/larbous/crm-agentic-first), sob licença MIT.
  */
 
 if (PHP_SAPI !== 'cli') {

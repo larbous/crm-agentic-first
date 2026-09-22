@@ -5,6 +5,8 @@ declare(strict_types=1);
 /**
  * Configuração da aplicação. Valores locais/sensíveis ficam em config.local.php
  * (não versionado), que sobrescreve as chaves abaixo.
+ *
+ * Parte do CRM Lárbous — github.com/larbous/crm-agentic-first — licença MIT.
  */
 
 $padrao = [

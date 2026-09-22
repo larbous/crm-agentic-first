@@ -8,6 +8,7 @@ use App\Core\Auth;
 use App\Core\Response;
 use App\Core\Validator;
 use App\Core\View;
+use App\Services\Instalador;
 
 /** Login e logout. */
 final class AuthController
@@ -16,6 +17,9 @@ final class AuthController
     {
         if (Auth::logado()) {
             return Response::redirecionar(url('/'));
+        }
+        if (Instalador::precisaDoPrimeiroUsuario()) {
+            return Response::redirecionar(url('/instalar'));
         }
         return View::pagina('auth/login', ['titulo' => 'Entrar', 'email' => '', 'erro' => null], 200, 'layouts/simples');
     }

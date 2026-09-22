@@ -17,6 +17,8 @@ use Throwable;
  * Ponto único de escrita de dados (humano, chat, agente, formulário): valida contra o Schema (whitelist),
  * aplica as regras de negócio, grava, registra em log_auditoria e dispara eventos (depois do commit).
  * Nenhuma outra classe escreve em tabelas de negócio.
+ *
+ * Peça central do CRM Lárbous (github.com/larbous/crm-agentic-first) — licença MIT.
  */
 final class ActionExecutor
 {

@@ -22,4 +22,7 @@
             . botao('Entrar', ['tipo' => 'submit', 'classe' => 'w-full'])
             . '</form>',
     ]) ?>
+    <p class="text-muted-foreground mt-4 text-center text-xs">
+        CRM Lárbous · <a class="underline-offset-4 hover:underline" href="https://github.com/larbous/crm-agentic-first" target="_blank" rel="noopener">github.com/larbous</a>
+    </p>
 </div>

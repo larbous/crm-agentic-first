@@ -7,6 +7,18 @@
 
 ## Primeira execução
 
+### Sem CLI (hospedagem compartilhada, cPanel/Plesk/hPanel)
+
+Copie os arquivos para a hospedagem, aponte o document root para `public/` e garanta que `storage/` é
+gravável pelo PHP. A primeira requisição HTTP (`Services/Instalador`, chamado em `public/index.php`) aplica
+sozinha as migrações pendentes e o seed padrão (`Services/Semeador`); a rota pública `/instalar` então pede
+para criar o usuário administrador. Depois de criado o primeiro usuário, a rota `/instalar` deixa de
+funcionar (redireciona para `/login`) — não é possível usá-la de novo. Uma marca em
+`storage/db/.instalado` faz esse mecanismo rodar só uma vez por instalação; **atualizações** (migrações
+novas de uma versão futura do CRM) continuam pelo `php scripts/migrate.php` de sempre, abaixo.
+
+### Com CLI (desenvolvimento local ou hospedagem com SSH)
+
 ```bash
 cp config.local.php.example config.local.php   # ajuste se necessário (não versionado)
 php scripts/migrate.php                        # cria/atualiza o banco em storage/db/crm.sqlite

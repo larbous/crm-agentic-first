@@ -24,6 +24,7 @@ use App\Controllers\ExecucaoController;
 use App\Controllers\FormularioController;
 use App\Controllers\FormularioPublicoController;
 use App\Controllers\IaRapidaController;
+use App\Controllers\InstalacaoController;
 use App\Controllers\MetaController;
 use App\Controllers\NegocioController;
 use App\Controllers\ModeloController;
@@ -40,10 +41,15 @@ use App\Controllers\TagController;
 use App\Controllers\TarefaController;
 use App\Core\Auth;
 use App\Core\Router;
+use App\Services\Instalador;
 
 /** Definição de rotas. Rotas JSON ficam sob /api; telas, sem prefixo. */
 return static function (Router $r): void {
     // Públicas
+    // Instalação por cópia (sem CLI/SSH): só funciona enquanto não houver nenhum usuário (ver Instalador).
+    $r->get('/instalar', [InstalacaoController::class, 'formulario']);
+    $r->post('/instalar', [InstalacaoController::class, 'criar']);
+
     $r->get('/login', [AuthController::class, 'formLogin']);
     $r->post('/login', [AuthController::class, 'login']);
 
@@ -145,5 +151,5 @@ return static function (Router $r): void {
             $r->post('/chat', [ChatController::class, 'enviar']);
             $r->post('/chat/acao', [ChatController::class, 'acao']);
         });
-    }, [[Auth::class, 'exigir']]);
+    }, [[Instalador::class, 'middleware'], [Auth::class, 'exigir']]);
 };

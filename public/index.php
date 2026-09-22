@@ -15,6 +15,7 @@ use App\Core\Response;
 use App\Core\Router;
 use App\Core\Session;
 use App\Core\View;
+use App\Services\Instalador;
 
 foreach ([
     'X-Content-Type-Options' => 'nosniff',
@@ -26,6 +27,7 @@ foreach ([
 
 try {
     Session::iniciar();
+    Instalador::executarSeNecessario();
 
     $caminho = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
     $base = rtrim((string) Config::obter('app.base_url', ''), '/');
