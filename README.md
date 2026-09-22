@@ -156,7 +156,6 @@ Passo a passo completo (build do CSS, canais de atendimento, Asaas, disjuntor de
 |---|---|
 | [`docs/SPEC.md`](docs/SPEC.md) | Especificação completa: modelo de dados, contrato de chat, formato de agentes e squads, telas |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | As 17 fases do projeto, cada uma com checklist e o relato do que foi verificado (e o que não foi) |
-| [`docs/DECISOES.md`](docs/DECISOES.md) | Toda decisão de design tomada onde a spec era omissa, com data e motivo |
 | [`docs/INSTALACAO.md`](docs/INSTALACAO.md) | Instalação, build do CSS, canais de WhatsApp/Instagram/e-mail, Asaas |
 | [`CLAUDE.md`](CLAUDE.md) | Convenções de código e arquitetura — leia antes de abrir um PR |
 
@@ -196,7 +195,7 @@ Antes de começar:
 1. Leia o [`CLAUDE.md`](CLAUDE.md): ele descreve as convenções que o próprio projeto segue (PSR-12, `strict_types` em todo arquivo, SQL só em Repositories, toda escrita passando pelo `ActionExecutor`, nomes de tabela e coluna em português).
 2. Rode `php tests/run.php` antes de abrir o PR — e adicione teste para o que você mudou. A suíte roda em segundos, sem dependências.
 3. Mudanças em views ou CSS exigem recompilar `public/assets/css/app.css` (veja o passo a passo em [`docs/INSTALACAO.md`](docs/INSTALACAO.md)) antes do commit.
-4. Se a sua mudança adiciona uma decisão de design onde a spec é omissa, registre-a em `docs/DECISOES.md` — é assim que o projeto documenta a própria história.
+4. Se a sua mudança envolve uma decisão de design onde a spec é omissa, explique o quê e o porquê na descrição do PR.
 5. Issues, ideias e discussões de arquitetura são tão bem-vindas quanto código.
 
 Não é preciso pedir permissão para propor algo — abra a issue ou o PR e vamos conversar por lá.

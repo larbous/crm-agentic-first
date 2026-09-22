@@ -6,7 +6,7 @@ CRM interno da Lárbous (agência web), com conceito **agentic-first**: o operad
 - `docs/SPEC.md` — especificação completa (dados, telas, IA, agentes, squads).
 - `docs/ROADMAP.md` — fases, checklists e critérios de pronto.
 
-Antes de implementar qualquer coisa, leia a seção correspondente do SPEC. Ao concluir itens, marque o checklist no ROADMAP. Se algo não estiver especificado, escolha a opção mais simples coerente com o SPEC e registre a decisão em `docs/DECISOES.md` (data + decisão + motivo).
+Antes de implementar qualquer coisa, leia a seção correspondente do SPEC. Ao concluir itens, marque o checklist no ROADMAP. Se algo não estiver especificado, escolha a opção mais simples coerente com o SPEC e registre a decisão (data + decisão + motivo) em `docs/DECISOES.md` — arquivo interno, fora do repositório público; se não existir na sua cópia, explique a decisão na descrição do commit/PR.
 
 ---
 

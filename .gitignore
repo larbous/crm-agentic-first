@@ -1,6 +1,9 @@
 # Configuração local e segredos
 config.local.php
 
+# Histórico de decisões: interno (tom de diário com o cliente), fica só local
+/docs/DECISOES.md
+
 # Banco, uploads e logs
 /storage/db/*
 /storage/uploads/*
