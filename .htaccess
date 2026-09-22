@@ -1,0 +1,12 @@
+# Proteção extra: o document root do site deve apontar para /public, nunca para a raiz do
+# projeto. Este arquivo é uma rede de segurança para o caso de configuração errada no painel
+# da hospedagem — nega todo acesso HTTP direto a este diretório e suas subpastas
+# (app/, storage/, migrations/, config*.php etc.), que nunca devem ser servidos pela web.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

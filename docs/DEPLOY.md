@@ -48,25 +48,36 @@ cada push — sem precisar de build, exatamente como este projeto já é pensado
      [token de acesso pessoal](https://github.com/settings/tokens) com escopo `repo` e use como senha (ou
      configure uma deploy key, se a ferramenta oferecer essa opção).
    - Branch: `main` (ou uma branch dedicada, ex. `producao`, se quiser separar do que está em teste).
-   - Diretório de destino: a raiz do domínio/subdomínio configurado (o document root HTTP deve apontar para
-     a subpasta `public/` desse diretório — configurável em **Sites → Gerenciar → Document Root**).
-2. **Ative o auto-deploy** (webhook): a cada `git push` na branch escolhida, a Hostinger puxa
-   automaticamente as mudanças.
-3. **Comando pós-deploy** (se o plano oferecer essa opção no painel de Git): configure
+   - Diretório de destino: uma pasta **fora** do document root do site (ex. `crm-producao/`, ao lado de
+     `public_html/`, não dentro dela).
+2. **Confira o Document Root do domínio** (hPanel → **Sites → Gerenciar → Document Root**): tem que apontar
+   para `<diretório de destino do Git>/public`, nunca para a raiz do projeto. Esse foi um bug real do
+   primeiro deploy: com o document root na raiz, o Apache nunca alcança o front controller (`/instalar` e
+   qualquer outra rota devolvem 404 antes de chegar no PHP) e, pior, `storage/` (banco, uploads) e
+   `config.local.php` (chaves de API) ficam potencialmente servíveis por HTTP direto. O `.htaccess` da raiz
+   do repositório (`Require all denied`) é uma rede de segurança para esse caso, mas **não substitui**
+   apontar o document root certo — é defesa em profundidade, não a correção.
+3. **Ative o auto-deploy** (webhook): a cada `git push` na branch escolhida, a Hostinger puxa
+   automaticamente as mudanças. Depois de conectar, confira em **Settings → Webhooks** do repositório no
+   GitHub se um webhook da Hostinger foi realmente criado (`gh api repos/OWNER/REPO/hooks` deve devolver uma
+   lista não vazia); em alguns planos essa integração não cria webhook algum, e o deploy automático nunca
+   dispara — nesse caso use o botão de deploy manual do painel a cada push, ou avalie a alternativa com
+   GitHub Actions abaixo.
+4. **Comando pós-deploy** (se o plano oferecer essa opção no painel de Git): configure
    `php scripts/migrate.php` para aplicar migrações novas a cada deploy sem depender de SSH manual. Se a
    opção não existir, rode manualmente por SSH depois de cada push:
    ```bash
    ssh usuario@servidor "cd /caminho/do/projeto && php scripts/migrate.php"
    ```
-4. **Primeira execução**: como descrito em [`docs/INSTALACAO.md`](INSTALACAO.md), a primeira requisição
+5. **Primeira execução**: como descrito em [`docs/INSTALACAO.md`](INSTALACAO.md), a primeira requisição
    HTTP aplica as migrações e a rota `/instalar` cria o usuário administrador. Depois disso a rota se
    desliga sozinha.
-5. **Persistência entre deploys**: `config.local.php` e `storage/db`, `storage/uploads`, `storage/logs`
+6. **Persistência entre deploys**: `config.local.php` e `storage/db`, `storage/uploads`, `storage/logs`
    ficam fora do controle de versão — um `git pull` não os toca (`git pull` nunca apaga arquivo não
    rastreado). Garanta apenas que `storage/` seja gravável pelo usuário do PHP no servidor e que
    `config.local.php` exista lá (copie manualmente uma vez, via SFTP/SSH, a partir de
    `config.local.php.example`).
-6. **Cron**: cadastre `cron/worker.php` a cada minuto em hPanel → Avançado → Tarefas Cron, como em
+7. **Cron**: cadastre `cron/worker.php` a cada minuto em hPanel → Avançado → Tarefas Cron, como em
    [`docs/INSTALACAO.md`](INSTALACAO.md#worker-cron).
 
 ## Alternativa: GitHub Actions
