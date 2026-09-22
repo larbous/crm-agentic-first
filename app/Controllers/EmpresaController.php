@@ -77,6 +77,8 @@ final class EmpresaController extends CrudController
             'atividades' => Repositorios::atividades()->timeline('empresa_id', $id),
             'propostas'  => Repositorios::propostas()->ultimasPor('empresa_id', $id),
             'contratos'  => Repositorios::contratos()->por('empresa_id', $id),
+            'cobrancas'  => Repositorios::cobrancas()->daEmpresa($id),
+            'custos'     => Repositorios::custos()->daEmpresa($id),
         ];
     }
 

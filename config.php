@@ -29,6 +29,11 @@ $padrao = [
     'gemini' => [
         'api_key' => '', // definir em config.local.php; provedor secundário (failover), opcional
     ],
+    'asaas' => [
+        'api_key' => '', // definir em config.local.php
+        'ambiente' => 'sandbox', // sandbox | producao
+        'webhook_token' => '', // definir em config.local.php; o mesmo valor configurado no painel do Asaas (cabeçalho asaas-access-token)
+    ],
     'caminhos' => [
         'raiz'       => __DIR__,
         'migracoes'  => __DIR__ . '/migrations',

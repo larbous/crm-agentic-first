@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\AgenteRepository;
+use App\Repositories\CobrancaRepository;
 use App\Repositories\ConfiguracaoRepository;
 use App\Repositories\ConversaRepository;
 use App\Repositories\FormularioRepository;
@@ -51,7 +52,23 @@ final class Rotinas
             'followups'           => $this->followups(),
             'clientes_em_risco'   => $this->clientesEmRisco(),
             'chamados_parados'    => $this->chamadosParados(),
+            'cobrancas_vencidas'  => $this->cobrancasVencidas(),
         ];
+    }
+
+    /**
+     * Fallback local (Fase 17): cobrança pendente já vencida sem confirmação do Asaas vira "vencido" mesmo sem o
+     * webhook (que normalmente já teria feito isso pelo evento PAYMENT_OVERDUE).
+     */
+    private function cobrancasVencidas(): int
+    {
+        $n = 0;
+        foreach ((new CobrancaRepository())->pendentesVencidas(hoje(), self::LIMITE) as $c) {
+            if ($this->executor->marcarCobrancaVencida((int) $c['id'])->ok) {
+                $n++;
+            }
+        }
+        return $n;
     }
 
     /** Silêncio (dias) do cliente ativo que dispara o alerta de churn; `churn.dias_sem_interacao` em `configuracoes` sobrescreve, 0 desliga. */

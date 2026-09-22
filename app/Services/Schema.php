@@ -68,6 +68,8 @@ final class Schema
             'metas'         => self::metas(),
             'areas'         => self::nomeSimples('areas', 'Área', 'Áreas', 'f'),
             'chamados'      => self::chamados(),
+            'cobrancas'     => self::cobrancas(),
+            'custos'        => self::custos(),
         ];
     }
 
@@ -126,6 +128,10 @@ final class Schema
             'tipo_meta'       => ['faturamento' => 'Faturamento', 'mrr' => 'MRR', 'novos_clientes' => 'Novos clientes', 'propostas_enviadas' => 'Propostas enviadas', 'negocios_ganhos' => 'Negócios ganhos'],
             'periodo_meta'    => ['mensal' => 'Mensal', 'trimestral' => 'Trimestral', 'anual' => 'Anual'],
             'entidade_anexo'  => ['empresas' => 'Empresa', 'contatos' => 'Contato', 'negocios' => 'Negócio', 'propostas' => 'Proposta', 'contratos' => 'Contrato', 'chamados' => 'Chamado'],
+            'tipo_cobranca'   => ['avulsa' => 'Avulsa', 'recorrente' => 'Recorrente'],
+            'ciclo_cobranca'  => ['mensal' => 'Mensal', 'anual' => 'Anual'],
+            'forma_pagamento_asaas' => ['boleto' => 'Boleto', 'pix' => 'Pix', 'cartao' => 'Cartão de crédito', 'indefinido' => 'Cliente escolhe (link de pagamento)'],
+            'status_cobranca' => ['pendente' => 'Pendente', 'pago' => 'Pago', 'vencido' => 'Vencido', 'cancelado' => 'Cancelado'],
         ][$nome];
     }
 
@@ -194,6 +200,7 @@ final class Schema
             // Controle
             'notas'           => $f('textarea', 'Notas', 'extras', ['l' => 2]),
             'campos_extras'   => $f('extras', 'Campos extras', 'extras', ['l' => 2]),
+            'asaas_customer_id' => $f('texto', 'Cliente no Asaas', 'extras', ['sis' => true]),
         ]];
     }
 
@@ -340,6 +347,47 @@ final class Schema
             'negocio_id'  => $f('fk', 'Negócio', 'vinculos', ['fk' => 'negocios']),
             'contrato_id' => $f('fk', 'Contrato', 'vinculos', ['fk' => 'contratos']),
             'checklist'   => $f('checklist', 'Checklist', 'checklist'),
+        ]];
+    }
+
+    /** Cobrança (Fase 17): ligada ao Asaas (avulsa ou recorrente). Status e dados do Asaas são controlados pelo servidor/webhook. */
+    private static function cobrancas(): array
+    {
+        $f = self::f(...);
+        return ['tabela' => 'cobrancas', 'singular' => 'Cobrança', 'plural' => 'Cobranças', 'genero' => 'f', 'campos' => [
+            'empresa_id'      => $f('fk', 'Empresa', 'dados', ['fk' => 'empresas', 'req' => true]),
+            'negocio_id'      => $f('fk', 'Negócio', 'dados', ['fk' => 'negocios']),
+            'contrato_id'     => $f('fk', 'Contrato', 'dados', ['fk' => 'contratos']),
+            'tipo'            => $f('enum', 'Tipo', 'dados', ['op' => 'tipo_cobranca', 'req' => true]),
+            'descricao'       => $f('texto', 'Descrição', 'dados', ['req' => true, 'max' => 200, 'l' => 2]),
+            'valor'           => $f('money', 'Valor (R$)', 'dados', ['req' => true]),
+            'ciclo'           => $f('enum', 'Ciclo (recorrente)', 'dados', ['op' => 'ciclo_cobranca']),
+            'forma_pagamento' => $f('enum', 'Forma de pagamento', 'dados', ['op' => 'forma_pagamento_asaas', 'req' => true]),
+            'vencimento'      => $f('data', 'Vencimento', 'dados', ['req' => true]),
+            'status'          => $f('enum', 'Status', 'dados', ['op' => 'status_cobranca', 'sis' => true]),
+            'notas'           => $f('textarea', 'Notas', 'dados', ['l' => 2]),
+            'asaas_customer_id' => $f('texto', 'Cliente no Asaas', 'asaas', ['sis' => true]),
+            'asaas_id'        => $f('texto', 'Cobrança/assinatura no Asaas', 'asaas', ['sis' => true]),
+            'asaas_tipo'      => $f('texto', 'Tipo no Asaas', 'asaas', ['sis' => true]),
+            'url_fatura'      => $f('url', 'Link da fatura', 'asaas', ['sis' => true]),
+            'data_pagamento'  => $f('data', 'Data do pagamento', 'asaas', ['sis' => true]),
+            'nfe_status'      => $f('texto', 'Situação da NF-e', 'asaas', ['sis' => true, 'max' => 40]),
+            'nfe_url'         => $f('url', 'Link da NF-e', 'asaas', ['sis' => true]),
+        ]];
+    }
+
+    /** Custo (Fase 17): lançamento manual, vinculado a empresa e/ou negócio, usado no cálculo do DRE por cliente. */
+    private static function custos(): array
+    {
+        $f = self::f(...);
+        return ['tabela' => 'custos', 'singular' => 'Custo', 'plural' => 'Custos', 'genero' => 'm', 'campos' => [
+            'empresa_id' => $f('fk', 'Empresa', 'dados', ['fk' => 'empresas']),
+            'negocio_id' => $f('fk', 'Negócio', 'dados', ['fk' => 'negocios']),
+            'descricao'  => $f('texto', 'Descrição', 'dados', ['req' => true, 'max' => 200, 'l' => 2]),
+            'valor'      => $f('money', 'Valor (R$)', 'dados', ['req' => true]),
+            'data'       => $f('data', 'Data', 'dados', ['req' => true]),
+            'categoria'  => $f('texto', 'Categoria', 'dados', ['max' => 60]),
+            'recorrente' => $f('bool', 'Recorrente (todo mês)', 'dados'),
         ]];
     }
 

@@ -33,6 +33,11 @@ $comercial = [
     ['/pesquisas', 'Pesquisas NPS', 'star'],
     ['/metas', 'Metas', 'target'],
 ];
+$financeiro = [
+    ['/financeiro/cobrancas', 'Cobranças', 'receipt'],
+    ['/financeiro/custos', 'Custos', 'wallet'],
+    ['/financeiro/dre', 'DRE por cliente', 'chart-bar'],
+];
 $ia = [
     ['/agentes', 'Agentes', 'bot'],
     ['/squads', 'Squads', 'workflow'],
@@ -80,6 +85,10 @@ $item = static function (array $n) use ($ativo, $acoesPendentes, $caixaNaoLidas)
             <div role="group" aria-labelledby="nav-comercial">
                 <h3 id="nav-comercial">Comercial</h3>
                 <ul><?php foreach ($comercial as $n) { echo $item($n); } ?></ul>
+            </div>
+            <div role="group" aria-labelledby="nav-financeiro">
+                <h3 id="nav-financeiro">Financeiro</h3>
+                <ul><?php foreach ($financeiro as $n) { echo $item($n); } ?></ul>
             </div>
             <div role="group" aria-labelledby="nav-ia">
                 <h3 id="nav-ia">Inteligência artificial</h3>

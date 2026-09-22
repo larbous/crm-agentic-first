@@ -27,6 +27,7 @@ final class ActionExecutor
     use AcoesFormularios;
     use AcoesPesquisas;
     use AcoesCaixa;
+    use AcoesFinanceiro;
 
     private const PADROES = [
         'empresas' => ['status' => 'lead'],
@@ -816,6 +817,17 @@ final class ActionExecutor
                     $v['conteudo'] = Html::sanitizar($v['conteudo']);
                 }
                 break;
+
+            case 'cobrancas':
+                $extra['status'] = 'pendente';
+                $erros += $this->regrasCicloCobranca($v);
+                break;
+
+            case 'custos':
+                if (empty($v['empresa_id']) && empty($v['negocio_id'])) {
+                    $erros['_'] = 'Vincule o custo a uma empresa ou a um negócio.';
+                }
+                break;
         }
 
         return $erros + $this->nomeUnico($entidade, $v, null);
@@ -895,6 +907,21 @@ final class ActionExecutor
                     $derivados['concluido_em'] = null;
                 }
                 break;
+
+            case 'cobrancas':
+                $erros += $this->regrasCicloCobranca($novos, $atual);
+                if ($atual['asaas_id'] !== null) {
+                    foreach (array_diff(array_keys($novos), ['notas']) as $campo) {
+                        $erros[$campo] = 'Não é possível alterar depois de emitida no Asaas; cancele e crie uma nova cobrança.';
+                    }
+                }
+                break;
+
+            case 'custos':
+                if (empty($novos['empresa_id'] ?? $atual['empresa_id']) && empty($novos['negocio_id'] ?? $atual['negocio_id'])) {
+                    $erros['_'] = 'Vincule o custo a uma empresa ou a um negócio.';
+                }
+                break;
         }
 
         return $erros + $this->nomeUnico($entidade, $novos, (int) $atual['id'], $atual);
@@ -947,6 +974,26 @@ final class ActionExecutor
             }
         }
         return $erros;
+    }
+
+    /**
+     * Recorrente exige ciclo (mensal/anual); avulsa nunca leva ciclo. Só mexe em `ciclo` quando esta operação
+     * realmente muda o tipo ou o próprio ciclo: uma edição que não toca nenhum dos dois (ex.: só as notas) não pode
+     * ganhar um `ciclo => null` de brinde, senão o bloqueio de campos pós-emissão (ver regrasAtualizar) barraria a
+     * edição por engano. @return array<string,string>
+     */
+    private function regrasCicloCobranca(array &$v, ?array $atual = null): array
+    {
+        $tipoNovo = $v['tipo'] ?? null;
+        $tipoEfetivo = $tipoNovo ?? ($atual['tipo'] ?? null);
+
+        if ($tipoEfetivo === 'recorrente' && empty($v['ciclo'] ?? $atual['ciclo'] ?? null)) {
+            return ['ciclo' => 'Informe o ciclo de cobrança (mensal ou anual).'];
+        }
+        if ($tipoEfetivo === 'avulsa' && ($tipoNovo !== null || array_key_exists('ciclo', $v))) {
+            $v['ciclo'] = null;
+        }
+        return [];
     }
 
     /** @return array<string,string> */
@@ -1045,6 +1092,9 @@ final class ActionExecutor
     {
         if ($entidade === 'atividades' && $atual['tipo'] === 'sistema') {
             return 'Atividades de sistema não podem ser arquivadas.';
+        }
+        if ($entidade === 'cobrancas' && $atual['status'] === 'pendente' && $atual['asaas_id'] !== null) {
+            return 'Cancele a cobrança no Asaas antes de arquivar.';
         }
         if ($entidade === 'etapas' && Repositorios::negocios()->contarAtivosNaEtapa((int) $atual['id']) > 0) {
             return 'Há negócios ativos nesta etapa. Mova-os antes de arquivá-la.';
@@ -1154,7 +1204,7 @@ final class ActionExecutor
         if (isset($registro['valor_alvo'], $registro['data_fim'])) {
             return Metas::rotulo($registro);
         }
-        return (string) ($registro['nome_fantasia'] ?? $registro['titulo'] ?? $registro['nome'] ?? $registro['nome_original'] ?? $registro['rotulo'] ?? ('#' . ($registro['id'] ?? '')));
+        return (string) ($registro['nome_fantasia'] ?? $registro['titulo'] ?? $registro['nome'] ?? $registro['nome_original'] ?? $registro['rotulo'] ?? $registro['descricao'] ?? ('#' . ($registro['id'] ?? '')));
     }
 
     private function mensagem(array $schema, array $registro, string $acao): string

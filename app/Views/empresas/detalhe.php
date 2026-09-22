@@ -6,6 +6,8 @@
  * @var list<array> $negocios
  * @var list<array> $propostas
  * @var list<array> $contratos
+ * @var list<array> $cobrancas
+ * @var list<array> $custos
  * @var list<array> $tarefas
  * @var list<array> $atividades
  * @var list<array> $anexos
@@ -57,6 +59,7 @@ $abas = [
     ['rotulo' => 'Contratos', 'contagem' => count($contratos), 'html' => tabela_contratos($contratos)],
     ['rotulo' => 'Tarefas', 'contagem' => count(array_filter($tarefas, 'tarefa_aberta')), 'html' => tarefas_mini($tarefas, 'empresa_id', $id, $voltar)],
     ['rotulo' => 'Chamados', 'contagem' => count($chamadosEmpresa), 'html' => chamados_mini($chamadosEmpresa, $id, $voltar)],
+    ['rotulo' => 'Financeiro', 'contagem' => count($cobrancas) + count($custos), 'html' => financeiro_mini($cobrancas, $custos, $id, $voltar)],
     ['rotulo' => 'Pesquisas NPS', 'html' => pesquisas_empresa($id, $voltar)],
     ['rotulo' => 'Anexos', 'contagem' => count($anexos), 'html' => anexos_painel($anexos, 'empresas', $id, $voltar)],
 ];

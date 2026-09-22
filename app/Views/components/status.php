@@ -55,6 +55,13 @@ function badge_contrato(array $c): string
     return badge(Schema::opcoes('status_contrato')[$c['status']] ?? $c['status'], $variantes[$c['status']] ?? 'secondary');
 }
 
+/** Badge de status da cobrança (Fase 17). */
+function badge_cobranca(string $status): string
+{
+    $variantes = ['pendente' => 'secondary', 'pago' => 'success', 'vencido' => 'warning', 'cancelado' => 'ghost'];
+    return badge(Schema::opcoes('status_cobranca')[$status] ?? $status, $variantes[$status] ?? 'secondary');
+}
+
 /** Fim da vigência com aviso de proximidade ("vence em 12 dias"). */
 function fim_vigencia_html(array $c): string
 {

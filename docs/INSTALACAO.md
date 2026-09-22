@@ -180,3 +180,23 @@ Cada canal é opcional e só liga quando as chaves abaixo existem em `config.loc
 **E-mail**: use os dados de IMAP/SMTP da caixa (no hPanel: E-mails → Configuração de cliente de e-mail). A primeira coleta só marca o ponto de partida (o histórico da caixa não é importado); depois, a cada 2 minutos, entram os e-mails novos de quem já é contato ou empresa. O cron da hospedagem precisa estar rodando `cron/worker.php` a cada minuto.
 
 Para conferir sem esperar o worker: `php cron/worker.php --verbose`. Mensagens recebidas pelo webhook aparecem na hora.
+
+## Financeiro: cobranças pelo Asaas (Fase 17)
+
+Cobranças (avulsas e recorrentes) são criadas no Asaas a partir da tela **Financeiro → Cobranças**; o status (pendente, pago, vencido, cancelado) chega pelo webhook. Sem as chaves abaixo em `config.local.php`, a cobrança fica salva localmente como pendente, sem tentar falar com o Asaas.
+
+```php
+'asaas' => [
+    'api_key'       => '...',      // painel do Asaas → Integrações → Chave de API (use a de sandbox para testar)
+    'ambiente'      => 'sandbox',  // sandbox | producao
+    'webhook_token' => 'invente-um-texto-longo-e-aleatorio', // o mesmo valor vai no painel do Asaas
+],
+```
+
+1. Crie a conta em <https://www.asaas.com> (ou use uma conta sandbox em <https://sandbox.asaas.com> para testar sem dinheiro real) e gere a chave de API em *Integrações → Chave de API*.
+2. Em *Integrações → Webhooks*, cadastre a URL `https://SEU-DOMINIO/webhooks/asaas`, marque ao menos os eventos `PAYMENT_CREATED`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_DELETED` e `PAYMENT_REFUNDED`, e defina um **token de acesso** — o mesmo texto de `asaas.webhook_token`. O site precisa estar em **HTTPS** com endereço público (o Asaas não chama `localhost`).
+3. **NF-e/NFS-e**: emitida pelo Asaas, acoplada à cobrança; a configuração fiscal (regime tributário, código de serviço, município) é feita no painel do Asaas, não no CRM. A partir de 1º/set/2026 o Emissor Nacional de NFS-e passou a valer também para ME/EPP no Simples Nacional — confirme que a conta Asaas já está migrada antes de emitir notas em produção.
+4. **Empresa → Cliente no Asaas**: o cliente é criado na primeira cobrança de cada empresa (campo interno `empresas.asaas_customer_id`); cobranças seguintes da mesma empresa reaproveitam o mesmo cliente.
+5. Sem o webhook chegar (ex.: ambiente ainda sem HTTPS), o worker tem um fallback: cobrança pendente que já passou do vencimento vira "vencido" sozinha, sem esperar o Asaas.
+
+Para conferir sem esperar o Asaas: use o botão "Emitir no Asaas" na página da cobrança para tentar de novo se a emissão falhou, e o Postman/`curl` para simular um webhook (`asaas-access-token: SEU-TOKEN`) contra `/webhooks/asaas` em ambiente de teste.

@@ -35,6 +35,8 @@ final class Repositorios
             'metas'         => new MetaRepository(),
             'areas'         => new SimplesRepository('areas'),
             'chamados'      => new ChamadoRepository(),
+            'cobrancas'     => new CobrancaRepository(),
+            'custos'        => new CustoRepository(),
             default        => throw new InvalidArgumentException("Entidade desconhecida: {$entidade}"),
         };
     }
@@ -55,4 +57,6 @@ final class Repositorios
     public static function contratos(): ContratoRepository { return self::para('contratos'); }
     public static function camposExtras(): CampoExtraRepository { return self::para('campos_extras_def'); }
     public static function metas(): MetaRepository { return self::para('metas'); }
+    public static function cobrancas(): CobrancaRepository { return self::para('cobrancas'); }
+    public static function custos(): CustoRepository { return self::para('custos'); }
 }

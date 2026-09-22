@@ -20,4 +20,9 @@ return [
     'gemini' => [
         'api_key' => '', // chave do Google AI Studio; provedor secundário: assume se a Anthropic estiver instável
     ],
+    'asaas' => [
+        'api_key' => '', // chave da API do Asaas (Configurações > Integrações > API no painel do Asaas)
+        'ambiente' => 'sandbox', // sandbox | producao
+        'webhook_token' => '', // o mesmo valor configurado no webhook do painel do Asaas (cabeçalho asaas-access-token)
+    ],
 ];

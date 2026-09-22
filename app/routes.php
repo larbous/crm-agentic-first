@@ -5,16 +5,20 @@ declare(strict_types=1);
 use App\Controllers\AcaoPendenteController;
 use App\Controllers\AgenteController;
 use App\Controllers\AnexoController;
+use App\Controllers\AsaasWebhookController;
 use App\Controllers\AtividadeController;
 use App\Controllers\AuditoriaController;
 use App\Controllers\AuthController;
 use App\Controllers\BuscaController;
 use App\Controllers\ChatController;
 use App\Controllers\ChamadoController;
+use App\Controllers\CobrancaController;
 use App\Controllers\ConfiguracaoController;
 use App\Controllers\ContatoController;
 use App\Controllers\ContratoController;
 use App\Controllers\CrudController;
+use App\Controllers\CustoController;
+use App\Controllers\DreController;
 use App\Controllers\EmpresaController;
 use App\Controllers\ExecucaoController;
 use App\Controllers\FormularioController;
@@ -55,6 +59,9 @@ return static function (Router $r): void {
     // Webhook da Meta (WhatsApp e Instagram): assinado, sem sessão
     WebhookController::registrar($r);
 
+    // Webhook do Asaas (cobranças): autenticado por token, sem sessão
+    AsaasWebhookController::registrar($r);
+
     // Autenticadas
     $r->grupo('', static function (Router $r): void {
         $r->get('/', [PaginaController::class, 'inicio']);
@@ -87,6 +94,12 @@ return static function (Router $r): void {
 
         // Metas comerciais
         CrudController::registrar($r, '/metas', MetaController::class);
+
+        // Financeiro: cobranças (Asaas), custos e DRE por cliente
+        CrudController::registrar($r, '/financeiro/cobrancas', CobrancaController::class);
+        CobrancaController::registrarExtras($r);
+        CrudController::registrar($r, '/financeiro/custos', CustoController::class);
+        DreController::registrar($r);
 
         // Agentes e squads de IA, ações pendentes de aprovação e execuções
         AgenteController::registrar($r);

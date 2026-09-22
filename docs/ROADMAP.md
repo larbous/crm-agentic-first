@@ -251,3 +251,20 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 
 > **Verificado (2026-09-21):** `tests/ChurnTest.php` (5 casos) cobre o limiar, a interação por contato, a nota que não zera o silêncio, o rearme, lead/arquivado fora, limiar configurável e desligável, o conteúdo do briefing (contrato, valor, negócios, chamados), o chamado parado (atrasado, status concluído, alteração que zera) e o teto por rodada; suíte completa passa. **Não verificado:** as tarefas geradas não foram abertas em navegador, e o briefing com NPS só foi lido no código (sem caso de teste).
 
+---
+
+## Fase 17 — Financeiro: cobranças, custos e DRE por cliente
+
+- [x] Migração `0014`: `empresas.asaas_customer_id`; tabelas `cobrancas`, `custos` e `asaas_webhooks` (idempotência do webhook)
+- [x] `Services/Asaas/Client`: único ponto de chamada à API do Asaas (cliente, cobrança avulsa, assinatura recorrente, cancelamento, mapeamento de status)
+- [x] Cobranças: nova entidade (avulsa/recorrente), criada já tentando emitir no Asaas; cliente Asaas criado na primeira cobrança da empresa e reaproveitado depois
+- [x] Webhook `/webhooks/asaas`: autenticado por token, idempotente (hash do corpo), sincroniza pendente/pago/vencido/cancelado
+- [x] Fallback local no worker: cobrança pendente vencida sem confirmação do Asaas vira "vencido" sozinha
+- [x] Custos: lançamento manual (descrição, valor, data, categoria opcional, recorrente sim/não), vinculado a empresa e/ou negócio
+- [x] DRE por cliente (`/financeiro/dre`): relatório calculado, Receita (cobranças pagas no período) − Custo (lançamentos no período) = Margem, por empresa
+- [x] Telas: Cobranças e Custos (lista/formulário/detalhe via CRUD), aba "Financeiro" na empresa, navegação "Financeiro"
+- [x] `docs/INSTALACAO.md` com o passo a passo (chave da API, webhook, NF-e)
+
+**Pronto quando:** uma cobrança criada para uma empresa aparece no Asaas (ou fica pendente sem travar, se o Asaas não estiver configurado), o webhook atualiza o status sem duplicar processamento, e o DRE de um cliente no período soma certo as cobranças pagas e os custos lançados.
+
+> **Verificado (2026-09-22):** `tests/FinanceiroTest.php` (15 casos) cobre a criação sem Asaas configurado (fica pendente, avisa a falha), a validação de ciclo (recorrente exige, avulsa nunca leva), custos exigindo empresa ou negócio, a emissão avulsa e recorrente com o Asaas simulado (cliente criado uma única vez por empresa e reaproveitado, `billingType`/`cycle` corretos), erro do Asaas na emissão sem travar o registro local, cancelamento (chama o Asaas quando emitida, bloqueia repetir sobre paga/cancelada), o bloqueio de campos após a emissão (só notas editáveis), impedimento de arquivar cobrança pendente já emitida, o webhook (token errado, corpo sem `event`, aplica o status, idempotência por hash do corpo — reenvio não duplica auditoria), o mapeamento de eventos do Asaas, o fallback local de vencimento e a matemática do DRE (soma só o período certo, por empresa); suíte completa (319 testes) passa. Também exercitado por **HTTP real autenticado** (`php -S` com banco descartável): login, criar empresa, criar cobrança pela tela (sem chave do Asaas configurada: fica pendente com aviso, como esperado), aba Financeiro na empresa, lista e detalhe da cobrança, tela de custos, DRE (com e sem movimento), e o webhook recusando sem token (403). **Não verificado:** nenhuma chamada real à API do Asaas (sandbox ou produção) nem um webhook real recebido — não há conta/chave do Asaas disponível nesta sessão; o formato de requisição/resposta segue a documentação pública da API v3. A emissão de NF-e não foi testada (depende da configuração fiscal no painel do Asaas, fora do CRM) e o app não confirma nem verifica a migração da conta Asaas ao Emissor Nacional de NFS-e — isso é responsabilidade externa do operador. As telas não foram abertas num navegador de verdade (só por `curl`).
