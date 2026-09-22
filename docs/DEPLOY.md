@@ -48,15 +48,18 @@ cada push — sem precisar de build, exatamente como este projeto já é pensado
      [token de acesso pessoal](https://github.com/settings/tokens) com escopo `repo` e use como senha (ou
      configure uma deploy key, se a ferramenta oferecer essa opção).
    - Branch: `main` (ou uma branch dedicada, ex. `producao`, se quiser separar do que está em teste).
-   - Diretório de destino: uma pasta **fora** do document root do site (ex. `crm-producao/`, ao lado de
-     `public_html/`, não dentro dela).
-2. **Confira o Document Root do domínio** (hPanel → **Sites → Gerenciar → Document Root**): tem que apontar
-   para `<diretório de destino do Git>/public`, nunca para a raiz do projeto. Esse foi um bug real do
-   primeiro deploy: com o document root na raiz, o Apache nunca alcança o front controller (`/instalar` e
-   qualquer outra rota devolvem 404 antes de chegar no PHP) e, pior, `storage/` (banco, uploads) e
-   `config.local.php` (chaves de API) ficam potencialmente servíveis por HTTP direto. O `.htaccess` da raiz
-   do repositório (`Require all denied`) é uma rede de segurança para esse caso, mas **não substitui**
-   apontar o document root certo — é defesa em profundidade, não a correção.
+   - Diretório de destino: normalmente é o próprio `public_html` (ou a pasta raiz do domínio/subdomínio) —
+     a maioria dos planos de hospedagem compartilhada **não** oferece uma tela para trocar o document root,
+     então o projeto precisa funcionar clonado direto ali. Se o seu plano permitir apontar o document root
+     para uma subpasta (`Sites → Gerenciar → Document Root`), tanto faz apontar para
+     `<diretório de destino>/public` quanto deixar na raiz — os dois funcionam (ver nota abaixo).
+2. **Document root na raiz do site é o caso normal, e funciona sem configuração extra.** O `.htaccess` da
+   raiz do repositório encaminha toda requisição para dentro de `public/` sozinho (`public/.htaccess`
+   decide, a partir daí, se é um arquivo estático ou uma rota do front controller). Isso também fecha, por
+   construção, o acesso HTTP direto a `storage/` (banco, uploads) e `config.local.php`: qualquer URL para
+   eles cai no roteador, que responde 404 por não ter rota — nada fora de `public/` chega a ser servido como
+   arquivo estático pelo Apache. Se o plano *permitir* apontar o document root para `public/` diretamente,
+   pode fazer isso também (fica um pulo de rewrite a menos), mas não é necessário.
 3. **Ative o auto-deploy** (webhook): a cada `git push` na branch escolhida, a Hostinger puxa
    automaticamente as mudanças. Depois de conectar, confira em **Settings → Webhooks** do repositório no
    GitHub se um webhook da Hostinger foi realmente criado (`gh api repos/OWNER/REPO/hooks` deve devolver uma

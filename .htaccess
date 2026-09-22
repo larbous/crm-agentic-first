@@ -1,12 +1,22 @@
-# Proteção extra: o document root do site deve apontar para /public, nunca para a raiz do
-# projeto. Este arquivo é uma rede de segurança para o caso de configuração errada no painel
-# da hospedagem — nega todo acesso HTTP direto a este diretório e suas subpastas
-# (app/, storage/, migrations/, config*.php etc.), que nunca devem ser servidos pela web.
+# Faz o projeto funcionar mesmo quando o document root do host é fixo na raiz do site
+# (caso comum em hospedagem compartilhada, onde não há tela para apontar para /public).
+# Encaminha toda requisição para dentro de public/, que decide sozinho (via public/.htaccess)
+# se é um arquivo estático real ou uma rota do front controller (index.php).
+#
+# Efeito colateral desejado: app/, storage/, migrations/, config*.php e qualquer outro
+# arquivo/pasta fora de public/ nunca são alcançáveis por HTTP direto — uma URL para eles
+# cai no front controller, que responde 404 por não ter rota correspondente.
+#
+# Se o host permitir apontar o document root direto para /public, este arquivo fica fora da
+# árvore servida e simplesmente não é lido pelo Apache — nenhum dos dois modos exige o outro.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-<IfModule mod_authz_core.c>
-    Require all denied
-</IfModule>
-<IfModule !mod_authz_core.c>
-    Order deny,allow
-    Deny from all
+    # Evita reprocessar o que já foi encaminhado para public/: sem esta guarda, o mod_rewrite
+    # reavalia este arquivo para a URL já reescrita e duplicaria o caminho (public/public/...).
+    RewriteCond %{REQUEST_URI} ^/public/ [OR]
+    RewriteCond %{REQUEST_URI} ^/public$
+    RewriteRule ^ - [L]
+
+    RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>

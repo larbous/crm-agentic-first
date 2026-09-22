@@ -136,13 +136,22 @@ Agentes e squads disparados por evento ou agenda, squads executados pelo operado
 
 ## Hospedagem compartilhada
 
-Aponte o document root para `/public`. `storage/`, `app/`, `migrations/`, `cron/` e `config*.php` ficam fora dele. `storage/` precisa ser gravável pelo usuário do PHP e do cron.
+A maioria dos planos de hospedagem compartilhada **não** tem uma tela para trocar o document root — ele vem
+fixo na raiz da conta (`public_html`) ou na pasta do subdomínio. O projeto já está preparado para isso: o
+`.htaccess` da raiz do repositório encaminha toda requisição para dentro de `public/` sozinho, e
+`public/.htaccess` decide a partir daí se é um arquivo estático real ou uma rota do front controller
+(`index.php`). Copie o projeto inteiro (não só o conteúdo de `public/`) para a pasta que o site serve. Se o
+seu plano *permitir* apontar o document root direto para `/public` (`Sites → Gerenciar → Document Root`),
+também funciona — os dois modos são equivalentes, nenhum é obrigatório. `storage/` precisa ser gravável pelo
+usuário do PHP e do cron nos dois casos.
 
-Em servidor Apache/LiteSpeed (caso comum de hospedagem compartilhada, inclusive Hostinger), `public/.htaccess`
-já vem no repositório e redireciona qualquer rota para `index.php` (o front controller). Se alguma rota der
-404 antes de chegar no PHP (ex.: `/instalar`), confira se o `mod_rewrite` está ativo e se o `.htaccess` foi
-mesmo copiado (alguns clientes de FTP escondem arquivos que começam com ponto por padrão). Em Nginx não há
-`.htaccess`; use algo equivalente a `try_files $uri $uri/ /index.php?$query_string;` na configuração do site.
+Em servidor Apache/LiteSpeed (caso comum de hospedagem compartilhada, inclusive Hostinger), esses dois
+arquivos `.htaccess` já vêm no repositório. Se alguma rota der 404 antes de chegar no PHP (ex.: `/instalar`),
+confira se o `mod_rewrite` está ativo e se os `.htaccess` foram mesmo copiados (alguns clientes de FTP e
+algumas ferramentas de deploy escondem ou ignoram por padrão arquivos que começam com ponto — pode ser
+preciso ativar "mostrar arquivos ocultos" ou copiar manualmente). Em Nginx não há `.htaccess`; use algo
+equivalente a `try_files $uri $uri/ /public/index.php?$query_string;` (servindo a partir da raiz) ou aponte o
+`root` direto para `/public` com `try_files $uri $uri/ /index.php?$query_string;`.
 
 ## Links públicos e banco de testes
 
