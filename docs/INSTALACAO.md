@@ -138,6 +138,12 @@ Agentes e squads disparados por evento ou agenda, squads executados pelo operado
 
 Aponte o document root para `/public`. `storage/`, `app/`, `migrations/`, `cron/` e `config*.php` ficam fora dele. `storage/` precisa ser gravável pelo usuário do PHP e do cron.
 
+Em servidor Apache/LiteSpeed (caso comum de hospedagem compartilhada, inclusive Hostinger), `public/.htaccess`
+já vem no repositório e redireciona qualquer rota para `index.php` (o front controller). Se alguma rota der
+404 antes de chegar no PHP (ex.: `/instalar`), confira se o `mod_rewrite` está ativo e se o `.htaccess` foi
+mesmo copiado (alguns clientes de FTP escondem arquivos que começam com ponto por padrão). Em Nginx não há
+`.htaccess`; use algo equivalente a `try_files $uri $uri/ /index.php?$query_string;` na configuração do site.
+
 ## Links públicos e banco de testes
 
 - `app.url_publica` (em `config.local.php`) define a URL absoluta usada nos links de proposta/contrato copiados na tela (ex.: `https://crm.larbous.com.br`). Vazio = host da requisição.
