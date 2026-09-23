@@ -12,6 +12,16 @@
 
 ---
 
+## Capturas de tela
+
+| Dashboard + chat | Kanban de negócios | Chamados por área |
+|---|---|---|
+| [![Dashboard com o chat de comandos](docs/capturas/dashboard.png)](docs/capturas/dashboard.png) | [![Kanban de negócios](docs/capturas/kanban.png)](docs/capturas/kanban.png) | [![Lista de chamados por área](docs/capturas/chamados.png)](docs/capturas/chamados.png) |
+
+*(Dados de exemplo fictícios, gerados só para esta captura.)*
+
+---
+
 ## O que é isso
 
 CRM Lárbous é um CRM completo — empresas, contatos, negócios, kanban, propostas, contratos, tarefas, cobranças — nascido dentro de uma agência web de verdade, para um único operador rodar a empresa inteira sem precisar contratar um time de vendas para alimentar planilhas.
