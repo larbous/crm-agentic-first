@@ -282,6 +282,62 @@ teste('webhook do Asaas: aplica o status e é idempotente (reenvio do mesmo corp
     }
 });
 
+teste('assinatura: virada de ciclo traz o vencimento novo e a mensalidade em dia não vira "vencido"', function () {
+    bancoComSeed();
+    $empresaId = novaEmpresaFinanceiro();
+    $x = new ActionExecutor();
+    comAsaas(function (array $req) {
+        return ['status' => 200, 'corpo' => json_encode([
+            'id' => $req['caminho'] === '/customers' ? 'cus_r' : 'sub_r',
+            'invoiceUrl' => 'https://sandbox.asaas.com/i/ciclo1',
+        ]), 'erro' => null];
+    }, function () use ($x, $empresaId, &$id) {
+        // Mensalidade cujo primeiro ciclo já venceu (e foi pago); o Asaas abre o ciclo seguinte adiante.
+        $id = (int) $x->criarCobranca([
+            'empresa_id' => $empresaId, 'tipo' => 'recorrente', 'ciclo' => 'mensal', 'descricao' => 'Mensalidade',
+            'valor' => '350,00', 'forma_pagamento' => 'pix', 'vencimento' => '05/01/2020',
+        ], 'humano')->id;
+    });
+    $ver = static fn (): array => Repositorios::cobrancas()->encontrar($id);
+    igual('sub_r', $ver()['asaas_id']);
+
+    // Ciclo 1 pago: o pagamento do ciclo é reencontrado pela assinatura (payment.subscription).
+    $x->processarEventoAsaas('PAYMENT_RECEIVED', ['id' => 'pay_c1', 'subscription' => 'sub_r', 'dueDate' => '2020-01-05', 'paymentDate' => '2020-01-05']);
+    igual('pago', $ver()['status']);
+
+    // Ciclo 2 aberto pelo Asaas, vencendo no futuro: o vencimento da linha precisa acompanhar.
+    $futuro = date('Y-m-d', strtotime(hoje() . ' +20 days'));
+    $x->processarEventoAsaas('PAYMENT_CREATED', ['id' => 'pay_c2', 'subscription' => 'sub_r', 'dueDate' => $futuro, 'invoiceUrl' => 'https://sandbox.asaas.com/i/ciclo2']);
+    $c = $ver();
+    igual('pendente', $c['status']);
+    igual($futuro, $c['vencimento']);
+    igual('https://sandbox.asaas.com/i/ciclo2', $c['url_fatura']);
+
+    // O fallback do worker não pode marcar vencida uma mensalidade em dia.
+    igual([], (new CobrancaRepository())->pendentesVencidas(hoje()));
+
+    // Evento atrasado de um ciclo anterior não puxa a data de volta (puxaria a linha para "vencido" de novo).
+    $x->processarEventoAsaas('PAYMENT_UPDATED', ['id' => 'pay_c1', 'subscription' => 'sub_r', 'dueDate' => '2020-01-05']);
+    igual($futuro, $ver()['vencimento']);
+});
+
+teste('cobrança avulsa: vencimento adiado no painel do Asaas chega pelo webhook', function () {
+    bancoComSeed();
+    $empresaId = novaEmpresaFinanceiro();
+    $x = new ActionExecutor();
+    comAsaas(function (array $req) {
+        return ['status' => 200, 'corpo' => json_encode(['id' => $req['caminho'] === '/customers' ? 'cus_1' : 'pay_1']), 'erro' => null];
+    }, function () use ($x, $empresaId, &$id) {
+        $id = (int) $x->criarCobranca([
+            'empresa_id' => $empresaId, 'tipo' => 'avulsa', 'descricao' => 'Projeto', 'valor' => '100,00',
+            'forma_pagamento' => 'boleto', 'vencimento' => '10/10/2026',
+        ], 'humano')->id;
+    });
+    // Numa avulsa a linha é o próprio pagamento: espelha a data que vier, inclusive para trás.
+    $x->processarEventoAsaas('PAYMENT_UPDATED', ['id' => 'pay_1', 'dueDate' => '2026-09-30']);
+    igual('2026-09-30', Repositorios::cobrancas()->encontrar($id)['vencimento']);
+});
+
 teste('webhook do Asaas: evento sem cobrança correspondente é ignorado sem erro', function () {
     bancoComSeed();
     $r = (new ActionExecutor())->processarEventoAsaas('PAYMENT_RECEIVED', ['id' => 'pay_desconhecido']);

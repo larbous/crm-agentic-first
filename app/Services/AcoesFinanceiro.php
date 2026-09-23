@@ -132,11 +132,12 @@ trait AcoesFinanceiro
 
         $novoStatus = AsaasClient::mapearStatus($evento);
         $mudaFatura = !empty($payment['invoiceUrl']) && $payment['invoiceUrl'] !== $cobranca['url_fatura'];
-        if (($novoStatus === null || $novoStatus === $cobranca['status']) && !$mudaFatura) {
+        $novoVencimento = self::vencimentoDoEvento($cobranca, $payment);
+        if (($novoStatus === null || $novoStatus === $cobranca['status']) && !$mudaFatura && $novoVencimento === null) {
             return Resultado::sucesso((int) $cobranca['id'], 'Nada a atualizar.');
         }
 
-        return $this->transacao(function () use ($repo, $cobranca, $novoStatus, $payment): Resultado {
+        return $this->transacao(function () use ($repo, $cobranca, $novoStatus, $novoVencimento, $payment): Resultado {
             $depois = [];
             if ($novoStatus !== null && $novoStatus !== $cobranca['status']) {
                 $depois['status'] = $novoStatus;
@@ -147,12 +148,32 @@ trait AcoesFinanceiro
             if (!empty($payment['invoiceUrl']) && $payment['invoiceUrl'] !== $cobranca['url_fatura']) {
                 $depois['url_fatura'] = (string) $payment['invoiceUrl'];
             }
+            if ($novoVencimento !== null) {
+                $depois['vencimento'] = $novoVencimento;
+            }
             $id = (int) $cobranca['id'];
             $antes = array_intersect_key($cobranca, $depois);
             $repo->atualizar($id, $depois + ['atualizado_em' => agora()]);
             $logId = Audit::registrar('sistema', 'cobrancas', $id, 'status_asaas', $antes, $depois);
             return Resultado::sucesso($id, 'Status atualizado pelo Asaas.', $repo->encontrar($id), $logId);
         });
+    }
+
+    /**
+     * Vencimento a gravar a partir do evento, ou null se não muda. Numa assinatura o Asaas abre um pagamento por
+     * ciclo e a linha do CRM acompanha o ciclo mais recente: sem isso o vencimento ficava congelado no primeiro
+     * ciclo e o fallback do worker marcava "vencido" toda mensalidade em dia assim que o ciclo seguinte abria.
+     * Evento atrasado de um ciclo anterior não puxa a data para trás; numa avulsa a linha é o próprio pagamento,
+     * então espelha o que vier (inclusive vencimento adiantado no painel do Asaas).
+     */
+    private static function vencimentoDoEvento(array $cobranca, array $payment): ?string
+    {
+        $vencimento = substr(trim((string) ($payment['dueDate'] ?? '')), 0, 10);
+        if ($vencimento === '' || $vencimento === (string) $cobranca['vencimento']) {
+            return null;
+        }
+        $cicloAntigo = $cobranca['asaas_tipo'] === 'subscription' && $vencimento < (string) $cobranca['vencimento'];
+        return $cicloAntigo ? null : $vencimento;
     }
 
     /** Fallback local (rotina do worker): cobrança pendente já vencida sem confirmação do Asaas (webhook perdido) vira "vencido". */
