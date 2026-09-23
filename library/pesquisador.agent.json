@@ -4,7 +4,7 @@
   "descricao": "Levanta presença digital e dados públicos de uma empresa",
   "versao": 1,
   "modelo": "claude-haiku-4-5-20251001",
-  "max_tokens": 1500,
+  "max_tokens": 3000,
   "web_search": true,
   "entrada": "empresas",
   "contexto": ["nome_fantasia", "razao_social", "site", "instagram", "cidade", "uf", "segmento", "plataforma_site", "observacoes_digitais"],
