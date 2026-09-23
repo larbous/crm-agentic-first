@@ -25,6 +25,12 @@ if (!in_array($r['status'], ['cancelado', 'pago'], true)) {
         . botao('Cancelar cobrança', ['tipo' => 'submit', 'variante' => 'ghost', 'icone' => 'x']) . '</form>';
 }
 
+// Falha da última tentativa de emissão: fica na tela até emitir com sucesso (o toast some em segundos).
+$avisoAsaas = '';
+if ($r['asaas_id'] === null && trim((string) ($r['asaas_erro'] ?? '')) !== '') {
+    $avisoAsaas = '<div class="mb-4">' . alerta('Não foi possível emitir no Asaas', (string) $r['asaas_erro'], 'destructive') . '</div>';
+}
+
 $hist = '';
 $rotulos = ['criar' => 'Criada', 'atualizar' => 'Editada', 'emitir' => 'Emitida no Asaas', 'cancelar' => 'Cancelada', 'status_asaas' => 'Status atualizado pelo Asaas', 'arquivar' => 'Arquivada', 'desfazer' => 'Ação desfeita'];
 foreach ($historico as $h) {
@@ -47,6 +53,8 @@ foreach ($historico as $h) {
         <?= botao_arquivar(url("/financeiro/cobrancas/{$id}/arquivar"), 'Arquivar esta cobrança? Você poderá desfazer pela Auditoria.') ?>
     </div>
 </div>
+
+<?= $avisoAsaas ?>
 
 <div class="grid gap-4 lg:grid-cols-3">
     <div class="grid content-start gap-4">

@@ -373,6 +373,7 @@ final class Schema
             'data_pagamento'  => $f('data', 'Data do pagamento', 'asaas', ['sis' => true]),
             'nfe_status'      => $f('texto', 'Situação da NF-e', 'asaas', ['sis' => true, 'max' => 40]),
             'nfe_url'         => $f('url', 'Link da NF-e', 'asaas', ['sis' => true]),
+            'asaas_erro'      => $f('texto', 'Última falha na emissão', 'asaas', ['sis' => true]),
         ]];
     }
 

@@ -148,6 +148,42 @@ teste('cobrança: erro do Asaas na emissão fica na mensagem, sem travar o regis
     });
 });
 
+teste('cobrança: o motivo da falha de emissão fica guardado na cobrança e some quando a emissão dá certo', function () {
+    bancoComSeed();
+    $empresaId = novaEmpresaFinanceiro();
+    $executor = new ActionExecutor();
+
+    // Sem o Asaas configurado: o motivo fica no registro (a tela mostra até emitir).
+    $r = $executor->criarCobranca([
+        'empresa_id' => $empresaId, 'tipo' => 'avulsa', 'descricao' => 'Tentativa sem chave',
+        'valor' => '10,00', 'forma_pagamento' => 'boleto', 'vencimento' => '10/10/2026',
+    ], 'humano');
+    $id = (int) $r->id;
+    contem('asaas.api_key', (string) Repositorios::cobrancas()->encontrar($id)['asaas_erro']);
+
+    // Asaas recusa: guarda a mensagem devolvida pela API.
+    comAsaas(function (array $req) {
+        if ($req['caminho'] === '/customers') {
+            return ['status' => 200, 'corpo' => json_encode(['id' => 'cus_1']), 'erro' => null];
+        }
+        return ['status' => 400, 'corpo' => json_encode(['errors' => [['description' => 'Valor inválido']]]), 'erro' => null];
+    }, function () use ($executor, $id) {
+        verdadeiro(!$executor->emitirCobranca($id, 'humano')->ok);
+        contem('Valor inválido', (string) Repositorios::cobrancas()->encontrar($id)['asaas_erro']);
+    });
+
+    // Emissão bem-sucedida limpa o motivo.
+    comAsaas(function (array $req) {
+        $id = $req['caminho'] === '/customers' ? 'cus_1' : 'pay_1';
+        return ['status' => 200, 'corpo' => json_encode(['id' => $id, 'invoiceUrl' => 'https://sandbox.asaas.com/i/pay_1']), 'erro' => null];
+    }, function () use ($executor, $id) {
+        verdadeiro($executor->emitirCobranca($id, 'humano')->ok);
+        $c = Repositorios::cobrancas()->encontrar($id);
+        igual(null, $c['asaas_erro']);
+        igual('pay_1', $c['asaas_id']);
+    });
+});
+
 teste('cobrança: cancelar chama o Asaas quando já emitida e bloqueia repetir sobre paga/cancelada', function () {
     bancoComSeed();
     $empresaId = novaEmpresaFinanceiro();

@@ -41,19 +41,19 @@ trait AcoesFinanceiro
             return Resultado::erroGeral('Esta cobrança já foi emitida no Asaas.');
         }
         if (!AsaasClient::configurado()) {
-            return Resultado::erroGeral('Configure a chave da API do Asaas em config.local.php.');
+            return $this->falhaNaEmissao($id, 'Asaas não configurado: defina asaas.api_key em config.local.php.');
         }
         $empresas = Repositorios::empresas();
         $empresa = $empresas->encontrar((int) $cobranca['empresa_id']);
         if ($empresa === null) {
-            return Resultado::erroGeral('Empresa não encontrada.');
+            return $this->falhaNaEmissao($id, 'Empresa não encontrada.');
         }
 
         $clienteId = $empresa['asaas_customer_id'];
         if ($clienteId === null) {
             $cliente = AsaasClient::obterOuCriarCliente($empresa);
             if (!$cliente['ok']) {
-                return Resultado::erroGeral('Não foi possível criar o cliente no Asaas: ' . $cliente['erro']);
+                return $this->falhaNaEmissao($id, 'Não foi possível criar o cliente no Asaas: ' . $cliente['erro']);
             }
             $clienteId = $cliente['id'];
             // Cache do id de integração: não é uma mudança de negócio da empresa, então não gera entrada própria de auditoria.
@@ -64,7 +64,7 @@ trait AcoesFinanceiro
             ? AsaasClient::criarAssinatura($clienteId, $cobranca)
             : AsaasClient::criarCobranca($clienteId, $cobranca);
         if (!$envio['ok']) {
-            return Resultado::erroGeral('Não foi possível emitir a cobrança no Asaas: ' . $envio['erro']);
+            return $this->falhaNaEmissao($id, 'Não foi possível emitir a cobrança no Asaas: ' . $envio['erro']);
         }
 
         return $this->transacao(function () use ($repo, $id, $cobranca, $clienteId, $envio, $origem): Resultado {
@@ -73,10 +73,21 @@ trait AcoesFinanceiro
                 'url_fatura' => $envio['url_fatura'], 'status' => 'pendente',
             ];
             $antes = array_intersect_key($cobranca, $depois);
-            $repo->atualizar($id, $depois + ['atualizado_em' => agora()]);
+            // asaas_erro fica fora do diff de auditoria: é diagnóstico da integração, não mudança de negócio.
+            $repo->atualizar($id, $depois + ['asaas_erro' => null, 'atualizado_em' => agora()]);
             $logId = Audit::registrar($origem, 'cobrancas', $id, 'emitir', $antes, $depois);
             return Resultado::sucesso($id, 'Cobrança emitida no Asaas.', $repo->encontrar($id), $logId);
         });
+    }
+
+    /**
+     * Guarda na cobrança o motivo da falha de emissão e devolve o erro. O motivo fica visível na tela da cobrança
+     * até a emissão dar certo — sem isso, a única pista era um toast de 5 s e parecia que o botão não fazia nada.
+     */
+    private function falhaNaEmissao(int $id, string $mensagem): Resultado
+    {
+        Repositorios::cobrancas()->atualizar($id, ['asaas_erro' => $mensagem, 'atualizado_em' => agora()]);
+        return Resultado::erroGeral($mensagem);
     }
 
     /** Cancela a cobrança/assinatura no Asaas (se já emitida) e localmente. */
