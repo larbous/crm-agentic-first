@@ -11,6 +11,9 @@ config.local.php
 /storage/cacert.pem
 !/storage/**/.gitkeep
 
+# Dumps de migração (dados de cliente, nunca versionar)
+/storage/*.sql
+
 # Executável do Tailwind (baixar conforme docs/INSTALACAO.md)
 /tailwindcss
 /tailwindcss.exe
