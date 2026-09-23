@@ -13,6 +13,7 @@ use App\Services\AI\AgenteDefinicao;
 use App\Services\AI\AgentRunner;
 use App\Services\AI\Client;
 use App\Services\AI\ContextBuilder;
+use App\Services\AI\ProvedorAnthropic;
 use App\Services\ChatService;
 
 /** Definição válida de agente para os testes; $mudar sobrescreve chaves. */
@@ -459,6 +460,66 @@ teste('runner: a requisição leva o prompt do agente + contrato, só o contexto
     iaResponde(['acoes' => [], 'resumo' => 'x']);
     (new AgentRunner())->executar($sem, $empresa);
     verdadeiro(!isset($GLOBALS['__ia_requisicoes'][0]['corpo']['tools']));
+});
+
+teste('runner: web_search leva junto a leitura de página (web_fetch), na versão certa para cada modelo', function () {
+    bancoComSeed();
+    $empresa = empresaDeTeste();
+
+    // Haiku não tem as ferramentas com filtragem dinâmica: versões básicas.
+    $haiku = agenteNoBanco(['web_search' => true]);
+    iaResponde(['acoes' => [], 'resumo' => 'x']);
+    (new AgentRunner())->executar($haiku, $empresa);
+    $tools = $GLOBALS['__ia_requisicoes'][0]['corpo']['tools'];
+    igual(['web_search', 'web_fetch'], array_column($tools, 'name'), 'busca e leitura de página');
+    igual(['web_search_20250305', 'web_fetch_20250910'], array_column($tools, 'type'));
+    igual(ProvedorAnthropic::MAX_USOS_WEB, $tools[1]['max_uses']);
+
+    // Sonnet 5 usa as versões com filtragem dinâmica.
+    $sonnet = agenteNoBanco(['slug' => 'pesq-sonnet', 'web_search' => true, 'modelo' => 'claude-sonnet-5']);
+    iaResponde(['acoes' => [], 'resumo' => 'x']);
+    (new AgentRunner())->executar($sonnet, $empresa);
+    igual(
+        ['web_search_20260209', 'web_fetch_20260209'],
+        array_column($GLOBALS['__ia_requisicoes'][0]['corpo']['tools'], 'type'),
+    );
+});
+
+teste('runner: turno pausado no meio das buscas é retomado e o texto das partes é somado', function () {
+    bancoComSeed();
+    $empresa = empresaDeTeste();
+    $agente = agenteNoBanco(['web_search' => true]);
+
+    // 1ª resposta: pausa no meio do uso das ferramentas. 2ª: conclui com o JSON.
+    $GLOBALS['__ia_requisicoes'] = [];
+    $respostas = [
+        ['content' => [['type' => 'server_tool_use', 'id' => 'su_1', 'name' => 'web_fetch', 'input' => []]],
+            'usage' => ['input_tokens' => 100, 'output_tokens' => 10], 'stop_reason' => 'pause_turn'],
+        ['content' => [['type' => 'text', 'text' => json_encode(['acoes' => [], 'confianca' => 0.9, 'resumo' => 'achei'])]],
+            'usage' => ['input_tokens' => 200, 'output_tokens' => 20], 'stop_reason' => 'end_turn'],
+    ];
+    Client::definirTransporte(static function (array $req) use (&$respostas): array {
+        $GLOBALS['__ia_requisicoes'][] = $req;
+        return ['status' => 200, 'corpo' => json_encode(array_shift($respostas)), 'erro' => null];
+    });
+
+    $r = (new AgentRunner())->executar($agente, $empresa);
+    verdadeiro($r['ok'], 'a execução conclui apesar da pausa');
+    igual('achei', $r['resumo']);
+    igual(2, count($GLOBALS['__ia_requisicoes']), 'o turno foi retomado com uma segunda requisição');
+
+    // A retomada reenvia a mesma mensagem do usuário com a resposta parcial do modelo, sem "continue".
+    $segunda = $GLOBALS['__ia_requisicoes'][1]['corpo']['messages'];
+    igual(2, count($segunda));
+    igual('user', $segunda[0]['role']);
+    igual($GLOBALS['__ia_requisicoes'][0]['corpo']['messages'][0]['content'], $segunda[0]['content']);
+    igual('assistant', $segunda[1]['role']);
+    igual('server_tool_use', $segunda[1]['content'][0]['type']);
+
+    // Tokens das duas partes somados na mesma linha de execuções.
+    $execucao = (new ExecucaoRepository())->encontrar($r['execucao_id']);
+    igual(300, (int) $execucao['tokens_entrada']);
+    igual(30, (int) $execucao['tokens_saida']);
 });
 
 // ---- Chat ------------------------------------------------------------------------------------

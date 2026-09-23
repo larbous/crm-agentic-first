@@ -58,7 +58,10 @@ final class AgentRunner
         if (!isset($meta['squad_execucao_id'])) {
             Guardrails::verificarLimite('agente', $agente, isset($meta['execucao_id']) ? (int) $meta['execucao_id'] : null);
         }
-        @set_time_limit(180);
+        // Com busca na web o turno pode encadear várias buscas e leituras de página (e ainda retomar depois de um
+        // `pause_turn`), então o orçamento é maior; o limite do PHP cobre também a nova tentativa em caso de 5xx.
+        $timeout = $def['web_search'] ? 150 : 90;
+        @set_time_limit($timeout * 2 + 60);
 
         $resposta = $this->client->chamar(
             (string) $def['modelo'],
@@ -66,7 +69,7 @@ final class AgentRunner
             $this->contexto->paraAgente($def, $entidade, $registroId, $entrada),
             ['agente_id' => (int) $agente['id'], 'entidade' => $entidade, 'registro_id' => $registroId, 'simulacao' => $simulacao ? 1 : 0] + $meta,
             (int) $def['max_tokens'],
-            ['web_search' => (bool) $def['web_search'], 'timeout' => $def['web_search'] ? 120 : 90, 'temperatura' => null],
+            ['web_search' => (bool) $def['web_search'], 'timeout' => $timeout, 'temperatura' => null],
         );
 
         $resultado = [
@@ -79,7 +82,7 @@ final class AgentRunner
         if (!is_array($saida) || !is_array($acoes) || ($acoes !== [] && !array_is_list($acoes))) {
             $motivo = $resposta->parada === 'max_tokens'
                 ? 'A resposta foi cortada por falta de tokens. Aumente "max_tokens" do agente.'
-                : ($resposta->parada === 'pause_turn' ? 'A IA pausou a resposta (busca na web demorou demais). Tente novamente.' : 'A resposta do agente não é um JSON válido no formato esperado.');
+                : ($resposta->parada === 'pause_turn' ? 'A pesquisa na web ficou longa demais e não terminou a tempo. Tente novamente ou preencha o site da empresa antes de rodar o agente.' : 'A resposta do agente não é um JSON válido no formato esperado.');
             $this->execucoes->atualizar($resposta->execucaoId, ['status' => 'erro', 'erro' => $motivo]);
             return ['ok' => false, 'erro' => $motivo] + $resultado;
         }

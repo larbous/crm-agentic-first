@@ -82,7 +82,7 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 - [x] Migração: `agentes`, `acoes_pendentes` (e `agentes_versoes`, `execucoes.simulacao`)
 - [x] `AI/ContextBuilder` (campos de `contexto` + `contexto_relacionado`)
 - [x] `AI/AgentRunner`: execução, validação de `acoes_permitidas` e `campos_gravaveis`, aprovação, saída `texto` → nota
-- [x] Suporte a `web_search` na chamada da API quando habilitado no agente
+- [x] Suporte a `web_search` na chamada da API quando habilitado no agente (desde 23/09/2026 a chave liga também a leitura de página `web_fetch`, com retomada de `pause_turn` — ver DECISOES.md)
 - [x] Tela Agentes: lista, editor JSON com validação, Testar (simulação), importar/exportar, versões
 - [x] Tela Ações pendentes com diff e aprovação em lote
 - [x] Botões de agentes no detalhe dos registros; `@slug` no chat
