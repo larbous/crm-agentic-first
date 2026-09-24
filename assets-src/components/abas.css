@@ -1,0 +1,31 @@
+/* Abas (Basecoat .tabs): a lista de abas rola horizontalmente em vez de estourar o card. */
+@layer components {
+  .tabs {
+    @apply min-w-0;
+  }
+
+  .tabs > [role='tablist'] {
+    @apply w-full max-w-full min-w-0 flex-nowrap justify-start overflow-x-auto overscroll-x-contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  .tabs > [role='tablist']::-webkit-scrollbar {
+    height: var(--scrollbar-sm-width);
+  }
+
+  .tabs > [role='tablist']::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  .tabs > [role='tablist']::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: var(--scrollbar-radius);
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .tabs > [role='tablist'] > [role='tab'] {
+    @apply flex-none;
+  }
+}
