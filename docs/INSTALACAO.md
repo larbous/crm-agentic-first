@@ -227,3 +227,15 @@ Cobranças (avulsas e recorrentes) são criadas no Asaas a partir da tela **Fina
 5. Sem o webhook chegar (ex.: ambiente ainda sem HTTPS), o worker tem um fallback: cobrança pendente que já passou do vencimento vira "vencido" sozinha, sem esperar o Asaas.
 
 Para conferir sem esperar o Asaas: use o botão "Emitir no Asaas" na página da cobrança para tentar de novo se a emissão falhou, e o Postman/`curl` para simular um webhook (`asaas-access-token: SEU-TOKEN`) contra `/webhooks/asaas` em ambiente de teste.
+
+## Integração com o Opensquad
+
+Os squads do projeto Opensquad da agência (prospecção, diagnóstico, onboarding) registram leads, etapas, notas e tarefas no CRM por `POST /api/integracao/opensquad` (SPEC §13). Para ligar:
+
+```php
+'integracao' => [
+    'opensquad_token' => 'um-texto-longo-e-aleatorio', // gere com: php -r "echo bin2hex(random_bytes(32));"
+],
+```
+
+O mesmo token vai em `integracoes/crm/.env` do projeto Opensquad (`CRM_URL` + `CRM_OPENSQUAD_TOKEN`); teste de lá com `node integracoes/crm/crm-sync.js --ping`. Sem o token, a rota responde 403 ("integração desativada"). Os nomes de etapa que os squads usam precisam existir no pipeline padrão: **Novo lead**, **Abordado**, **Qualificado** (mais as de ganho e perda). A migração `0016_integracao.sql` cria a tabela de idempotência: numa instalação que já está rodando, rode `php scripts/migrate.php` ao atualizar (o instalador por cópia só aplica migrações na primeira instalação). Sem ela, todo envio falha com erro interno.

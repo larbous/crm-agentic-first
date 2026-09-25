@@ -127,6 +127,26 @@ final class NegocioRepository extends BaseRepository
         return $st->fetchAll();
     }
 
+    /** Negócio mais recente da empresa com um destes status (aberto, pausado, ganho, perdido), ou null. */
+    public function ultimoDaEmpresa(int $empresaId, array $status): ?array
+    {
+        if ($status === []) {
+            return null;
+        }
+        $marcas = [];
+        $params = ['e' => $empresaId];
+        foreach (array_values($status) as $i => $s) {
+            $marcas[] = ":s{$i}";
+            $params["s{$i}"] = (string) $s;
+        }
+        $st = $this->pdo()->prepare(
+            $this->selectBase() . ' WHERE a.empresa_id = :e AND a.arquivado_em IS NULL AND a.status IN (' . implode(', ', $marcas) . ')
+             ORDER BY a.criado_em DESC, a.id DESC LIMIT 1'
+        );
+        $st->execute($params);
+        return $st->fetch() ?: null;
+    }
+
     /** Negócios em que o contato é principal, decisor ou está vinculado. */
     public function porContato(int $contatoId): array
     {

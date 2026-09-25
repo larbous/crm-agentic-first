@@ -30,6 +30,7 @@ final class ActionExecutor
     use AcoesPesquisas;
     use AcoesCaixa;
     use AcoesFinanceiro;
+    use AcoesIntegracao;
 
     private const PADROES = [
         'empresas' => ['status' => 'lead'],

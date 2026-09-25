@@ -40,6 +40,29 @@ final class EtapaRepository extends BaseRepository
         return null;
     }
 
+    /** Etapa ativa do pipeline com este nome (sem acento/caixa), ou null. */
+    public function porNome(int $pipelineId, string $nome): ?array
+    {
+        $alvo = normalizar_busca(trim($nome));
+        foreach ($this->doPipeline($pipelineId) as $e) {
+            if (normalizar_busca($e['nome']) === $alvo) {
+                return $e;
+            }
+        }
+        return null;
+    }
+
+    /** Primeira etapa do tipo (ganho ou perdido) no pipeline, ou null. */
+    public function primeiraDoTipo(int $pipelineId, string $tipo): ?array
+    {
+        foreach ($this->doPipeline($pipelineId) as $e) {
+            if ($e['tipo'] === $tipo) {
+                return $e;
+            }
+        }
+        return null;
+    }
+
     public function proximaOrdem(int $pipelineId): int
     {
         $st = $this->pdo()->prepare('SELECT COALESCE(MAX(ordem), 0) + 1 FROM etapas WHERE pipeline_id = :p');

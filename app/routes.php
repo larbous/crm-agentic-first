@@ -25,6 +25,7 @@ use App\Controllers\FormularioController;
 use App\Controllers\FormularioPublicoController;
 use App\Controllers\IaRapidaController;
 use App\Controllers\InstalacaoController;
+use App\Controllers\IntegracaoController;
 use App\Controllers\MetaController;
 use App\Controllers\NegocioController;
 use App\Controllers\ModeloController;
@@ -67,6 +68,9 @@ return static function (Router $r): void {
 
     // Webhook do Asaas (cobranças): autenticado por token, sem sessão
     AsaasWebhookController::registrar($r);
+
+    // Integração com o Opensquad (squads de IA fora do CRM): autenticada por token, sem sessão
+    IntegracaoController::registrar($r);
 
     // Autenticadas
     $r->grupo('', static function (Router $r): void {

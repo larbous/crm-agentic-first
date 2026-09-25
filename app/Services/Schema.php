@@ -16,7 +16,7 @@ namespace App\Services;
  */
 final class Schema
 {
-    public const ORIGENS_VALIDAS = '/^(humano|ia|sistema|agente:[a-z0-9-]+|formulario:\d+)$/';
+    public const ORIGENS_VALIDAS = '/^(humano|ia|sistema|agente:[a-z0-9-]+|formulario:\d+|opensquad:[a-z0-9-]+)$/';
 
     private static ?array $cache = null;
 

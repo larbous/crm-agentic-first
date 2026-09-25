@@ -94,6 +94,17 @@ final class EmpresaRepository extends BaseRepository
         return null;
     }
 
+    /** Empresa ativa com este nome fantasia na mesma cidade (sem acento/caixa); a mais antiga. */
+    public function porNomeECidade(string $nome, string $cidade): ?array
+    {
+        $st = $this->pdo()->prepare(
+            'SELECT id, nome_fantasia FROM empresas WHERE arquivado_em IS NULL
+                AND busca_norm(nome_fantasia) = :n AND busca_norm(cidade) = :c ORDER BY id LIMIT 1'
+        );
+        $st->execute(['n' => normalizar_busca(trim($nome)), 'c' => normalizar_busca(trim($cidade))]);
+        return $st->fetch() ?: null;
+    }
+
     /** Opções para selects: id => nome fantasia. */
     public function opcoes(): array
     {
