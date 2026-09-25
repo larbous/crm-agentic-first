@@ -479,3 +479,23 @@ Rota autenticada `/ui` com todos os componentes (Basecoat e próprios), variaç�
 
 ### 12.10 Impressão
 Propostas e contratos usam views próprias com `@media print` (A4, margens, quebra de página), independentes do shell.
+
+## 13. Integração com o Opensquad
+
+Squads de IA que rodam fora do CRM (projeto Opensquad da agência) registram o que produziram por `POST /api/integracao/opensquad`: rota pública, sem sessão e sem CSRF, autenticada pelo cabeçalho `X-Opensquad-Token` (valor em `integracao.opensquad_token`; vazio = integração desligada). Não usa `Authorization` porque hospedagem compartilhada com PHP em CGI costuma descartar esse cabeçalho.
+
+**Corpo:** `{"squad": "prospeccao-leads", "run": "2026-09-24-101500-x", "simular": false, "eventos": [...]}` (até 100 eventos, 1 MB). **Resposta** (200): `{"ok", "simulacao", "resultados": [{"id", "status": "ok|ja_processado|erro", "mensagem"?, "empresa_id", "contato_id", "negocio_id", "acoes": [...], "avisos": [...], "link"}]}`.
+
+| Tipo | Efeito |
+|---|---|
+| `lead` | Localiza a empresa (CNPJ → e-mail → WhatsApp/telefone → domínio → nome + cidade) ou cria; idem contato. Em registro existente só completa campos vazios. Garante um negócio aberto e o avança para `negocio.etapa` (nome de etapa aberta); nunca retrocede. |
+| `ganho` | Como `lead`, e leva o negócio aberto à primeira etapa de ganho com `valor_fechado` (obrigatório); converte a empresa em cliente. Negócio já ganho: não cria outro. Sem negócio: cria já ganho. |
+| `perdido` | Empresa existente; negócio aberto → etapa de perda com `motivo` (nome; criado se faltar) e `detalhe`. |
+| `atividade` | Empresa existente; só `nota` e `tarefas`. |
+
+Todos aceitam `nota` (atividade) e `tarefas` (até 20; `vencimento` ou `em_dias`). `origem` (nome) é criada se não existir. Campos fora da whitelist viram aviso, não erro; `status`/`cliente_desde`/`campos_extras` da empresa não são definidos pela integração.
+
+- **Tudo ou nada por evento:** cada evento é uma transação do `ActionExecutor`; um evento recusado não grava nada e não impede os outros do lote.
+- **Idempotência:** tabela `integracao_eventos`, chave `squad|run|id`. Evento já `ok` volta como `ja_processado` (com a resposta original); evento com `erro` pode ser reenviado.
+- **Simulação** (`simular: true`): o lote inteiro roda numa transação desfeita no fim (savepoint por evento), sem disparar eventos nem registrar idempotência — mostra ao operador o que o envio real faria.
+- **Origem** `opensquad:<squad>`, auditável e desfazível como qualquer ação. Eventos com essa origem **não disparam agentes nem squads** do CRM (Gatilhos): pesquisa, qualificação e documentos já foram feitos no Opensquad.

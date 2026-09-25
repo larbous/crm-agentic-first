@@ -26,6 +26,14 @@ final class SimplesRepository extends BaseRepository
         return 'a.nome COLLATE pt_br ASC';
     }
 
+    /** Registro ativo com este nome (sem acento/caixa), ou null. */
+    public function porNome(string $nome): ?array
+    {
+        $st = $this->pdo()->prepare("SELECT * FROM {$this->tabela} WHERE arquivado_em IS NULL AND busca_norm(nome) = :n ORDER BY id LIMIT 1");
+        $st->execute(['n' => normalizar_busca(trim($nome))]);
+        return $st->fetch() ?: null;
+    }
+
     /** id => nome. */
     public function opcoes(): array
     {

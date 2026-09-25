@@ -36,6 +36,9 @@ $padrao = [
         'ambiente' => 'sandbox', // sandbox | producao
         'webhook_token' => '', // definir em config.local.php; o mesmo valor configurado no painel do Asaas (cabeçalho asaas-access-token)
     ],
+    'integracao' => [
+        'opensquad_token' => '', // definir em config.local.php; vazio = /api/integracao/opensquad desligado
+    ],
     'caminhos' => [
         'raiz'       => __DIR__,
         'migracoes'  => __DIR__ . '/migrations',

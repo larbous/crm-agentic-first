@@ -25,4 +25,9 @@ return [
         'ambiente' => 'sandbox', // sandbox | producao
         'webhook_token' => '', // o mesmo valor configurado no webhook do painel do Asaas (cabeçalho asaas-access-token)
     ],
+    'integracao' => [
+        // Token do Opensquad (cabeçalho X-Opensquad-Token). Gere com: php -r "echo bin2hex(random_bytes(32));"
+        // O mesmo valor vai em integracoes/crm/.env do projeto Opensquad. Vazio = integração desligada.
+        'opensquad_token' => '',
+    ],
 ];

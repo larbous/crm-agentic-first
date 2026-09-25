@@ -38,8 +38,8 @@ final class Gatilhos
     {
         $evento = (string) ($payload['evento'] ?? '');
         $origem = (string) ($payload['origem'] ?? 'sistema');
-        if ($evento === '') {
-            return;
+        if ($evento === '' || str_starts_with($origem, 'opensquad:')) {
+            return; // o que vem do Opensquad já foi pesquisado/qualificado/redigido lá; não repetir aqui
         }
         if ($evento === 'formulario.submetido') {
             self::squadDoFormulario($payload);
