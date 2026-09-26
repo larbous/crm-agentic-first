@@ -70,20 +70,34 @@ final class PerfexImporter
         $this->simular = $simular;
     }
 
-    public function executar(): array
+    /** Todas as etapas de importação, na ordem (nome curto usado em --somente). */
+    private const ETAPAS = [
+        'empresas' => 'importarEmpresasClientes',
+        'leads' => 'importarLeadsNaoConvertidos',
+        'propostas' => 'importarPropostasEEstimativas',
+        'contratos' => 'importarContratos',
+        'projetos' => 'importarProjetos',
+        'tarefas' => 'importarTarefas',
+        'tickets' => 'importarTickets',
+        'notas' => 'importarNotas',
+        'cobrancas' => 'importarCobrancas',
+        'custos' => 'importarCustos',
+        'servicos' => 'importarServicos',
+    ];
+
+    /**
+     * @param list<string>|null $somente nomes de chaves de self::ETAPAS a rodar (null = todas). Útil pra
+     * complementar uma importação já feita sem duplicar o que já está no banco (ex.: só "servicos").
+     */
+    public function executar(?array $somente = null): array
     {
         $this->carregarLookups();
         $this->prepararApoio();
-        $this->importarEmpresasClientes();
-        $this->importarLeadsNaoConvertidos();
-        $this->importarPropostasEEstimativas();
-        $this->importarContratos();
-        $this->importarProjetos();
-        $this->importarTarefas();
-        $this->importarTickets();
-        $this->importarNotas();
-        $this->importarCobrancas();
-        $this->importarCustos();
+        foreach (self::ETAPAS as $chave => $metodo) {
+            if ($somente === null || in_array($chave, $somente, true)) {
+                $this->$metodo();
+            }
+        }
 
         return ['contagens' => $this->relatorio, 'avisos' => $this->avisos];
     }
@@ -970,6 +984,49 @@ final class PerfexImporter
                 'recorrente' => ((int) ($ex['recurring'] ?? 0)) === 1,
             ];
             $this->criarComHistorico('custos', $dados, $criadoEm, null);
+        }
+    }
+
+    // =====================================================================================
+    // Serviços (tblitems + tblitems_groups) — catálogo "Vendas / Item" do Perfex.
+    // =====================================================================================
+
+    /** Grupo do Perfex (id) => categoria do Lárbous. Aproximação: o operador ajusta o que não bater depois. */
+    private const MAPA_GRUPO_ITEM_CATEGORIA = [
+        1 => 'site',        // Websites
+        4 => 'site',        // Sistema Web
+        5 => 'outro',       // Design (sem categoria própria no Lárbous)
+        7 => 'outro',       // Terceirizados
+        8 => 'trafego',     // Marketing Digital (só parte é tráfego pago de verdade)
+        10 => 'outro',      // Serviços Adicionais
+        11 => 'manutencao', // Manutenção
+        12 => 'hospedagem', // Planos de hospedagem
+    ];
+
+    private function importarServicos(): void
+    {
+        $grupos = [];
+        foreach ($this->dump->linhas('tblitems_groups') as $g) {
+            $grupos[(int) $g['id']] = (string) $g['name'];
+        }
+
+        foreach ($this->dump->linhas('tblitems') as $it) {
+            $grupoId = (int) $it['group_id'];
+            $unidadeTexto = mb_strtolower(trim((string) ($it['unit'] ?? '')));
+            $mensal = $unidadeTexto === 'mensal';
+            $nomeGrupo = $grupos[$grupoId] ?? null;
+
+            $dados = [
+                'nome' => $this->textoOuNull($it['description']) ?? "Serviço Perfex #{$it['id']}",
+                'categoria' => self::MAPA_GRUPO_ITEM_CATEGORIA[$grupoId] ?? 'outro',
+                'unidade' => $mensal ? 'mes' : 'projeto',
+                'preco_base' => $this->reaisOuNull($it['rate']),
+                'recorrente' => $mensal,
+                'ativo' => true,
+                'descricao' => $this->textoOuNull($it['long_description'])
+                    ?? ('Importado do Perfex CRM (item #' . $it['id'] . ($nomeGrupo !== null ? ", grupo \"{$nomeGrupo}\"" : '') . ').'),
+            ];
+            $this->criarComHistorico('servicos', $dados, agora(), null);
         }
     }
 

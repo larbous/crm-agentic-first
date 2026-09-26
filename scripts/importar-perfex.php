@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 /**
  * Importa dados do Perfex CRM (dump .sql) para o CRM Lárbous. Uso único, fora do fluxo normal da aplicação.
- * Uso: php scripts/importar-perfex.php <caminho-do-dump.sql> [--simular]
+ * Uso: php scripts/importar-perfex.php <caminho-do-dump.sql> [--simular] [--somente=etapa1,etapa2]
  *
  * --simular: só conta o que seria criado (não grava nada). Sem essa flag, grava de verdade — rode antes com
  * --simular e confira o relatório, e de preferência num storage/db/crm.sqlite de teste antes de importar
  * para o banco de produção.
+ *
+ * --somente: roda só as etapas listadas (vírgula), sem duplicar o que já foi importado antes — útil pra
+ * complementar uma importação já feita (ex.: --somente=servicos). Etapas disponíveis: empresas, leads,
+ * propostas, contratos, projetos, tarefas, tickets, notas, cobrancas, custos, servicos.
  */
 
 require dirname(__DIR__) . '/app/bootstrap.php';
@@ -25,9 +29,15 @@ Events::limpar();
 
 $caminho = $argv[1] ?? null;
 $simular = in_array('--simular', $argv, true);
+$somente = null;
+foreach ($argv as $arg) {
+    if (str_starts_with($arg, '--somente=')) {
+        $somente = array_filter(array_map('trim', explode(',', substr($arg, strlen('--somente=')))));
+    }
+}
 
 if ($caminho === null || !is_file($caminho)) {
-    fwrite(STDERR, "Uso: php scripts/importar-perfex.php <caminho-do-dump.sql> [--simular]\n");
+    fwrite(STDERR, "Uso: php scripts/importar-perfex.php <caminho-do-dump.sql> [--simular] [--somente=etapa1,etapa2]\n");
     exit(1);
 }
 
@@ -41,7 +51,7 @@ $importador = new PerfexImporter($dump, $exec, $simular);
 DB::conexao(); // garante a conexão/PRAGMAs antes do primeiro INSERT
 
 try {
-    $resultado = $importador->executar();
+    $resultado = $importador->executar($somente);
 } catch (Throwable $e) {
     fwrite(STDERR, "Falha na importação: {$e->getMessage()}\n{$e->getTraceAsString()}\n");
     exit(1);
