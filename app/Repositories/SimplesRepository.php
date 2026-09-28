@@ -11,7 +11,7 @@ final class SimplesRepository extends BaseRepository
 {
     public function __construct(private string $tabela)
     {
-        if (!in_array($tabela, ['origens', 'motivos_perda', 'contrato_tipos', 'areas'], true)) {
+        if (!in_array($tabela, ['origens', 'motivos_perda', 'contrato_tipos', 'areas', 'categorias_despesa'], true)) {
             throw new InvalidArgumentException("Tabela não permitida: {$tabela}");
         }
     }

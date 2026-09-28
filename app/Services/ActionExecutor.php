@@ -41,13 +41,14 @@ final class ActionExecutor
         'servicos' => ['categoria' => 'outro', 'unidade' => 'projeto'],
         'propostas' => ['desconto_tipo' => 'valor'],
         'contratos' => ['recorrencia' => 'unica', 'indice_reajuste' => 'nenhum'],
+        'despesas' => ['status' => 'pendente', 'forma_pagamento' => 'a_vista'],
     ];
 
     /** Atividades que contam como contato com a pessoa (atualizam contatos.ultimo_contato_em). */
     private const TIPOS_CONTATO = ['ligacao', 'whatsapp', 'email', 'instagram', 'reuniao', 'visita'];
 
     /** Entidades cujo nome deve ser único entre os registros ativos (com escopo opcional). */
-    private const NOME_UNICO = ['origens' => [], 'motivos_perda' => [], 'tags' => [], 'pipelines' => [], 'etapas' => ['pipeline_id'], 'contrato_tipos' => [], 'areas' => []];
+    private const NOME_UNICO = ['origens' => [], 'motivos_perda' => [], 'tags' => [], 'pipelines' => [], 'etapas' => ['pipeline_id'], 'contrato_tipos' => [], 'areas' => [], 'categorias_despesa' => []];
 
     /** @var list<array{0:string,1:array}> */
     private array $eventos = [];
@@ -831,6 +832,17 @@ final class ActionExecutor
                     $erros['_'] = 'Vincule o custo a uma empresa ou a um negócio.';
                 }
                 break;
+
+            case 'despesas':
+                if (($v['status'] ?? 'pendente') === 'pago') {
+                    if (empty($v['meio_pagamento'])) {
+                        $erros['meio_pagamento'] = 'Informe o meio de pagamento para marcar como paga.';
+                    }
+                    $v['data_pagamento'] ??= hoje();
+                } else {
+                    $v['data_pagamento'] = null;
+                }
+                break;
         }
 
         return $erros + $this->nomeUnico($entidade, $v, null);
@@ -923,6 +935,21 @@ final class ActionExecutor
             case 'custos':
                 if (empty($novos['empresa_id'] ?? $atual['empresa_id']) && empty($novos['negocio_id'] ?? $atual['negocio_id'])) {
                     $erros['_'] = 'Vincule o custo a uma empresa ou a um negócio.';
+                }
+                break;
+
+            case 'despesas':
+                // Paga exige meio de pagamento e carimba a data (hoje, se não informada); sair de "paga" limpa a data.
+                $efetivo = static fn (string $campo): mixed => array_key_exists($campo, $novos) ? $novos[$campo] : $atual[$campo];
+                if ($efetivo('status') === 'pago') {
+                    if (empty($efetivo('meio_pagamento'))) {
+                        $erros['meio_pagamento'] = 'Informe o meio de pagamento para marcar como paga.';
+                    }
+                    if (empty($efetivo('data_pagamento'))) {
+                        $derivados['data_pagamento'] = hoje();
+                    }
+                } elseif ($efetivo('data_pagamento') !== null) {
+                    $derivados['data_pagamento'] = null;
                 }
                 break;
         }

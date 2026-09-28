@@ -70,6 +70,8 @@ final class Schema
             'chamados'      => self::chamados(),
             'cobrancas'     => self::cobrancas(),
             'custos'        => self::custos(),
+            'categorias_despesa' => self::nomeSimples('categorias_despesa', 'Categoria de despesa', 'Categorias de despesa', 'f'),
+            'despesas'      => self::despesas(),
         ];
     }
 
@@ -132,6 +134,9 @@ final class Schema
             'ciclo_cobranca'  => ['mensal' => 'Mensal', 'anual' => 'Anual'],
             'forma_pagamento_asaas' => ['boleto' => 'Boleto', 'pix' => 'Pix', 'cartao' => 'Cartão de crédito', 'indefinido' => 'Cliente escolhe (link de pagamento)'],
             'status_cobranca' => ['pendente' => 'Pendente', 'pago' => 'Pago', 'vencido' => 'Vencido', 'cancelado' => 'Cancelado'],
+            'status_despesa'  => ['pendente' => 'A pagar', 'pago' => 'Paga', 'cancelado' => 'Cancelada'],
+            'meio_pagamento'  => ['dinheiro' => 'Dinheiro', 'pix' => 'Pix', 'boleto' => 'Boleto', 'cartao_credito' => 'Cartão de crédito', 'cartao_debito' => 'Cartão de débito', 'transferencia' => 'Transferência (TED/DOC)', 'debito_automatico' => 'Débito automático', 'outro' => 'Outro'],
+            'forma_pagamento_despesa' => ['a_vista' => 'À vista', 'parcelado' => 'Parcelado', 'recorrente' => 'Recorrente (todo mês)'],
         ][$nome];
     }
 
@@ -389,6 +394,27 @@ final class Schema
             'data'       => $f('data', 'Data', 'dados', ['req' => true]),
             'categoria'  => $f('texto', 'Categoria', 'dados', ['max' => 60]),
             'recorrente' => $f('bool', 'Recorrente (todo mês)', 'dados'),
+        ]];
+    }
+
+    /**
+     * Despesa da estrutura: conta a pagar do próprio negócio (aluguel, software, impostos...), sem vínculo com cliente.
+     * Diferente de `custos`, que é por cliente/negócio e alimenta o DRE. Cada parcela/mês é um lançamento próprio.
+     */
+    private static function despesas(): array
+    {
+        $f = self::f(...);
+        return ['tabela' => 'despesas', 'singular' => 'Despesa', 'plural' => 'Despesas', 'genero' => 'f', 'campos' => [
+            'descricao'       => $f('texto', 'Descrição', 'dados', ['req' => true, 'max' => 200, 'l' => 2]),
+            'categoria_id'    => $f('fk', 'Categoria', 'dados', ['fk' => 'categorias_despesa', 'req' => true]),
+            'fornecedor'      => $f('texto', 'Fornecedor / quem recebe', 'dados', ['max' => 120]),
+            'valor'           => $f('money', 'Valor (R$)', 'dados', ['req' => true]),
+            'vencimento'      => $f('data', 'Vencimento', 'dados', ['req' => true]),
+            'notas'           => $f('textarea', 'Notas', 'dados', ['l' => 2]),
+            'status'          => $f('enum', 'Situação', 'pagamento', ['op' => 'status_despesa', 'req' => true]),
+            'data_pagamento'  => $f('data', 'Data do pagamento', 'pagamento'),
+            'meio_pagamento'  => $f('enum', 'Meio de pagamento', 'pagamento', ['op' => 'meio_pagamento']),
+            'forma_pagamento' => $f('enum', 'Forma de pagamento', 'pagamento', ['op' => 'forma_pagamento_despesa', 'req' => true]),
         ]];
     }
 

@@ -273,6 +273,18 @@ Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Refe
 
 ---
 
+## Complemento — Despesas da estrutura
+
+Fora do roteiro de fases (pedido direto do usuário, 2026-09-28): módulo simples e padrão de contas a pagar do próprio negócio, com meio e forma de pagamento. Contrato em SPEC §4.14.
+
+- [x] Migração `0017`: tabelas `categorias_despesa` (com categorias padrão semeadas) e `despesas`
+- [x] `Schema`/`ActionExecutor`: campos, enums (situação, meio, forma), regra "paga exige meio e carimba a data"
+- [x] Tela Financeiro → Despesas (lista com totais, filtros e selo "Vencida"; formulário em duas abas) e aba Configurações → Categorias de despesa
+- [x] `tests/DespesasTest.php` (7 casos); suíte completa passa (350 testes); fluxo criar → vencida → marcar paga exercitado no navegador
+- Fora do escopo: geração automática de parcelas/recorrência, anexo de comprovante, despesas no DRE, fornecedor como entidade (ver pendência abaixo), importação das despesas internas do Perfex (as 56 sem cliente que o importador ignorou).
+
+---
+
 ## Pendência conhecida — IVA Dual (CBS/IBS) e gestão de fornecedor
 
 Fora do roteiro das 17 fases (nunca foi especificado em `docs/SPEC.md` nem no roteiro original de fases 10–17). Registrado em 2026-09-22 a partir de uma pergunta direta do usuário; sem escopo definido ainda, então não vira checklist de fase até isso acontecer.

@@ -6,6 +6,7 @@
  * @var array<int,list<array>> $etapas
  * @var list<array> $origens
  * @var list<array> $areas
+ * @var list<array> $categoriasDespesa
  * @var list<array> $motivos
  * @var list<array> $tags
  * @var list<array> $tiposContrato
@@ -169,6 +170,7 @@ $paineis = [
     'tags'      => ['Tags', $painelTags],
     'contratos' => ['Tipos de contrato', $listaSimples('contrato-tipos', $tiposContrato, 'Novo tipo de contrato')],
     'areas'     => ['Áreas (chamados)', $listaSimples('areas', $areas, 'Nova área')],
+    'despesas'  => ['Categorias de despesa', $listaSimples('categorias-despesa', $categoriasDespesa, 'Nova categoria de despesa')],
     'extras'    => ['Campos extras', $painelExtras],
     'agencia'   => ['Dados da agência', $painelAgencia],
 ];

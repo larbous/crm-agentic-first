@@ -26,6 +26,7 @@ final class Opcoes
             'servicos'      => Repositorios::servicos()->opcoes(),
             'contrato_tipos' => Repositorios::para('contrato_tipos')->opcoes(),
             'areas'         => Repositorios::para('areas')->opcoes(),
+            'categorias_despesa' => Repositorios::para('categorias_despesa')->opcoes(),
             'modelos_documento' => array_column(Repositorios::modelos()->todas(), 'nome', 'id'),
             'propostas'     => Repositorios::propostas()->opcoesAceitas(),
             'contratos'     => array_column(Repositorios::contratos()->todas(), 'numero', 'id'),

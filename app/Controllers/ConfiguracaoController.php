@@ -25,6 +25,7 @@ final class ConfiguracaoController
         'tags'          => ['tags', 'tags'],
         'contrato-tipos' => ['contrato_tipos', 'contratos'],
         'areas'         => ['areas', 'areas'],
+        'categorias-despesa' => ['categorias_despesa', 'despesas'],
         'campos-extras' => ['campos_extras_def', 'extras'],
     ];
 
@@ -36,7 +37,7 @@ final class ConfiguracaoController
         }
         return View::pagina('configuracoes/index', [
             'titulo'    => 'Configurações',
-            'aba'       => in_array($_GET['aba'] ?? '', ['pipelines', 'origens', 'motivos', 'tags', 'contratos', 'areas', 'extras', 'agencia'], true) ? $_GET['aba'] : 'pipelines',
+            'aba'       => in_array($_GET['aba'] ?? '', ['pipelines', 'origens', 'motivos', 'tags', 'contratos', 'areas', 'despesas', 'extras', 'agencia'], true) ? $_GET['aba'] : 'pipelines',
             'pipelines' => Repositorios::pipelines()->todas(),
             'etapas'    => $etapasPorPipeline,
             'origens'   => Repositorios::para('origens')->todas(),
@@ -44,6 +45,7 @@ final class ConfiguracaoController
             'tags'      => Repositorios::tags()->todas(),
             'tiposContrato' => Repositorios::para('contrato_tipos')->todas(),
             'areas'     => Repositorios::para('areas')->todas(),
+            'categoriasDespesa' => Repositorios::para('categorias_despesa')->todas(),
             'camposExtras' => array_combine(CamposExtras::ENTIDADES, array_map(
                 static fn (string $e): array => Repositorios::camposExtras()->daEntidade($e, false),
                 CamposExtras::ENTIDADES,

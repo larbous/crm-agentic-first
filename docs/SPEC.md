@@ -256,6 +256,15 @@ tipo (faturamento/mrr/novos_clientes/propostas_enviadas/negocios_ganhos), period
 - **NPS** = % promotores − % detratores (−100 a 100). Tela `/pesquisas`: índice, distribuição das notas, tendência mensal, taxa de resposta, fila de envio e respostas.
 
 
+### 4.14 despesas e categorias_despesa (complemento do financeiro)
+
+Despesa da **estrutura**: conta a pagar do próprio negócio (aluguel, software, impostos, pró-labore...), sem vínculo com cliente. Complementa `custos` (Fase 17), que é por cliente/negócio e alimenta o DRE por cliente; despesas **não** entram no DRE por cliente.
+
+- **despesas:** descricao, categoria_id (obrigatória), fornecedor (texto livre), valor (centavos), vencimento, status (`pendente` = "A pagar" | `pago` | `cancelado`), data_pagamento, meio_pagamento (dinheiro/pix/boleto/cartao_credito/cartao_debito/transferencia/debito_automatico/outro), forma_pagamento (`a_vista` | `parcelado` | `recorrente`), notas.
+- **categorias_despesa:** nome (único). Lista padrão semeada pela migração 0017 (aluguel, contas de consumo, salários, pró-labore, impostos, contabilidade, software, marketing, fornecedores, terceirizados, equipamentos, tarifas bancárias, transporte, outras) e editável em Configurações → Categorias de despesa.
+- **Regras:** marcar como paga exige `meio_pagamento` e carimba `data_pagamento` (hoje, se não informada); reabrir (voltar a "A pagar"/cancelar) limpa a data. "Vencida" não é um status: é a despesa `pendente` com vencimento anterior a hoje (selo e filtro na lista). Parcelas e meses de uma despesa recorrente são lançamentos próprios (sem geração automática); `forma_pagamento` só registra a natureza.
+- **Tela:** Financeiro → Despesas (`/financeiro/despesas`), com totais no topo (a pagar, vencidas, pago no mês) e filtros por situação, vencimento, categoria, meio e forma. Sem tela de detalhe própria (abre a edição).
+
 ## 5. Eventos
 
 `Events::disparar(nome, payload)`; gatilhos de agentes/squads assinam eventos.

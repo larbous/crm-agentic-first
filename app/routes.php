@@ -18,6 +18,7 @@ use App\Controllers\ContatoController;
 use App\Controllers\ContratoController;
 use App\Controllers\CrudController;
 use App\Controllers\CustoController;
+use App\Controllers\DespesaController;
 use App\Controllers\DreController;
 use App\Controllers\EmpresaController;
 use App\Controllers\ExecucaoController;
@@ -109,6 +110,7 @@ return static function (Router $r): void {
         CrudController::registrar($r, '/financeiro/cobrancas', CobrancaController::class);
         CobrancaController::registrarExtras($r);
         CrudController::registrar($r, '/financeiro/custos', CustoController::class);
+        CrudController::registrar($r, '/financeiro/despesas', DespesaController::class);
         DreController::registrar($r);
 
         // Agentes e squads de IA, ações pendentes de aprovação e execuções

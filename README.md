@@ -5,7 +5,7 @@
 ![Licença MIT](https://img.shields.io/badge/licença-MIT-green)
 ![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-777bb4)
 ![Zero dependências](https://img.shields.io/badge/depend%C3%AAncias-zero-blue)
-![Testes](https://img.shields.io/badge/testes-325%20passando-brightgreen)
+![Testes](https://img.shields.io/badge/testes-350%20passando-brightgreen)
 ![Interface](https://img.shields.io/badge/interface-pt--BR-orange)
 
 > Toda a interface e a documentação são em português do Brasil (é um CRM feito para agências e times brasileiros). Pull requests com comentários e descrições em inglês são muito bem-vindos — este README explica o suficiente para você navegar pelo código mesmo sem ler português fluentemente.
@@ -94,7 +94,8 @@ As regras que tornam isso seguro (e que valem a pena conhecer antes de mexer no 
 
 ### Financeiro
 - Cobranças avulsas e recorrentes integradas ao [Asaas](https://www.asaas.com) (boleto, Pix, cartão), com status sincronizado por webhook;
-- Lançamento de custos por cliente e **DRE por cliente** (receita − custo = margem) calculado sob demanda.
+- Lançamento de custos por cliente e **DRE por cliente** (receita − custo = margem) calculado sob demanda;
+- **Despesas da estrutura** (aluguel, software, impostos...): contas a pagar simples, por categoria, com meio (Pix, boleto, cartão...) e forma de pagamento (à vista, parcelado, recorrente) e alerta de vencidas.
 
 ### Operação
 - Chamados internos por área (tráfego pago, design, social media, web, redação) com checklist de execução;
@@ -183,7 +184,7 @@ Todas as 17 fases planejadas estão concluídas — do núcleo (autenticação, 
 - ✅ **Atendimento** — caixa de entrada unificada (WhatsApp, Instagram, e-mail)
 - ✅ **Multimodal** — transcrição de áudio, resumo de conversa, cadência de follow-up
 - ✅ **Prevenção de churn** — alerta automático de cliente ou chamado parado
-- ✅ **Financeiro** — cobranças via Asaas, custos por cliente, DRE
+- ✅ **Financeiro** — cobranças via Asaas, custos por cliente, DRE, despesas da estrutura
 
 Detalhes de cada fase (o que foi testado, o que ficou pendente de credenciais externas) em [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

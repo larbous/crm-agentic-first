@@ -36,6 +36,7 @@ $comercial = [
 $financeiro = [
     ['/financeiro/cobrancas', 'Cobranças', 'receipt'],
     ['/financeiro/custos', 'Custos', 'wallet'],
+    ['/financeiro/despesas', 'Despesas', 'banknote'],
     ['/financeiro/dre', 'DRE por cliente', 'chart-bar'],
 ];
 $ia = [
