@@ -286,6 +286,22 @@ Fora do roteiro de fases (pedido direto do usuário, 2026-09-28): módulo simple
 
 ---
 
+## Pendência conhecida — Geração automática de despesas recorrentes
+
+Fora do roteiro das 17 fases. Registrado em 2026-09-28 a partir de uma pergunta direta do usuário, que decidiu manter o
+comportamento atual. Sem escopo definido ainda, então não vira checklist de fase até isso acontecer.
+
+- **Hoje `forma_pagamento = recorrente` é só um rótulo** (SPEC §4.14): nenhuma rotina do worker nem outro ponto do
+  sistema cria despesas sozinho. Cada mês é um lançamento manual (tela ou planilha CSV); não há botão "duplicar/repetir".
+  O mesmo vale para `custos.recorrente` (Fase 17) e para parcelas de despesas "parceladas".
+- **Se/quando virar fase**, decidir com o usuário: (1) quando gerar — na virada do mês ou alguns dias antes do
+  vencimento; (2) até quando — indefinidamente até desmarcar, ou por data/número de meses; (3) vencimento em meses
+  curtos (dia 31 cai no último dia do mês?); (4) se a geração cria a despesa como "A pagar" com o mesmo valor/categoria/
+  meio ou se pede confirmação; (5) como evitar duplicar (uma despesa "modelo" com vínculo às geradas, ou checar por
+  descrição+mês). Seria uma rotina a mais no `cron/worker.php`, com tarefa/aviso quando gerar.
+
+---
+
 ## Pendência conhecida — IVA Dual (CBS/IBS) e gestão de fornecedor
 
 Fora do roteiro das 17 fases (nunca foi especificado em `docs/SPEC.md` nem no roteiro original de fases 10–17). Registrado em 2026-09-22 a partir de uma pergunta direta do usuário; sem escopo definido ainda, então não vira checklist de fase até isso acontecer.
