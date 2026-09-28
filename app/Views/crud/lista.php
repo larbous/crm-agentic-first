@@ -46,6 +46,7 @@ if ($tagsOpcoes !== []) {
 <?= data_table($colunasTabela, $linhas, [
     'id'        => 'lista-' . $rota,
     'ordenar'   => ['ordem' => $ordem, 'dir' => $dir, 'url' => $urlOrdem],
+    'rodape'    => $rodape ?? [],
     'vazio_html' => vazio(
         $temFiltro ? 'Nada encontrado' : 'Nenhum' . ($feminino ? 'a ' : ' ') . mb_strtolower($schema['singular']) . ' ainda',
         $temFiltro ? 'Ajuste a busca ou os filtros.' : 'Cadastre ' . ($feminino ? 'a primeira ' : 'o primeiro ') . mb_strtolower($schema['singular']) . ' para começar.',

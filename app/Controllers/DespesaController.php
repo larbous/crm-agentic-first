@@ -75,6 +75,12 @@ final class DespesaController extends CrudController
         return ['dados' => 'Dados', 'pagamento' => 'Pagamento'];
     }
 
+    /** Rodapé da lista: total da página, acumulado até a página e total da lista inteira (respeita busca e filtros). */
+    protected function somaMonetaria(): ?array
+    {
+        return ['tabela' => 'valor', 'lista' => 'valor'];
+    }
+
     protected function tituloRegistro(array $registro): string
     {
         return (string) $registro['descricao'];

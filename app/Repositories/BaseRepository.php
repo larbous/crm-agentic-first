@@ -116,8 +116,9 @@ abstract class BaseRepository
 
     /**
      * Listagem paginada.
-     * $opts: busca (string), filtros [chave => valor], tag_id, ordem (chave), dir (asc|desc), pagina, por_pagina.
-     * @return array{linhas:list<array>,total:int,pagina:int,por_pagina:int,paginas:int}
+     * $opts: busca (string), filtros [chave => valor], tag_id, ordem (chave), dir (asc|desc), pagina, por_pagina,
+     * somar (coluna da tabela: acrescenta `soma` = pagina/acumulada/total).
+     * @return array{linhas:list<array>,total:int,pagina:int,por_pagina:int,paginas:int,soma?:array{pagina:int,acumulada:int,total:int}}
      */
     public function listar(array $opts = []): array
     {
@@ -179,8 +180,27 @@ abstract class BaseRepository
         $pagina = max(1, min($paginas, (int) ($opts['pagina'] ?? 1)));
         $st = $this->pdo()->prepare("{$sqlBase} ORDER BY {$orderBy} LIMIT {$porPagina} OFFSET " . (($pagina - 1) * $porPagina));
         $st->execute($params);
+        $linhas = $st->fetchAll();
 
-        return ['linhas' => $st->fetchAll(), 'total' => $total, 'pagina' => $pagina, 'por_pagina' => $porPagina, 'paginas' => $paginas];
+        $resultado = ['linhas' => $linhas, 'total' => $total, 'pagina' => $pagina, 'por_pagina' => $porPagina, 'paginas' => $paginas];
+
+        // Soma de uma coluna numérica (ex.: valor em centavos): da página, acumulada até a página (na ordem da lista) e da lista inteira.
+        if (!empty($opts['somar'])) {
+            $col = $this->validarColunas([(string) $opts['somar']])[0];
+            $limite = $pagina * $porPagina;
+            $st = $this->pdo()->prepare("SELECT COALESCE(SUM({$col}), 0) FROM ({$sqlBase})");
+            $st->execute($params);
+            $somaTotal = (int) $st->fetchColumn();
+            $st = $this->pdo()->prepare("SELECT COALESCE(SUM({$col}), 0) FROM ({$sqlBase} ORDER BY {$orderBy} LIMIT {$limite})");
+            $st->execute($params);
+            $resultado['soma'] = [
+                'pagina'    => (int) array_sum(array_column($linhas, $col)),
+                'acumulada' => (int) $st->fetchColumn(),
+                'total'     => $somaTotal,
+            ];
+        }
+
+        return $resultado;
     }
 
     /**

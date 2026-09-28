@@ -90,6 +90,29 @@ teste('despesa: marcar como paga exige meio, carimba a data e reabrir limpa a da
     igual(null, Repositorios::despesas()->encontrar($id)['data_pagamento']);
 });
 
+teste('despesa: soma da coluna valor por página, acumulada e total da lista (respeita filtros)', function () {
+    bancoComSeed();
+    $categoria = novaCategoriaDespesa();
+    $x = new ActionExecutor();
+    foreach ([100, 200, 300, 400, 500] as $i => $reais) {
+        $x->criar('despesas', ['descricao' => "D{$i}", 'categoria_id' => $categoria, 'valor' => "{$reais},00", 'vencimento' => '2026-10-0' . ($i + 1),
+            'status' => $reais === 500 ? 'cancelado' : 'pendente'], 'humano');
+    }
+    $lista = static fn (int $pagina, array $filtros = []) => Repositorios::despesas()->listar([
+        'pagina' => $pagina, 'por_pagina' => 2, 'ordem' => 'vencimento', 'dir' => 'asc', 'somar' => 'valor', 'filtros' => $filtros,
+    ]);
+
+    $p1 = $lista(1);
+    igual(3, $p1['paginas']);
+    igual(['pagina' => 30000, 'acumulada' => 30000, 'total' => 150000], $p1['soma']);
+    igual(['pagina' => 70000, 'acumulada' => 100000, 'total' => 150000], $lista(2)['soma']);
+    igual(['pagina' => 50000, 'acumulada' => 150000, 'total' => 150000], $lista(3)['soma'], 'na última página o acumulado fecha no total');
+
+    $pendentes = $lista(1, ['status' => 'pendente']);
+    igual(100000, $pendentes['soma']['total']);
+    igual(false, isset(Repositorios::despesas()->listar([])['soma']), 'sem "somar" não calcula');
+});
+
 teste('despesa: resumo separa a pagar, vencidas e pagas no mês; filtro "vencidas" lista só as atrasadas', function () {
     bancoComSeed();
     $categoria = novaCategoriaDespesa();

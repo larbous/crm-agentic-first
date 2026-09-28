@@ -106,6 +106,34 @@ abstract class CrudController
         return 25;
     }
 
+    /**
+     * Coluna monetária (centavos) a totalizar no rodapé da lista: ['tabela' => coluna do banco, 'lista' => chave em colunas()].
+     * Null = sem rodapé de totais.
+     */
+    protected function somaMonetaria(): ?array
+    {
+        return null;
+    }
+
+    /** Linhas do rodapé: total da página, acumulado até a página (quando há mais de uma) e total da lista inteira. */
+    private function rodapeTotais(array $resultado): array
+    {
+        $alvo = $this->somaMonetaria();
+        if ($alvo === null || !isset($resultado['soma']) || $resultado['total'] === 0) {
+            return [];
+        }
+        $s = $resultado['soma'];
+        $linha = static fn (string $rotulo, int $v): array => ['rotulo' => $rotulo, 'valores' => [$alvo['lista'] => ['html' => e(moeda($v))]]];
+        if ($resultado['paginas'] <= 1) {
+            return [$linha('Total da lista', $s['total'])];
+        }
+        return [
+            $linha('Total desta página', $s['pagina']),
+            $linha('Acumulado até a página ' . $resultado['pagina'] . ' de ' . $resultado['paginas'], $s['acumulada']),
+            $linha('Total da lista (todas as páginas)', $s['total']),
+        ];
+    }
+
     protected function destinoApos(int $id): string
     {
         return caminho_seguro($_POST['voltar'] ?? null, url($this->rota() . '/' . $id));
@@ -162,6 +190,7 @@ abstract class CrudController
         $resultado = $repo->listar([
             'busca' => $q, 'filtros' => $filtrosAtivos, 'tag_id' => $tagId,
             'ordem' => $ordem, 'dir' => $dir, 'pagina' => (int) ($_GET['pagina'] ?? 1), 'por_pagina' => $this->porPagina(),
+            'somar' => $this->somaMonetaria()['tabela'] ?? null,
         ]);
 
         $ctx = [];
@@ -218,6 +247,7 @@ abstract class CrudController
             'urlPagina'   => static fn (int $p): string => url($parametros(['pagina' => $p])),
             'urlOrdem'    => static fn (string $chave, string $d): string => url($parametros(['ordem' => $chave, 'dir' => $d, 'pagina' => null])),
             'acoesExtras' => $this->acoesExtrasLista(),
+            'rodape'      => $this->rodapeTotais($resultado),
         ]);
     }
 

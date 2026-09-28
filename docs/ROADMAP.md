@@ -282,6 +282,7 @@ Fora do roteiro de fases (pedido direto do usuário, 2026-09-28): módulo simple
 - [x] Tela Financeiro → Despesas (lista com totais, filtros e selo "Vencida"; formulário em duas abas) e aba Configurações → Categorias de despesa
 - [x] `tests/DespesasTest.php` (7 casos); suíte completa passa (350 testes); fluxo criar → vencida → marcar paga exercitado no navegador
 - [x] Importação por planilha CSV (`Services/DespesasCsv`, tela "Importar planilha", modelo `library/despesas-modelo.csv`): todo-ou-nada, "só validar", criar categorias novas opcional; `tests/DespesasCsvTest.php`
+- [x] Rodapé da lista com total da coluna Valor: por página, acumulado (soma da página 1 até a atual) e da lista inteira, respeitando busca/filtros — mecanismo genérico em `BaseRepository::listar()`/`CrudController::somaMonetaria()`, reaproveitável por qualquer lista com coluna monetária
 - Fora do escopo: geração automática de parcelas/recorrência, anexo de comprovante, despesas no DRE, fornecedor como entidade (ver pendência abaixo), importação das despesas internas do Perfex (o usuário preferiu lançar à mão, via planilha).
 
 ---

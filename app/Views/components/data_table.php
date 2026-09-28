@@ -63,7 +63,36 @@ function data_table(array $colunas, array $linhas, array $o = []): string
         }
         $html .= '</tr>';
     }
-    $html .= '</tbody></table>';
+    $html .= '</tbody>';
+
+    // Rodapé de totais: [['rotulo' => '...', 'valores' => [chave da coluna => célula]]]. O rótulo vai na primeira coluna;
+    // se nenhuma coluna de valor estiver visível, os valores entram no próprio rótulo.
+    if ($linhas !== [] && !empty($o['rodape'])) {
+        $chaves = array_keys($colunas);
+        $html .= '<tfoot>';
+        foreach ($o['rodape'] as $r) {
+            $valores = array_intersect_key($r['valores'] ?? [], $colunas);
+            $rotulo = e($r['rotulo']);
+            if ($valores === []) {
+                foreach ($r['valores'] ?? [] as $v) {
+                    $rotulo .= ': ' . (is_array($v) ? (string) ($v['html'] ?? '') : e($v));
+                }
+            }
+            $html .= '<tr class="font-medium">' . ($selecionavel ? '<td></td>' : '');
+            foreach ($chaves as $i => $chave) {
+                $celula = $valores[$chave] ?? ($i === 0 ? '' : null);
+                $conteudo = $i === 0 && $celula === '' ? '<span class="text-muted-foreground">' . $rotulo . '</span>'
+                    : (is_array($celula) ? (string) ($celula['html'] ?? '') : ($celula === null ? '' : e($celula)));
+                if ($i === 0 && $valores !== [] && isset($valores[$chave])) {
+                    $conteudo = '<span class="text-muted-foreground">' . $rotulo . '</span> ' . $conteudo;
+                }
+                $html .= '<td' . attrs_html(['class' => ($colunas[$chave]['alinhar'] ?? '') === 'direita' ? 'text-right' : null]) . '>' . $conteudo . '</td>';
+            }
+            $html .= '</tr>';
+        }
+        $html .= '</tfoot>';
+    }
+    $html .= '</table>';
 
     if ($linhas === []) {
         $html .= '<div class="p-8">' . ($o['vazio_html'] ?? vazio('Nada por aqui ainda')) . '</div>';
