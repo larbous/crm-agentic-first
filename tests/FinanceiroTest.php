@@ -354,6 +354,109 @@ teste('AsaasClient::mapearStatus: eventos conhecidos mapeiam para pendente/pago/
     igual(null, AsaasClient::mapearStatus('PAYMENT_UPDATED'));
 });
 
+// ---- Nota fiscal (NF-e/NFS-e) e taxa do Asaas como despesa -----------------------------------------
+
+teste('AsaasClient: status da nota, taxa do pagamento e meio de pagamento da despesa', function () {
+    igual('Agendada', AsaasClient::statusNota('SCHEDULED'));
+    igual('Emitida', AsaasClient::statusNota('AUTHORIZED'));
+    igual('Cancelada', AsaasClient::statusNota('CANCELED'));
+    contem('Erro: Município fora', AsaasClient::statusNota('ERROR', 'Município fora do sistema'));
+    verdadeiro(mb_strlen(AsaasClient::statusNota('ERROR', str_repeat('x', 100))) <= 40, 'nunca passa de 40 caracteres (limite de nfe_status)');
+
+    igual(150, AsaasClient::taxaDoPagamento(['value' => 100.00, 'netValue' => 98.50]));
+    igual(0, AsaasClient::taxaDoPagamento(['value' => 100.00, 'netValue' => 100.00]));
+    igual(0, AsaasClient::taxaDoPagamento(['value' => 100.00])); // sem netValue no payload: não inventa taxa
+
+    igual('boleto', AsaasClient::meioPagamentoDespesa('BOLETO'));
+    igual('pix', AsaasClient::meioPagamentoDespesa('PIX'));
+    igual('cartao_credito', AsaasClient::meioPagamentoDespesa('CREDIT_CARD'));
+    igual('cartao_debito', AsaasClient::meioPagamentoDespesa('DEBIT_CARD'));
+    igual('outro', AsaasClient::meioPagamentoDespesa(null));
+});
+
+teste('webhook de nota fiscal: encontra a cobrança pelo pagamento do ciclo e grava status/link', function () {
+    bancoComSeed();
+    $empresaId = novaEmpresaFinanceiro();
+    $id = (int) (new ActionExecutor())->criar('cobrancas', ['empresa_id' => $empresaId, 'tipo' => 'avulsa', 'descricao' => 'Nota', 'valor' => '500,00', 'forma_pagamento' => 'pix', 'vencimento' => '10/10/2026'], 'humano')->id;
+    Repositorios::cobrancas()->atualizar($id, ['asaas_id' => 'pay_nf', 'asaas_payment_id' => 'pay_nf', 'asaas_tipo' => 'payment']);
+
+    $x = new ActionExecutor();
+    $r = $x->processarEventoNotaAsaas('INVOICE_AUTHORIZED', ['payment' => 'pay_nf', 'status' => 'AUTHORIZED', 'pdfUrl' => 'https://asaas.com/nf/1.pdf']);
+    verdadeiro($r->ok, $r->mensagem);
+    $c = Repositorios::cobrancas()->encontrar($id);
+    igual('Emitida', $c['nfe_status']);
+    igual('https://asaas.com/nf/1.pdf', $c['nfe_url']);
+
+    // reenvio do mesmo estado não gera nova auditoria
+    $antes = count((new AuditoriaRepository())->listar(['entidade' => 'cobrancas', 'registro_id' => (string) $id], 1, 50)['linhas']);
+    $x->processarEventoNotaAsaas('INVOICE_AUTHORIZED', ['payment' => 'pay_nf', 'status' => 'AUTHORIZED', 'pdfUrl' => 'https://asaas.com/nf/1.pdf']);
+    igual($antes, count((new AuditoriaRepository())->listar(['entidade' => 'cobrancas', 'registro_id' => (string) $id], 1, 50)['linhas']));
+
+    $x->processarEventoNotaAsaas('INVOICE_ERROR', ['payment' => 'pay_nf', 'status' => 'ERROR', 'errorMessage' => 'CNPJ inválido']);
+    contem('Erro', Repositorios::cobrancas()->encontrar($id)['nfe_status']);
+});
+
+teste('webhook de nota fiscal: numa assinatura, acha a cobrança pelo pagamento do ciclo (não pela assinatura)', function () {
+    bancoComSeed();
+    $empresaId = novaEmpresaFinanceiro();
+    $id = (int) (new ActionExecutor())->criar('cobrancas', ['empresa_id' => $empresaId, 'tipo' => 'recorrente', 'ciclo' => 'mensal', 'descricao' => 'Mensalidade', 'valor' => '300,00', 'forma_pagamento' => 'pix', 'vencimento' => '10/10/2026'], 'humano')->id;
+    Repositorios::cobrancas()->atualizar($id, ['asaas_id' => 'sub_1', 'asaas_tipo' => 'subscription']);
+
+    $x = new ActionExecutor();
+    // o pagamento do ciclo chega pelo webhook de pagamento e fica registrado em asaas_payment_id
+    $x->processarEventoAsaas('PAYMENT_CREATED', ['id' => 'pay_ciclo1', 'subscription' => 'sub_1', 'dueDate' => '2026-10-10']);
+    igual('pay_ciclo1', Repositorios::cobrancas()->encontrar($id)['asaas_payment_id']);
+
+    // a nota referencia o pagamento do ciclo, não a assinatura — e ainda assim acha a cobrança certa
+    $r = $x->processarEventoNotaAsaas('INVOICE_AUTHORIZED', ['payment' => 'pay_ciclo1', 'status' => 'AUTHORIZED', 'pdfUrl' => 'https://asaas.com/nf/2.pdf']);
+    igual($id, $r->id);
+});
+
+teste('webhook de nota fiscal: evento sem cobrança correspondente é ignorado sem erro', function () {
+    bancoComSeed();
+    $r = (new ActionExecutor())->processarEventoNotaAsaas('INVOICE_AUTHORIZED', ['payment' => 'pay_desconhecido', 'status' => 'AUTHORIZED']);
+    verdadeiro($r->ok);
+    contem('não encontrada', $r->mensagem);
+});
+
+teste('pagamento confirmado com taxa do Asaas: lança despesa "Tarifas Asaas" automaticamente, sem duplicar em reconfirmação', function () {
+    bancoComSeed();
+    $empresaId = novaEmpresaFinanceiro();
+    $id = (int) (new ActionExecutor())->criar('cobrancas', ['empresa_id' => $empresaId, 'tipo' => 'avulsa', 'descricao' => 'Projeto site', 'valor' => '1.000,00', 'forma_pagamento' => 'cartao', 'vencimento' => '10/10/2026'], 'humano')->id;
+    Repositorios::cobrancas()->atualizar($id, ['asaas_id' => 'pay_taxa', 'asaas_tipo' => 'payment']);
+
+    $x = new ActionExecutor();
+    $x->processarEventoAsaas('PAYMENT_RECEIVED', [
+        'id' => 'pay_taxa', 'paymentDate' => '2026-10-09', 'value' => 1000.00, 'netValue' => 954.90, 'billingType' => 'CREDIT_CARD',
+    ]);
+
+    $despesas = Repositorios::despesas()->listar(['busca' => 'Taxa Asaas'])['linhas'];
+    igual(1, count($despesas));
+    $d = $despesas[0];
+    igual(4510, (int) $d['valor']); // 1000,00 - 954,90 = 45,10
+    igual('pago', $d['status']);
+    igual('2026-10-09', $d['data_pagamento']);
+    igual('cartao_credito', $d['meio_pagamento']);
+    igual('a_vista', $d['forma_pagamento']);
+    igual('Asaas', $d['fornecedor']);
+    contem('Projeto site', $d['descricao']);
+    verdadeiro(in_array('Tarifas Asaas', array_column(Repositorios::para('categorias_despesa')->todas(), 'nome'), true));
+
+    // Reconfirmação (ex.: CONFIRMED depois de RECEIVED) não deve lançar a taxa de novo: status já era "pago".
+    $x->processarEventoAsaas('PAYMENT_CONFIRMED', ['id' => 'pay_taxa', 'value' => 1000.00, 'netValue' => 954.90, 'billingType' => 'CREDIT_CARD']);
+    igual(1, count(Repositorios::despesas()->listar(['busca' => 'Taxa Asaas'])['linhas']));
+});
+
+teste('pagamento sem diferença entre valor bruto e líquido (ex.: Pix sem taxa) não lança despesa', function () {
+    bancoComSeed();
+    $empresaId = novaEmpresaFinanceiro();
+    $id = (int) (new ActionExecutor())->criar('cobrancas', ['empresa_id' => $empresaId, 'tipo' => 'avulsa', 'descricao' => 'Consultoria', 'valor' => '200,00', 'forma_pagamento' => 'pix', 'vencimento' => '10/10/2026'], 'humano')->id;
+    Repositorios::cobrancas()->atualizar($id, ['asaas_id' => 'pay_semtaxa', 'asaas_tipo' => 'payment']);
+
+    (new ActionExecutor())->processarEventoAsaas('PAYMENT_RECEIVED', ['id' => 'pay_semtaxa', 'value' => 200.00, 'netValue' => 200.00, 'billingType' => 'PIX']);
+    igual(0, count(Repositorios::despesas()->listar(['busca' => 'Taxa Asaas'])['linhas']));
+});
+
 // ---- Fallback local do worker ---------------------------------------------------------------------
 
 teste('worker: cobrança pendente já vencida sem confirmação do Asaas vira "vencido" (fallback local)', function () {

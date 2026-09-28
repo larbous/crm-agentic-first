@@ -373,6 +373,7 @@ final class Schema
             'notas'           => $f('textarea', 'Notas', 'dados', ['l' => 2]),
             'asaas_customer_id' => $f('texto', 'Cliente no Asaas', 'asaas', ['sis' => true]),
             'asaas_id'        => $f('texto', 'Cobrança/assinatura no Asaas', 'asaas', ['sis' => true]),
+            'asaas_payment_id' => $f('texto', 'Pagamento no Asaas (ciclo atual)', 'asaas', ['sis' => true]),
             'asaas_tipo'      => $f('texto', 'Tipo no Asaas', 'asaas', ['sis' => true]),
             'url_fatura'      => $f('url', 'Link da fatura', 'asaas', ['sis' => true]),
             'data_pagamento'  => $f('data', 'Data do pagamento', 'asaas', ['sis' => true]),

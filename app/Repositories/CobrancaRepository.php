@@ -51,6 +51,14 @@ final class CobrancaRepository extends BaseRepository
         return $st->fetch() ?: null;
     }
 
+    /** Pelo id do pagamento (payment) mais recente do ciclo — é o que o webhook de NF-e referencia (invoice.payment), não a assinatura. */
+    public function porAsaasPaymentId(string $paymentId): ?array
+    {
+        $st = $this->pdo()->prepare($this->selectBase() . ' WHERE a.asaas_payment_id = :id');
+        $st->execute(['id' => $paymentId]);
+        return $st->fetch() ?: null;
+    }
+
     /** Cobranças pendentes (sem confirmação do Asaas) já vencidas: fallback local caso o webhook não chegue. */
     public function pendentesVencidas(string $hoje, int $limite = 100): array
     {

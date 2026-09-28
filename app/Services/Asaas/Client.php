@@ -110,6 +110,48 @@ final class Client
         };
     }
 
+    /**
+     * Rótulo curto (cabe no `nfe_status`, 40 caracteres) a partir do status da nota fiscal (`invoice.status`).
+     * Cobre tanto o Emissor Nacional quanto prefeituras com integração própria (ex.: Nota Fiscal Paulistana) —
+     * o Asaas abstrai isso e devolve os mesmos status independente do município.
+     */
+    public static function statusNota(string $status, ?string $mensagemErro = null): string
+    {
+        return match ($status) {
+            'SCHEDULED' => 'Agendada',
+            'SYNCHRONIZED', 'SYNCED' => 'Sincronizando com a prefeitura',
+            'AUTHORIZED' => 'Emitida',
+            'PROCESSING_CANCELLATION' => 'Cancelamento em processamento',
+            'CANCELED' => 'Cancelada',
+            'CANCELLATION_DENIED' => 'Cancelamento negado',
+            'ERROR' => mb_strimwidth('Erro' . ($mensagemErro ? ": {$mensagemErro}" : ' na emissão'), 0, 40, '…'),
+            default => mb_strimwidth($status, 0, 40, '…'),
+        };
+    }
+
+    /** Taxa cobrada pelo Asaas numa cobrança recebida: diferença entre o valor bruto e o líquido (`payment.value` − `payment.netValue`), em centavos. */
+    public static function taxaDoPagamento(array $payment): int
+    {
+        if (!isset($payment['value'], $payment['netValue'])) {
+            return 0;
+        }
+        $bruto = (int) round(((float) $payment['value']) * 100);
+        $liquido = (int) round(((float) $payment['netValue']) * 100);
+        return max(0, $bruto - $liquido);
+    }
+
+    /** `meio_pagamento` das despesas (SPEC §4.14) a partir do `billingType` do Asaas. */
+    public static function meioPagamentoDespesa(?string $billingType): string
+    {
+        return match ($billingType) {
+            'BOLETO' => 'boleto',
+            'PIX' => 'pix',
+            'CREDIT_CARD' => 'cartao_credito',
+            'DEBIT_CARD' => 'cartao_debito',
+            default => 'outro',
+        };
+    }
+
     // ---- Apoio ----------------------------------------------------------------------------
 
     /** @return array{ok:bool,id:?string,tipo:?string,url_fatura:?string,erro:?string} */

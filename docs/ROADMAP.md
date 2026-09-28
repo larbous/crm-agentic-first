@@ -303,6 +303,25 @@ comportamento atual. Sem escopo definido ainda, então não vira checklist de fa
 
 ---
 
+## Complemento — NF-e pelo Asaas e taxa como despesa automática
+
+Fora do roteiro de fases, pedido direto do usuário (2026-09-28): a conta Asaas já está em produção, configurada com
+apoio da contabilidade (São Paulo emite pela Nota Fiscal Paulistana, não pelo Emissor Nacional). Contrato em SPEC §4.14–4.15.
+
+- [x] Migração `0018`: `cobrancas.asaas_payment_id` (id do pagamento do ciclo mais recente — necessário porque o
+      webhook de nota fiscal referencia o pagamento, não a assinatura de uma cobrança recorrente)
+- [x] Webhook do Asaas passa a tratar também eventos `INVOICE_*` (nota fiscal), sincronizando `nfe_status`/`nfe_url`
+      da cobrança (campos que já existiam desde a Fase 17, mas nada os preenchia)
+- [x] Taxa do Asaas (`payment.value` − `payment.netValue`, quando o pagamento é confirmado/recebido) lançada
+      automaticamente como despesa paga, categoria "Tarifas Asaas", sem duplicar em reconfirmação
+- [x] `tests/FinanceiroTest.php` (+7 casos, 363 no total); fluxo completo (pagamento com taxa → nota emitida →
+      cobrança recorrente com nota pelo pagamento do ciclo → despesa na lista) exercitado no navegador
+- Fora do escopo: emissão da nota pelo CRM (é sempre pelo painel do Asaas); qualquer cálculo tributário (CBS/IBS,
+  ISS) — o CRM só reflete o que o Asaas devolve; outras taxas do Asaas não ligadas a um pagamento específico (ex.:
+  mensalidade do plano, se houver) — só a diferença bruto/líquido por transação é capturada.
+
+---
+
 ## Pendência conhecida — IVA Dual (CBS/IBS) e gestão de fornecedor
 
 Fora do roteiro das 17 fases (nunca foi especificado em `docs/SPEC.md` nem no roteiro original de fases 10–17). Registrado em 2026-09-22 a partir de uma pergunta direta do usuário; sem escopo definido ainda, então não vira checklist de fase até isso acontecer.

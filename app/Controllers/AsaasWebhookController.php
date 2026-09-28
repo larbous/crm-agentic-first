@@ -53,12 +53,16 @@ final class AsaasWebhookController
         }
 
         try {
-            $dados = (array) ($payload['payment'] ?? []);
-            if ($dados !== []) {
-                $r = (new ActionExecutor())->processarEventoAsaas((string) $payload['event'], $dados);
-                if (!$r->ok) {
-                    error_log('Webhook Asaas: evento recusado: ' . $r->mensagem);
-                }
+            $evento = (string) $payload['event'];
+            $x = new ActionExecutor();
+            $r = null;
+            if (($dados = (array) ($payload['payment'] ?? [])) !== []) {
+                $r = $x->processarEventoAsaas($evento, $dados);
+            } elseif (($nota = (array) ($payload['invoice'] ?? [])) !== []) {
+                $r = $x->processarEventoNotaAsaas($evento, $nota);
+            }
+            if ($r !== null && !$r->ok) {
+                error_log('Webhook Asaas: evento recusado: ' . $r->mensagem);
             }
         } catch (Throwable $e) {
             error_log('Webhook Asaas: ' . $e);

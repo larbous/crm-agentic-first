@@ -131,13 +131,17 @@ trait AcoesFinanceiro
         }
 
         $novoStatus = AsaasClient::mapearStatus($evento);
+        $viraPaga = $novoStatus === 'pago' && $novoStatus !== $cobranca['status'];
         $mudaFatura = !empty($payment['invoiceUrl']) && $payment['invoiceUrl'] !== $cobranca['url_fatura'];
         $novoVencimento = self::vencimentoDoEvento($cobranca, $payment);
-        if (($novoStatus === null || $novoStatus === $cobranca['status']) && !$mudaFatura && $novoVencimento === null) {
+        // asaas_payment_id sempre acompanha o pagamento mais recente do ciclo (mesmo numa avulsa, onde já é igual a asaas_id):
+        // é por ele que o webhook de NF-e reencontra a cobrança (invoice.payment nunca é o id da assinatura).
+        $novoPaymentId = !empty($payment['id']) && (string) $payment['id'] !== (string) ($cobranca['asaas_payment_id'] ?? '') ? (string) $payment['id'] : null;
+        if (($novoStatus === null || $novoStatus === $cobranca['status']) && !$mudaFatura && $novoVencimento === null && $novoPaymentId === null) {
             return Resultado::sucesso((int) $cobranca['id'], 'Nada a atualizar.');
         }
 
-        return $this->transacao(function () use ($repo, $cobranca, $novoStatus, $novoVencimento, $payment): Resultado {
+        return $this->transacao(function () use ($repo, $cobranca, $novoStatus, $viraPaga, $novoVencimento, $novoPaymentId, $payment): Resultado {
             $depois = [];
             if ($novoStatus !== null && $novoStatus !== $cobranca['status']) {
                 $depois['status'] = $novoStatus;
@@ -151,11 +155,92 @@ trait AcoesFinanceiro
             if ($novoVencimento !== null) {
                 $depois['vencimento'] = $novoVencimento;
             }
+            if ($novoPaymentId !== null) {
+                $depois['asaas_payment_id'] = $novoPaymentId;
+            }
             $id = (int) $cobranca['id'];
             $antes = array_intersect_key($cobranca, $depois);
             $repo->atualizar($id, $depois + ['atualizado_em' => agora()]);
             $logId = Audit::registrar('sistema', 'cobrancas', $id, 'status_asaas', $antes, $depois);
+            if ($viraPaga) {
+                $this->lancarTaxaAsaas($cobranca, $payment, (string) ($depois['data_pagamento'] ?? hoje()));
+            }
             return Resultado::sucesso($id, 'Status atualizado pelo Asaas.', $repo->encontrar($id), $logId);
+        });
+    }
+
+    /**
+     * Lança como despesa a taxa que o Asaas descontou da cobrança recebida (payment.value − payment.netValue),
+     * na categoria "Tarifas Asaas" (criada na primeira vez). Silencioso: falha em registrar a despesa não pode
+     * derrubar a confirmação do pagamento, que é o que importa para o cliente e para o webhook responder 200.
+     */
+    private function lancarTaxaAsaas(array $cobranca, array $payment, string $dataPagamento): void
+    {
+        $taxa = AsaasClient::taxaDoPagamento($payment);
+        if ($taxa <= 0) {
+            return;
+        }
+        $categoriaId = $this->categoriaDespesaAsaas();
+        if ($categoriaId === null) {
+            return;
+        }
+        $descricao = mb_strimwidth('Taxa Asaas — ' . $cobranca['descricao'] . ' (' . $cobranca['empresa_nome'] . ')', 0, 200, '…');
+        $this->criar('despesas', [
+            'descricao' => $descricao, 'categoria_id' => $categoriaId, 'fornecedor' => 'Asaas',
+            'valor' => centavos_para_reais($taxa), 'vencimento' => $dataPagamento, 'status' => 'pago', 'data_pagamento' => $dataPagamento,
+            'meio_pagamento' => AsaasClient::meioPagamentoDespesa($payment['billingType'] ?? null), 'forma_pagamento' => 'a_vista',
+            'notas' => 'Lançada automaticamente pelo webhook do Asaas — cobrança #' . $cobranca['id'] . ', pagamento ' . ($payment['id'] ?? '?') . '.',
+        ], 'sistema');
+    }
+
+    /** Id de "Tarifas Asaas" em categorias_despesa, criando na primeira vez. Categoria própria (não a genérica "Tarifas bancárias" semeada por padrão) para deixar claro o que foi lançado automaticamente. */
+    private function categoriaDespesaAsaas(): ?int
+    {
+        $repo = Repositorios::para('categorias_despesa');
+        foreach ($repo->todas() as $c) {
+            if (normalizar_busca((string) $c['nome']) === normalizar_busca('Tarifas Asaas')) {
+                return (int) $c['id'];
+            }
+        }
+        $r = $this->criar('categorias_despesa', ['nome' => 'Tarifas Asaas'], 'sistema');
+        return $r->ok ? (int) $r->id : null;
+    }
+
+    /**
+     * Aplica um evento de nota fiscal do Asaas (INVOICE_*) na cobrança correspondente. `invoice.payment` é o
+     * pagamento do ciclo (não a assinatura), então a busca é por `asaas_payment_id` primeiro; `asaas_id` cobre
+     * cobrança avulsa cujo webhook de pagamento ainda não chegou (ali os dois já nascem iguais).
+     */
+    public function processarEventoNotaAsaas(string $evento, array $invoice): Resultado
+    {
+        $repo = Repositorios::cobrancas();
+        $cobranca = !empty($invoice['payment']) ? $repo->porAsaasPaymentId((string) $invoice['payment']) : null;
+        if ($cobranca === null && !empty($invoice['payment'])) {
+            $cobranca = $repo->porAsaasId((string) $invoice['payment']);
+        }
+        if ($cobranca === null) {
+            return Resultado::sucesso(null, 'Cobrança não encontrada para esta nota fiscal (ignorado).');
+        }
+
+        $novoStatus = isset($invoice['status']) ? AsaasClient::statusNota((string) $invoice['status'], $invoice['errorMessage'] ?? null) : null;
+        $novaUrl = !empty($invoice['pdfUrl']) ? (string) $invoice['pdfUrl'] : null;
+        $depois = [];
+        if ($novoStatus !== null && $novoStatus !== $cobranca['nfe_status']) {
+            $depois['nfe_status'] = $novoStatus;
+        }
+        if ($novaUrl !== null && $novaUrl !== $cobranca['nfe_url']) {
+            $depois['nfe_url'] = $novaUrl;
+        }
+        if ($depois === []) {
+            return Resultado::sucesso((int) $cobranca['id'], 'Nada a atualizar.');
+        }
+
+        return $this->transacao(function () use ($repo, $cobranca, $depois): Resultado {
+            $id = (int) $cobranca['id'];
+            $antes = array_intersect_key($cobranca, $depois);
+            $repo->atualizar($id, $depois + ['atualizado_em' => agora()]);
+            $logId = Audit::registrar('sistema', 'cobrancas', $id, 'nfe_asaas', $antes, $depois);
+            return Resultado::sucesso($id, 'Situação da nota fiscal atualizada.', $repo->encontrar($id), $logId);
         });
     }
 
