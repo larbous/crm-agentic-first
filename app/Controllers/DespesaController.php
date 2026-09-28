@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Response;
+use App\Core\Router;
+use App\Core\Session;
+use App\Core\View;
 use App\Repositories\Repositorios;
+use App\Services\DespesasCsv;
 use App\Services\Opcoes;
 use App\Services\Schema;
 
@@ -86,11 +90,72 @@ final class DespesaController extends CrudController
         return parent::padroesNovo() + ['vencimento' => hoje(), 'status' => 'pendente', 'forma_pagamento' => 'a_vista'];
     }
 
+    /** Importação de planilha (CSV): formulário, envio e download do modelo. Registrar depois das rotas do CRUD. */
+    public static function registrarExtras(Router $r): void
+    {
+        $r->get('/financeiro/despesas/importar', [self::class, 'formImportar']);
+        $r->post('/financeiro/despesas/importar', [self::class, 'importar']);
+        $r->get('/financeiro/despesas/modelo-planilha', [self::class, 'modelo']);
+    }
+
+    public function formImportar(): Response
+    {
+        return $this->paginaImportar(null);
+    }
+
+    public function modelo(): Response
+    {
+        return new Response(DespesasCsv::modelo(), 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="modelo-despesas.csv"',
+        ]);
+    }
+
+    public function importar(): Response
+    {
+        $arquivo = $_FILES['arquivo'] ?? null;
+        if (!is_array($arquivo) || ($arquivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return $this->paginaImportar(['ok' => false, 'erros' => ['Escolha o arquivo .csv exportado da planilha.']], 422);
+        }
+        if ((int) $arquivo['size'] > DespesasCsv::MAX_BYTES) {
+            return $this->paginaImportar(['ok' => false, 'erros' => ['O arquivo é grande demais (máximo de 1 MB).']], 422);
+        }
+        if (!in_array(strtolower(pathinfo((string) $arquivo['name'], PATHINFO_EXTENSION)), ['csv', 'txt'], true)) {
+            return $this->paginaImportar(['ok' => false, 'erros' => ['Envie o arquivo em formato CSV (na planilha: Arquivo → Baixar → Valores separados por vírgula).']], 422);
+        }
+
+        $lido = DespesasCsv::ler((string) file_get_contents((string) $arquivo['tmp_name']));
+        if ($lido['erros'] !== []) {
+            return $this->paginaImportar(['ok' => false, 'erros' => $lido['erros']], 422);
+        }
+
+        $somenteValidar = ($_POST['somente_validar'] ?? '0') === '1';
+        $r = (new DespesasCsv())->importar($lido['linhas'], ($_POST['criar_categorias'] ?? '0') === '1', !$somenteValidar);
+        if ($r['gravadas']) {
+            $extra = $r['categorias_novas'] !== [] ? ' Categorias criadas: ' . implode(', ', $r['categorias_novas']) . '.' : '';
+            Session::flash('success', $r['total'] . ($r['total'] === 1 ? ' despesa importada.' : ' despesas importadas.') . $extra);
+            return Response::redirecionar(url('/financeiro/despesas'));
+        }
+        return $this->paginaImportar($r, $r['ok'] ? 200 : 422);
+    }
+
+    private function paginaImportar(?array $resultado, int $status = 200): Response
+    {
+        return View::pagina('despesas/importar', [
+            'titulo'    => 'Importar despesas',
+            'resultado' => $resultado,
+            'categorias' => array_values(Opcoes::para('categorias_despesa')),
+            'criarCategorias' => ($_POST['criar_categorias'] ?? '0') === '1',
+            'somenteValidar'  => ($_POST['somente_validar'] ?? '0') === '1',
+        ], $status);
+    }
+
     /** No topo da lista: quanto há a pagar, quanto já venceu e quanto foi pago neste mês. */
     protected function acoesExtrasLista(): string
     {
         $r = Repositorios::despesas()->resumo(hoje(), date('Y-m-01'), date('Y-m-t'));
-        return '<span class="text-muted-foreground text-sm">A pagar <strong class="text-foreground">' . e(moeda($r['a_pagar'])) . '</strong></span>'
+        return botao('Importar planilha', ['href' => url('/financeiro/despesas/importar'), 'variante' => 'outline', 'icone' => 'upload'])
+            . '<span class="text-muted-foreground text-sm">A pagar <strong class="text-foreground">' . e(moeda($r['a_pagar'])) . '</strong></span>'
             . ($r['vencidas'] > 0 ? badge('Vencidas ' . moeda($r['vencidas']), 'destructive') : '')
             . '<span class="text-muted-foreground mr-2 text-sm">Pago no mês <strong class="text-foreground">' . e(moeda($r['pago_no_mes'])) . '</strong></span>';
     }

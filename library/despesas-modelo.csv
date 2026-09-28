@@ -1,0 +1,5 @@
+descricao,categoria,fornecedor,valor,vencimento,situacao,data_pagamento,meio_pagamento,forma_pagamento,notas
+Exemplo: aluguel da sala,Aluguel e condomínio,Imobiliária Central,"1.850,00",05/01/2025,Paga,05/01/2025,Boleto,Recorrente,
+Exemplo: assinatura de software,Software e assinaturas,Google Workspace,"59,90",10/01/2025,Paga,10/01/2025,Cartão de crédito,Recorrente,
+Exemplo: notebook novo,Equipamentos e manutenção,Loja Tech,"420,00",15/02/2025,Paga,15/02/2025,Cartão de crédito,Parcelado,Parcela 1 de 10
+Exemplo: imposto do mês,Impostos e taxas,Receita Federal,"780,00",20/03/2025,A pagar,,,À vista,

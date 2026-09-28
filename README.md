@@ -95,7 +95,7 @@ As regras que tornam isso seguro (e que valem a pena conhecer antes de mexer no 
 ### Financeiro
 - Cobranças avulsas e recorrentes integradas ao [Asaas](https://www.asaas.com) (boleto, Pix, cartão), com status sincronizado por webhook;
 - Lançamento de custos por cliente e **DRE por cliente** (receita − custo = margem) calculado sob demanda;
-- **Despesas da estrutura** (aluguel, software, impostos...): contas a pagar simples, por categoria, com meio (Pix, boleto, cartão...) e forma de pagamento (à vista, parcelado, recorrente) e alerta de vencidas.
+- **Despesas da estrutura** (aluguel, software, impostos...): contas a pagar simples, por categoria, com meio (Pix, boleto, cartão...) e forma de pagamento (à vista, parcelado, recorrente) e alerta de vencidas; importação do histórico por planilha (CSV do Google Planilhas ou Excel) com modelo pronto.
 
 ### Operação
 - Chamados internos por área (tráfego pago, design, social media, web, redação) com checklist de execução;

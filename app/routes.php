@@ -111,6 +111,7 @@ return static function (Router $r): void {
         CobrancaController::registrarExtras($r);
         CrudController::registrar($r, '/financeiro/custos', CustoController::class);
         CrudController::registrar($r, '/financeiro/despesas', DespesaController::class);
+        DespesaController::registrarExtras($r);
         DreController::registrar($r);
 
         // Agentes e squads de IA, ações pendentes de aprovação e execuções

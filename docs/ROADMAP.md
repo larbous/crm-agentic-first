@@ -281,7 +281,8 @@ Fora do roteiro de fases (pedido direto do usuário, 2026-09-28): módulo simple
 - [x] `Schema`/`ActionExecutor`: campos, enums (situação, meio, forma), regra "paga exige meio e carimba a data"
 - [x] Tela Financeiro → Despesas (lista com totais, filtros e selo "Vencida"; formulário em duas abas) e aba Configurações → Categorias de despesa
 - [x] `tests/DespesasTest.php` (7 casos); suíte completa passa (350 testes); fluxo criar → vencida → marcar paga exercitado no navegador
-- Fora do escopo: geração automática de parcelas/recorrência, anexo de comprovante, despesas no DRE, fornecedor como entidade (ver pendência abaixo), importação das despesas internas do Perfex (as 56 sem cliente que o importador ignorou).
+- [x] Importação por planilha CSV (`Services/DespesasCsv`, tela "Importar planilha", modelo `library/despesas-modelo.csv`): todo-ou-nada, "só validar", criar categorias novas opcional; `tests/DespesasCsvTest.php`
+- Fora do escopo: geração automática de parcelas/recorrência, anexo de comprovante, despesas no DRE, fornecedor como entidade (ver pendência abaixo), importação das despesas internas do Perfex (o usuário preferiu lançar à mão, via planilha).
 
 ---
 
