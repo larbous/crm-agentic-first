@@ -33,7 +33,11 @@
 |---|---|---|
 | [![Dashboard com o chat de comandos](docs/capturas/dashboard.png)](docs/capturas/dashboard.png) | [![Kanban de negócios](docs/capturas/kanban.png)](docs/capturas/kanban.png) | [![Lista de chamados por área](docs/capturas/chamados.png)](docs/capturas/chamados.png) |
 
-*(Dados de exemplo fictícios, gerados só para esta captura.)*
+**Chat de comandos em ação** (`/nota`, `/tarefa` e `/buscar` — sem chamar IA):
+
+![Chat registrando nota e tarefa e buscando registros](docs/capturas/chat-demo.gif)
+
+*(Dados de exemplo fictícios, gerados só para estas capturas.)*
 
 ---
 
