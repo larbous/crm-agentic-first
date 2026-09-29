@@ -1,6 +1,6 @@
 # CRM Lárbous — Roteiro de Fases 10 a 17
 
-Continuação do roadmap original (fases 1-9, já concluídas e commitadas). As 9 melhorias identificadas na comparação com o documento "Chronos Dock" foram agrupadas em 8 fases, sequenciadas por dependência técnica e custo/benefício — não pela ordem em que foram levantadas.
+Continuação do roadmap original (fases 1-9, já concluídas e commitadas). As 9 melhorias identificadas numa análise comparativa com outras ferramentas do mercado foram agrupadas em 8 fases, sequenciadas por dependência técnica e custo/benefício — não pela ordem em que foram levantadas.
 
 ---
 
@@ -101,8 +101,3 @@ Fase 16 (churn)    ──> depende de 14 (qualidade dos dados)
 Fase 17 (financeiro) ──> independente das demais, mas maior escopo — pode rodar em paralelo se houver capacidade
 ```
 
----
-
-## Próximo passo
-
-Este roteiro segue para o Claude Code, na sessão onde o CRM Lárbous vive, para virar tarefas de implementação. A migração de dados do Perfex CRM (especificação já entregue separadamente) fica para depois, como frente independente.

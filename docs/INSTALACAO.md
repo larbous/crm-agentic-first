@@ -17,6 +17,12 @@ funcionar (redireciona para `/login`) — não é possível usá-la de novo. Uma
 `storage/db/.instalado` faz esse mecanismo rodar só uma vez por instalação; **atualizações** (migrações
 novas de uma versão futura do CRM) continuam pelo `php scripts/migrate.php` de sempre, abaixo.
 
+> **Segurança na instalação:** enquanto não existe nenhum usuário, `/instalar` cria o administrador para
+> **quem chegar primeiro**. Suba os arquivos e crie o seu usuário na mesma hora — não deixe o endereço
+> exposto com a instalação por terminar. Use HTTPS (o cookie de sessão só ganha a flag `Secure` assim) e
+> confira que `https://seu-dominio/storage/db/crm.sqlite` responde 404. Mais recomendações em
+> [`SECURITY.md`](../SECURITY.md).
+
 ### Com CLI (desenvolvimento local ou hospedagem com SSH)
 
 ```bash
@@ -155,7 +161,7 @@ equivalente a `try_files $uri $uri/ /public/index.php?$query_string;` (servindo 
 
 ## Links públicos e banco de testes
 
-- `app.url_publica` (em `config.local.php`) define a URL absoluta usada nos links de proposta/contrato copiados na tela (ex.: `https://crm.larbous.com.br`). Vazio = host da requisição.
+- `app.url_publica` (em `config.local.php`) define a URL absoluta usada nos links de proposta/contrato copiados na tela (ex.: `https://crm.seudominio.com.br`). Vazio = host da requisição.
 - Para testar sem tocar no banco de uso: `CRM_DB_CAMINHO=/caminho/teste.sqlite php scripts/migrate.php` (idem `seed.php`, `criar-usuario.php` e `php -S`).
 
 ### Atualizar agentes da biblioteca depois de uma fase

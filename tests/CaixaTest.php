@@ -217,12 +217,12 @@ function clienteCaixa(): array
 
 function emailBruto(string $de, string $assunto, string $corpo, array $extra = [], string $mid = ''): string
 {
-    $cab = ["From: {$de}", 'To: crm@larbous.com.br', "Subject: {$assunto}", 'Date: ' . date('r'), 'Message-ID: <' . ($mid ?: bin2hex(random_bytes(6)) . '@cliente.com') . '>', 'MIME-Version: 1.0'];
+    $cab = ["From: {$de}", 'To: crm@agencia.exemplo.com.br', "Subject: {$assunto}", 'Date: ' . date('r'), 'Message-ID: <' . ($mid ?: bin2hex(random_bytes(6)) . '@cliente.com') . '>', 'MIME-Version: 1.0'];
     return implode("\r\n", array_merge($cab, $extra ?: ['Content-Type: text/plain; charset=UTF-8'])) . "\r\n\r\n" . $corpo . "\r\n";
 }
 
-const CANAL_EMAIL = ['imap_host' => 'imap.falso', 'usuario' => 'crm@larbous.com.br', 'senha' => 'segredo-imap', 'smtp_host' => 'smtp.falso',
-    'de_email' => 'crm@larbous.com.br', 'de_nome' => 'Lárbous'];
+const CANAL_EMAIL = ['imap_host' => 'imap.falso', 'usuario' => 'crm@agencia.exemplo.com.br', 'senha' => 'segredo-imap', 'smtp_host' => 'smtp.falso',
+    'de_email' => 'crm@agencia.exemplo.com.br', 'de_nome' => 'Lárbous'];
 
 // ---- Meta: assinatura, verificação e leitura dos payloads ---------------------------------------
 
@@ -598,8 +598,8 @@ teste('enviar: erro da API vira mensagem "falhou" com o motivo (sem a chave); In
 // ---- E-mail: MIME, IMAP, SMTP -----------------------------------------------------------------------
 
 teste('e-mail: lê cabeçalhos codificados, multipart com base64, quoted-printable em ISO-8859-1 e HTML puro; tira a citação', function () {
-    $multipart = "From: =?UTF-8?B?QW5hIFNvdXphIMOnw6M=?= <Ana@Padaria.com.br>\r\nTo: crm@larbous.com.br\r\nSubject: =?UTF-8?Q?Or=C3=A7amento_do_site?=\r\n"
-        . "Date: Tue, 15 Sep 2026 10:30:00 -0300\r\nMessage-ID: <abc123@padaria.com.br>\r\nIn-Reply-To: <anterior@larbous.com.br>\r\nMIME-Version: 1.0\r\n"
+    $multipart = "From: =?UTF-8?B?QW5hIFNvdXphIMOnw6M=?= <Ana@Padaria.com.br>\r\nTo: crm@agencia.exemplo.com.br\r\nSubject: =?UTF-8?Q?Or=C3=A7amento_do_site?=\r\n"
+        . "Date: Tue, 15 Sep 2026 10:30:00 -0300\r\nMessage-ID: <abc123@padaria.com.br>\r\nIn-Reply-To: <anterior@agencia.exemplo.com.br>\r\nMIME-Version: 1.0\r\n"
         . "Content-Type: multipart/alternative; boundary=\"LIMITE\"\r\n\r\n--LIMITE\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n"
         . chunk_split(base64_encode("Olá, aceito a proposta!\n\nEm 14/09/2026 10:00, Lárbous escreveu:\n> Segue a proposta\n> valor R$ 8.000"), 76, "\r\n")
         . "--LIMITE\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n<p>Olá, aceito a proposta!</p>\r\n--LIMITE--\r\n";
@@ -608,7 +608,7 @@ teste('e-mail: lê cabeçalhos codificados, multipart com base64, quoted-printab
     igual('Ana Souza çã', $e['de_nome']);
     igual('Orçamento do site', $e['assunto']);
     igual('abc123@padaria.com.br', $e['message_id']);
-    igual('anterior@larbous.com.br', $e['in_reply_to']);
+    igual('anterior@agencia.exemplo.com.br', $e['in_reply_to']);
     igual('Olá, aceito a proposta!', $e['texto'], 'só o texto novo, sem a citação');
     igual('2026-09-15 10:30:00', $e['data']);
     igual(false, $e['automatica']);
@@ -632,12 +632,12 @@ teste('e-mail: respostas automáticas, listas e no-reply são marcadas como auto
 });
 
 teste('e-mail: montar gera UTF-8 em base64 com Message-ID e In-Reply-To, e o que se monta é lido de volta igual', function () {
-    $m = Mime::montar('crm@larbous.com.br', 'Lárbous Agência', 'ana@padaria.com.br', 'Re: Orçamento do site', "Olá, Ana!\nTudo certo. .Ponto no começo", 'abc123@padaria.com.br');
+    $m = Mime::montar('crm@agencia.exemplo.com.br', 'Lárbous Agência', 'ana@padaria.com.br', 'Re: Orçamento do site', "Olá, Ana!\nTudo certo. .Ponto no começo", 'abc123@padaria.com.br');
     contem('In-Reply-To: <abc123@padaria.com.br>', $m['bruto']);
     contem('=?UTF-8?B?', $m['bruto']);
     contem('Message-ID: <' . $m['message_id'] . '>', $m['bruto']);
     $volta = Mime::ler($m['bruto']);
-    igual('crm@larbous.com.br', $volta['de_email']);
+    igual('crm@agencia.exemplo.com.br', $volta['de_email']);
     igual('Lárbous Agência', $volta['de_nome']);
     igual('Re: Orçamento do site', $volta['assunto']);
     igual("Olá, Ana!\nTudo certo. .Ponto no começo", $volta['texto']);
@@ -669,7 +669,7 @@ teste('e-mail (IMAP): a primeira coleta só marca o ponto de partida; depois imp
             3 => emailBruto('Ana Souza <ana@padaria.com.br>', 'Proposta do site', "Aceito a proposta!\r\n\r\nEm 14/09/2026 10:00, Lárbous escreveu:\r\n> valor", [], 'msg3@padaria.com.br'),
             4 => emailBruto('Desconhecido <estranho@outro.com>', 'Quero comprar', 'sou novo aqui'),
             5 => emailBruto('ana@padaria.com.br', 'Fora do escritório', 'volto segunda', ['Auto-Submitted: auto-replied', 'Content-Type: text/plain; charset=UTF-8']),
-            6 => emailBruto('crm@larbous.com.br', 'Eu mesmo', 'mensagem própria'),
+            6 => emailBruto('crm@agencia.exemplo.com.br', 'Eu mesmo', 'mensagem própria'),
             7 => emailBruto('ana@padaria.com.br', 'Outra dúvida', 'Qual o prazo?', [], 'msg7@padaria.com.br'),
         ];
         igual(2, Email::coletar(null, $agora + 200), 'só a Ana (proposta e dúvida); desconhecido, automática e própria ficam de fora');
@@ -733,8 +733,8 @@ teste('e-mail (SMTP): resposta pela conversa autentica, envia para o remetente c
 
         $r = (new ActionExecutor())->enviarMensagem((int) $c['id'], 'Ótimo, Ana! Vou preparar o contrato.');
         verdadeiro($r->ok, $r->mensagem);
-        igual(['crm@larbous.com.br', 'segredo-imap'], $smtp->usuarios, 'sem smtp_usuario, usa o mesmo login do IMAP');
-        igual(['crm@larbous.com.br', 'ana@padaria.com.br'], [$smtp->de, $smtp->para]);
+        igual(['crm@agencia.exemplo.com.br', 'segredo-imap'], $smtp->usuarios, 'sem smtp_usuario, usa o mesmo login do IMAP');
+        igual(['crm@agencia.exemplo.com.br', 'ana@padaria.com.br'], [$smtp->de, $smtp->para]);
         $enviada = Mime::ler($smtp->mensagem);
         igual('Re: Proposta do site', $enviada['assunto']);
         igual('entrada1@padaria.com.br', $enviada['in_reply_to']);

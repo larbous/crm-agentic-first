@@ -1,0 +1,26 @@
+name: Sugerir uma funcionalidade / Feature request
+description: Uma ideia ou necessidade nova
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual problema isso resolve?
+      description: Conte a situação real em que você sentiu falta disso. O problema importa mais que a solução.
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Como você imagina a solução?
+      description: Opcional. Um esboço, um exemplo de tela ou de comando do chat já ajuda.
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas que você considerou
+  - type: checkboxes
+    id: contribuir
+    attributes:
+      label: Contribuição
+      options:
+        - label: Posso ajudar a implementar (abrir um pull request).

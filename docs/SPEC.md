@@ -240,6 +240,7 @@ tipo (faturamento/mrr/novos_clientes/propostas_enviadas/negocios_ganhos), period
 ### 4.13 Tabelas de sistema
 
 - **usuarios:** nome, email, senha_hash, ultimo_login_em.
+- **login_tentativas:** ip, email, criado_em (migração 0019). Proteção contra força bruta: cada falha de login grava uma linha; o login responde **429** quando o mesmo IP acumula 5 falhas em 15 minutos, ou o mesmo e-mail acumula 20 falhas (de qualquer IP) na mesma janela — o teto do e-mail é bem maior para que um invasor não consiga trancar o operador de fora. Login com sucesso zera as falhas do IP. Usa só `REMOTE_ADDR` (nunca `X-Forwarded-For`). Linhas com mais de 24 h são apagadas oportunisticamente. Se a tabela ainda não existe (deploy antes da migração), o limite não bloqueia nem quebra o login (falha aberta, com registro no log de erros). Não é entidade de negócio (sem auditoria/soft delete).
 - **configuracoes:** chave, valor (modelos padrão, limites de tokens, dados da Lárbous para documentos, fuso).
 - **log_auditoria:** data, origem (humano/ia/agente:slug/formulario:id/sistema), entidade, registro_id, acao, antes (JSON), depois (JSON), execucao_id, desfeito_em.
 - **chat_mensagens:** papel (operador/sistema), conteudo, payload (JSON da ação/resultado), contexto (JSON).

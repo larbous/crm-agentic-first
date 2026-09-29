@@ -283,7 +283,7 @@ Fora do roteiro de fases (pedido direto do usuário, 2026-09-28): módulo simple
 - [x] `tests/DespesasTest.php` (7 casos); suíte completa passa (350 testes); fluxo criar → vencida → marcar paga exercitado no navegador
 - [x] Importação por planilha CSV (`Services/DespesasCsv`, tela "Importar planilha", modelo `library/despesas-modelo.csv`): todo-ou-nada, "só validar", criar categorias novas opcional; `tests/DespesasCsvTest.php`
 - [x] Rodapé da lista com total da coluna Valor: por página, acumulado (soma da página 1 até a atual) e da lista inteira, respeitando busca/filtros — mecanismo genérico em `BaseRepository::listar()`/`CrudController::somaMonetaria()`, reaproveitável por qualquer lista com coluna monetária
-- Fora do escopo: geração automática de parcelas/recorrência, anexo de comprovante, despesas no DRE, fornecedor como entidade (ver pendência abaixo), importação das despesas internas do Perfex (o usuário preferiu lançar à mão, via planilha).
+- Fora do escopo: geração automática de parcelas/recorrência, anexo de comprovante, despesas no DRE, fornecedor como entidade (ver pendência abaixo), importação a partir de outros sistemas (o histórico entra pela planilha CSV).
 
 ---
 
@@ -300,6 +300,20 @@ comportamento atual. Sem escopo definido ainda, então não vira checklist de fa
   curtos (dia 31 cai no último dia do mês?); (4) se a geração cria a despesa como "A pagar" com o mesmo valor/categoria/
   meio ou se pede confirmação; (5) como evitar duplicar (uma despesa "modelo" com vínculo às geradas, ou checar por
   descrição+mês). Seria uma rotina a mais no `cron/worker.php`, com tarefa/aviso quando gerar.
+
+---
+
+## Complemento — Preparação para tornar o repositório público
+
+Fora do roteiro de fases (2026-09-29), a partir de uma auditoria de segurança do código e do histórico do Git.
+
+- [x] Auditoria: histórico inteiro (45 commits) sem chaves de API, bancos, dumps ou dados de clientes
+- [x] **Limite de tentativas no login** (migração `0019`, SPEC §4.13): por IP e por e-mail, falha aberta se a tabela ainda não existe; `tests/LoginLimiteTest.php` (6 casos)
+- [x] Ferramenta de migração de dados do Perfex (específica da Lárbous) retirada do repositório público; código guardado só no repositório privado (branch `importador-perfex`)
+- [x] Domínios/e-mails reais removidos de docs e fixtures de teste; licença do Basecoat (MIT) copiada junto do bundle versionado
+- [x] `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, modelos de issue e de PR, workflow de CI (`.github/workflows/tests.yml`, PHP 8.2 e 8.3)
+- [x] README com resumo em inglês, selo de CI e seção de segurança; aviso sobre a rota `/instalar` (quem chega primeiro cria o administrador)
+- Pendente do lado do GitHub (não dá para fazer por código): ativar secret scanning/push protection, relato privado de vulnerabilidades, proteção da branch `main`, tópicos e descrição do repositório; decisão sobre o e-mail pessoal dos commits antigos.
 
 ---
 

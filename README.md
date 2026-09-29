@@ -5,10 +5,25 @@
 ![Licença MIT](https://img.shields.io/badge/licença-MIT-green)
 ![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-777bb4)
 ![Zero dependências](https://img.shields.io/badge/depend%C3%AAncias-zero-blue)
-![Testes](https://img.shields.io/badge/testes-350%20passando-brightgreen)
+[![Testes](https://github.com/larbous/crm-agentic-first/actions/workflows/tests.yml/badge.svg)](https://github.com/larbous/crm-agentic-first/actions/workflows/tests.yml)
+![369 casos de teste](https://img.shields.io/badge/casos%20de%20teste-369-brightgreen)
 ![Interface](https://img.shields.io/badge/interface-pt--BR-orange)
 
-> Toda a interface e a documentação são em português do Brasil (é um CRM feito para agências e times brasileiros). Pull requests com comentários e descrições em inglês são muito bem-vindos — este README explica o suficiente para você navegar pelo código mesmo sem ler português fluentemente.
+> Toda a interface e a documentação são em português do Brasil (é um CRM feito para agências e times brasileiros). Pull requests com comentários e descrições em inglês são muito bem-vindos — há um resumo em inglês logo abaixo.
+
+<details>
+<summary><strong>🇬🇧 English summary</strong></summary>
+
+**CRM Lárbous is a self-hosted, AI-native CRM for small agencies and sales teams — no framework, no Composer, no npm.** You copy the folder to any PHP host (shared hosting included), open the URL, and a setup screen creates the database and your admin user.
+
+- **Operate by chat *or* by screens.** Type `/nota called the client, sending the proposal` or plain language ("create an $8k deal for Padaria Central, contact Ana"), or use the regular CRUD screens — both write through the same gate.
+- **AI as a first-class citizen, with hard guardrails.** The AI never writes SQL and never touches the database: it returns JSON that the server validates against a whitelist before executing. Every action is audited and undoable; agents can only do what their JSON definition allows, with a confidence threshold and human approval queue.
+- **Built-in:** companies, contacts, deals & kanban, proposals & contracts with public e-signature links, tasks & tickets, unified inbox (WhatsApp, Instagram, e-mail), NPS, lead scoring (CHAMP), billing via Asaas (Brazil), expenses & per-client P&L, 9 ready-made agents and 6 squads.
+- **Stack:** PHP 8.2+, SQLite, vanilla JS, shadcn/ui look via Basecoat + Tailwind v4. Anthropic Claude (primary) with Google Gemini failover. **369 tests**, plain PHP.
+- **Quick start:** `php scripts/migrate.php && php scripts/seed.php && php scripts/criar-usuario.php "You" you@example.com "a-strong-password" && php -S localhost:8000 -t public`
+- The UI and most docs are in **Brazilian Portuguese** (it targets Brazilian agencies: Asaas, Pix, CNPJ...). Issues and PRs in English are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md).
+
+</details>
 
 ---
 
@@ -192,14 +207,23 @@ Detalhes de cada fase (o que foi testado, o que ficou pendente de credenciais ex
 
 - **0** dependências de terceiros para rodar (sem Composer, sem npm em produção)
 - **1** requisição HTTP para sair de "pasta copiada" para "CRM instalado"
-- **253** arquivos PHP em `/app`, todos com `declare(strict_types=1)`
-- **14** migrações, aplicadas em ordem e nunca reescritas
+- **263** arquivos PHP em `/app`, todos com `declare(strict_types=1)`
+- **19** migrações, aplicadas em ordem e nunca reescritas
 - **9** agentes e **6** squads prontos na biblioteca inicial
-- **325** casos de teste automatizados, em **21** arquivos, rodando sem PHPUnit — só PHP puro
+- **369** casos de teste automatizados, em **25** arquivos, rodando sem PHPUnit — só PHP puro
+
+## Segurança
+
+- **Login com limite de tentativas** (por IP e por e-mail), senhas com `password_hash`, sessão `httponly` + `SameSite=Lax` (+ `Secure` em HTTPS), CSRF em todo POST, saída HTML sempre escapada, SQL só com prepared statements.
+- **A IA não tem acesso ao banco**: valida-se tudo contra uma *whitelist* antes de gravar, e toda ação é auditada e pode ser desfeita.
+- **Webhooks fecham por padrão**: com o token/segredo vazio, Asaas, Meta e a integração de squads recusam qualquer chamada.
+- **Ao instalar:** use HTTPS e **crie o primeiro usuário logo após subir o sistema** — enquanto não existe usuário, a rota `/instalar` cria o administrador para quem chegar primeiro. Chaves e senhas ficam só em `config.local.php` (ignorado pelo Git).
+
+Encontrou uma falha? Não abra issue pública: veja o [`SECURITY.md`](SECURITY.md) (inclui um checklist de endurecimento para quem instala).
 
 ## Contribuindo
 
-Contribuições são bem-vindas — faça um fork, crie uma branch e abra um pull request.
+Contribuições são bem-vindas — faça um fork, crie uma branch e abra um pull request. Este projeto segue um [código de conduta](CODE_OF_CONDUCT.md), e o guia completo está em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Antes de começar:
 

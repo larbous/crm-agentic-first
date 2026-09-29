@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Falha de segurança / Security vulnerability
+    url: https://github.com/larbous/crm-agentic-first/security/advisories/new
+    about: Não abra issue pública. Relate de forma privada, para dar tempo de corrigir antes de divulgar.

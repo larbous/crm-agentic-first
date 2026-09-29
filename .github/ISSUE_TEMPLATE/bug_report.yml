@@ -1,0 +1,43 @@
+name: Relatar um bug / Bug report
+description: Algo não funciona como deveria
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por relatar! **Falha de segurança? Não abra issue pública** — veja o [SECURITY.md](../blob/main/SECURITY.md).
+        Não cole chaves de API, senhas nem dados reais de clientes.
+  - type: textarea
+    id: o-que-aconteceu
+    attributes:
+      label: O que aconteceu?
+      description: Descreva o problema e o que você esperava que acontecesse.
+    validations:
+      required: true
+  - type: textarea
+    id: como-reproduzir
+    attributes:
+      label: Como reproduzir
+      placeholder: |
+        1. Abra ...
+        2. Clique em ...
+        3. Veja o erro ...
+    validations:
+      required: true
+  - type: input
+    id: versao
+    attributes:
+      label: Versão ou commit
+      placeholder: ex.: main @ a1b2c3d
+  - type: input
+    id: ambiente
+    attributes:
+      label: Ambiente
+      description: Versão do PHP, servidor (Apache/nginx/`php -S`), hospedagem compartilhada ou local.
+      placeholder: ex.: PHP 8.3, Apache, hospedagem compartilhada
+  - type: textarea
+    id: logs
+    attributes:
+      label: Mensagens de erro ou logs
+      description: Copie o texto do erro (sem dados sensíveis). Prints também ajudam.
+      render: shell
