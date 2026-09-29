@@ -2,37 +2,40 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Paleta Lárbous: principal #1cbddd (ciano), secundária #f707d5 (magenta), terceira #7f6fea (violeta),
+     complementos #2c1948 (roxo profundo) e #1b2f4a (azul-marinho). Os fundos e bordas levam um tom do violeta
+     (matiz 286) para o sistema não ficar branco; o ciano é claro, então o texto sobre ele é o azul-marinho. */
+  --background: oklch(0.962 0.014 286);
+  --foreground: oklch(0.22 0.05 295);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.22 0.05 295);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.511 0.262 276.966); /* PLACEHOLDER: cor oficial da Lárbous */
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.22 0.05 295);
+  --primary: oklch(0.737 0.127 216.3); /* #1cbddd */
+  --primary-foreground: oklch(0.302 0.056 256.3); /* #1b2f4a */
+  --secondary: oklch(0.94 0.022 286);
+  --secondary-foreground: oklch(0.266 0.085 299.2); /* #2c1948 */
+  --muted: oklch(0.945 0.02 286);
+  --muted-foreground: oklch(0.5 0.035 286);
+  --accent: oklch(0.925 0.045 286);
+  --accent-foreground: oklch(0.266 0.085 299.2);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.585 0.233 277.117);
-  --chart-1: #93c5fd;
-  --chart-2: #3b82f6;
-  --chart-3: #2563eb;
-  --chart-4: #1d4ed8;
-  --chart-5: #1e40af;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.511 0.262 276.966);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --border: oklch(0.89 0.025 286);
+  --input: oklch(0.89 0.025 286);
+  --ring: oklch(0.737 0.127 216.3);
+  --chart-1: #1cbddd;
+  --chart-2: #7f6fea;
+  --chart-3: #f707d5;
+  --chart-4: #1b2f4a;
+  --chart-5: #2c1948;
+  --sidebar: oklch(0.935 0.035 286);
+  --sidebar-foreground: oklch(0.22 0.05 295);
+  --sidebar-primary: oklch(0.737 0.127 216.3);
+  --sidebar-primary-foreground: oklch(0.302 0.056 256.3);
+  --sidebar-accent: oklch(0.885 0.065 286);
+  --sidebar-accent-foreground: oklch(0.266 0.085 299.2);
+  --sidebar-border: oklch(0.87 0.035 286);
+  --sidebar-ring: oklch(0.737 0.127 216.3);
   --success: oklch(0.527 0.154 150.069);
   --success-foreground: oklch(0.985 0 0);
   --warning: oklch(0.769 0.188 70.08);
@@ -50,43 +53,44 @@
   --scrollbar-width: 0.625rem;
   --scrollbar-sm-width: 0.375rem;
   --scrollbar-radius: 9999px;
-  --chevron-down-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.556 0 0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>'); /* --muted-foreground */
-  --chevron-down-icon-50: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.556 0 0 / 0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>'); /* --muted-foreground + 50% opacity */
-  --check-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.556 0 0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-icon lucide-check"><path d="M20 6 9 17l-5-5"/></svg>'); /* --muted-foreground */
+  --chevron-down-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.5 0.035 286)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>'); /* --muted-foreground */
+  --chevron-down-icon-50: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.5 0.035 286 / 0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>'); /* --muted-foreground + 50% opacity */
+  --check-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.5 0.035 286)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-icon lucide-check"><path d="M20 6 9 17l-5-5"/></svg>'); /* --muted-foreground */
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.673 0.182 276.935); /* PLACEHOLDER: cor oficial da Lárbous */
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.371 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* Escuro: parte do roxo profundo #2c1948 e do azul-marinho #1b2f4a da marca, com o ciano mais vivo. */
+  --background: oklch(0.17 0.03 290);
+  --foreground: oklch(0.96 0.01 290);
+  --card: oklch(0.215 0.045 290);
+  --card-foreground: oklch(0.96 0.01 290);
+  --popover: oklch(0.215 0.045 290);
+  --popover-foreground: oklch(0.96 0.01 290);
+  --primary: oklch(0.78 0.125 216.3);
+  --primary-foreground: oklch(0.25 0.05 256.3);
+  --secondary: oklch(0.27 0.05 290);
+  --secondary-foreground: oklch(0.96 0.01 290);
+  --muted: oklch(0.27 0.045 290);
+  --muted-foreground: oklch(0.72 0.03 290);
+  --accent: oklch(0.34 0.09 290);
+  --accent-foreground: oklch(0.96 0.01 290);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.585 0.233 277.117);
-  --chart-1: #93c5fd;
-  --chart-2: #3b82f6;
-  --chart-3: #2563eb;
-  --chart-4: #1d4ed8;
-  --chart-5: #1e40af;
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.673 0.182 276.935);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.78 0.125 216.3);
+  --chart-1: #1cbddd;
+  --chart-2: #7f6fea;
+  --chart-3: #f707d5;
+  --chart-4: #5aa0d8;
+  --chart-5: #a78bfa;
+  --sidebar: oklch(0.2 0.06 296);
+  --sidebar-foreground: oklch(0.96 0.01 290);
+  --sidebar-primary: oklch(0.78 0.125 216.3);
+  --sidebar-primary-foreground: oklch(0.25 0.05 256.3);
+  --sidebar-accent: oklch(0.29 0.09 296);
+  --sidebar-accent-foreground: oklch(0.96 0.01 290);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.439 0 0);
+  --sidebar-ring: oklch(0.78 0.125 216.3);
   --success: oklch(0.696 0.17 162.48);
   --success-foreground: oklch(0.145 0 0);
   --warning: oklch(0.828 0.189 84.429);
@@ -97,9 +101,9 @@
   --temp-morno: oklch(0.828 0.189 84.429);
   --temp-quente: oklch(0.704 0.191 22.216);
   --temp-fervendo: oklch(0.712 0.194 13.428);
-  --chevron-down-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.708 0 0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>'); /* --muted-foreground */
-  --chevron-down-icon-50: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.708 0 0 / 0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>'); /* --muted-foreground + 50% opacity */
-  --check-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.708 0 0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-icon lucide-check"><path d="M20 6 9 17l-5-5"/></svg>');/* --muted-foreground */
+  --chevron-down-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.72 0.03 290)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>'); /* --muted-foreground */
+  --chevron-down-icon-50: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.72 0.03 290 / 0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>'); /* --muted-foreground + 50% opacity */
+  --check-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.72 0.03 290)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-icon lucide-check"><path d="M20 6 9 17l-5-5"/></svg>');/* --muted-foreground */
   color-scheme: dark;
 }
 
