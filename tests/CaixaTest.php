@@ -84,8 +84,7 @@ final class ImapFalso implements Conexao
 
     public function fechar(): void
     {
-        $this->saida = "* OK IMAP falso pronto
-"; // a próxima conexão recebe a saudação de novo
+        $this->saida = "* OK IMAP falso pronto\r\n"; // a próxima conexão recebe a saudação de novo
     }
 }
 

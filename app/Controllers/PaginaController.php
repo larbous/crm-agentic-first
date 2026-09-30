@@ -7,6 +7,8 @@ namespace App\Controllers;
 use App\Core\Response;
 use App\Core\View;
 use App\Repositories\AcaoPendenteRepository;
+use App\Repositories\ConversaRepository;
+use App\Repositories\DashboardRepository;
 use App\Repositories\Repositorios;
 use App\Services\Metas;
 
@@ -24,7 +26,7 @@ final class PaginaController
         $pipeline = Repositorios::pipelines()->padrao();
         return View::pagina('paginas/inicio', [
             'titulo'    => 'Início',
-            'painel_chat' => false, // o chat fica central na página
+            'chat_aberto_padrao' => true, // o painel de chat já vem aberto no Início (como nas demais telas, à direita)
             'atrasadas' => self::juntar($repo->grupo('atrasadas', hoje(), $limite), Repositorios::chamados()->grupo('atrasadas', hoje(), $limite)),
             'hoje'      => self::juntar($repo->grupo('hoje', hoje(), $limite), Repositorios::chamados()->grupo('hoje', hoje(), $limite)),
             'pipeline'  => $pipeline,
@@ -33,7 +35,39 @@ final class PaginaController
             'contratos' => Repositorios::contratos()->vencendo(self::DIAS_CONTRATO_VENCENDO),
             'metas'     => Metas::vigentes(),
             'acoesPendentes' => (new AcaoPendenteRepository())->contarPendentes(),
+            'indicadores' => self::indicadores($repo, $limite),
         ]);
+    }
+
+    /** Números e séries dos gráficos do Início: o que vale saber logo de manhã em cada módulo. */
+    private static function indicadores(object $tarefas, string $limiteSemana): array
+    {
+        $d = new DashboardRepository();
+        $hoje = hoje();
+        $meses = DashboardRepository::ultimosMeses(6);
+        $dias = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $dias[] = date('Y-m-d', strtotime("-{$i} days"));
+        }
+        $inicioMes = date('Y-m-01');
+        $fimMes = date('Y-m-t');
+        return [
+            'meses'      => $meses,
+            'dias'       => $dias,
+            'ganhos'     => $d->ganhosPorMes($meses),
+            'conversao'  => $d->conversao(date('Y-m-d', strtotime('-90 days'))),
+            'novos'      => $d->novosNegocios(date('Y-m-d', strtotime('-30 days'))),
+            'fluxo'      => $d->fluxoPorMes($meses),
+            'cobrancas'  => $d->cobrancasResumo($hoje, $limiteSemana, $inicioMes, $fimMes),
+            'propostas'  => $d->propostasPorStatus(),
+            'emAberto'   => $d->propostasEmAberto(),
+            'contratos'  => $d->contratos(),
+            'nps'        => $d->npsRecente(date('Y-m-d', strtotime('-90 days'))),
+            'execucoes'  => $d->execucoesPorDia($dias),
+            'tarefas'    => $tarefas->contagens($hoje, $limiteSemana),
+            'chamados'   => Repositorios::chamados()->contagens($hoje, $limiteSemana),
+            'naoLidas'   => (new ConversaRepository())->contarComNaoLidas(),
+        ];
     }
 
     /**

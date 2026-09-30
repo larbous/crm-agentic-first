@@ -257,6 +257,8 @@ document.querySelectorAll('[data-chat]').forEach((caixa) => {
 
 if (painel) {
     let inicial = false;
-    try { inicial = localStorage.getItem(CHAVE) === '1' && window.matchMedia('(min-width: 1024px)').matches; } catch (_) { /* sem armazenamento */ }
-    definirAberto(inicial, { salvar: false });
+    try { inicial = localStorage.getItem(CHAVE) === '1'; } catch (_) { /* sem armazenamento */ }
+    // Páginas como o Início pedem o painel aberto de saída (só no desktop; a preferência salva não muda).
+    if (painel.hasAttribute('data-aberto-padrao')) inicial = true;
+    definirAberto(inicial && window.matchMedia('(min-width: 1024px)').matches, { salvar: false });
 }

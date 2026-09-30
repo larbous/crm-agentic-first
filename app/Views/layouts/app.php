@@ -5,7 +5,8 @@
  * @var string $titulo
  * @var string $caminho caminho atual (para marcar o item ativo)
  * @var array|null $usuario
- * @var bool|null $painel_chat false = sem painel lateral (a página já traz o chat central)
+ * @var bool|null $painel_chat false = sem painel lateral
+ * @var bool|null $chat_aberto_padrao true = o painel de chat já abre com a página (desktop), sem alterar a preferência salva
  */
 use App\Core\Session;
 use App\Core\View;
@@ -180,7 +181,7 @@ $item = static function (array $n) use ($ativo, $acoesPendentes, $caixaNaoLidas)
         </main>
 
         <?php if ($painel_chat ?? true) : ?>
-        <aside id="painel-chat" class="chat-painel" aria-label="Chat" hidden>
+        <aside id="painel-chat" class="chat-painel" aria-label="Chat" hidden<?= ($chat_aberto_padrao ?? false) ? ' data-aberto-padrao' : '' ?>>
             <header class="chat-painel-topo">
                 <div class="flex items-center gap-2 font-medium"><?= icone('sparkles') ?> Chat</div>
                 <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" data-alternar-chat aria-label="Fechar chat"><?= icone('x') ?></button>
