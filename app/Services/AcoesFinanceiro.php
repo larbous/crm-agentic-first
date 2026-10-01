@@ -58,6 +58,9 @@ trait AcoesFinanceiro
             $clienteId = $cliente['id'];
             // Cache do id de integração: não é uma mudança de negócio da empresa, então não gera entrada própria de auditoria.
             $empresas->atualizar((int) $empresa['id'], ['asaas_customer_id' => $clienteId, 'atualizado_em' => agora()]);
+        } else {
+            // Cliente já existe no Asaas: mantém o cadastro em dia (razão social, endereço...). Falha aqui não impede a emissão.
+            AsaasClient::atualizarCliente($clienteId, $empresa);
         }
 
         $envio = $cobranca['tipo'] === 'recorrente'
