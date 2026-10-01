@@ -30,22 +30,55 @@ final class Client
     /** @return array{ok:bool,id:?string,erro:?string} */
     public static function obterOuCriarCliente(array $empresa): array
     {
-        $documento = so_digitos((string) ($empresa['cnpj'] ?? ''));
-        $corpo = array_filter([
-            'name' => (string) $empresa['nome_fantasia'],
-            'cpfCnpj' => $documento !== '' ? $documento : null,
-            'email' => ($empresa['email_geral'] ?? null) ?: null,
-            'phone' => so_digitos((string) ($empresa['telefone'] ?? '')) ?: null,
-            'mobilePhone' => so_digitos((string) ($empresa['whatsapp'] ?? '')) ?: null,
-            'externalReference' => (string) $empresa['id'],
-        ], static fn ($v) => $v !== null && $v !== '');
-
-        $r = self::requisitar('POST', '/customers', $corpo);
+        $r = self::requisitar('POST', '/customers', self::corpoCliente($empresa));
         if ($r['status'] < 200 || $r['status'] >= 300) {
             return ['ok' => false, 'id' => null, 'erro' => self::erroDoCorpo($r)];
         }
         $dados = json_decode($r['corpo'], true);
         return isset($dados['id']) ? ['ok' => true, 'id' => (string) $dados['id'], 'erro' => null] : ['ok' => false, 'id' => null, 'erro' => 'Resposta do Asaas sem id do cliente.'];
+    }
+
+    /** Atualiza o cadastro do cliente já existente no Asaas com os dados atuais da empresa. */
+    public static function atualizarCliente(string $clienteId, array $empresa): array
+    {
+        $r = self::requisitar('PUT', "/customers/{$clienteId}", self::corpoCliente($empresa));
+        return $r['status'] >= 200 && $r['status'] < 300 ? ['ok' => true, 'erro' => null] : ['ok' => false, 'erro' => self::erroDoCorpo($r)];
+    }
+
+    /** No Asaas, `name` é a razão social e `company` o nome fantasia; só vão os campos preenchidos. */
+    private static function corpoCliente(array $empresa): array
+    {
+        $texto = static fn (string $campo): ?string => trim((string) ($empresa[$campo] ?? '')) !== '' ? trim((string) $empresa[$campo]) : null;
+        $documento = so_digitos((string) ($empresa['cnpj'] ?? ''));
+
+        return array_filter([
+            'name' => $texto('razao_social') ?? (string) $empresa['nome_fantasia'],
+            'company' => $texto('nome_fantasia'),
+            'cpfCnpj' => $documento,
+            'email' => $texto('email_geral'),
+            'phone' => self::telefone((string) ($empresa['telefone'] ?? '')),
+            'mobilePhone' => self::telefone((string) ($empresa['whatsapp'] ?? '')),
+            'postalCode' => so_digitos((string) ($empresa['cep'] ?? '')),
+            'address' => $texto('logradouro'),
+            'addressNumber' => $texto('numero'),
+            'complement' => $texto('complemento'),
+            'province' => $texto('bairro'),
+            'externalReference' => (string) $empresa['id'],
+        ], static fn ($v) => $v !== null && $v !== '');
+    }
+
+    /**
+     * Telefone no padrão do Asaas: só dígitos, DDD + número, sem código do país — (xx) xxxx-xxxx (10) ou (xx) xxxxx-xxxx (11).
+     * Remove o 55 inicial quando sobram 10/11 dígitos (por isso um DDD 55 sem código do país não é mexido). Fora do
+     * padrão devolve null: o campo é omitido, porque um telefone inválido faz o Asaas recusar o cadastro inteiro.
+     */
+    public static function telefone(string $valor): ?string
+    {
+        $digitos = so_digitos($valor);
+        if (in_array(strlen($digitos), [12, 13], true) && str_starts_with($digitos, '55')) {
+            $digitos = substr($digitos, 2);
+        }
+        return in_array(strlen($digitos), [10, 11], true) ? $digitos : null;
     }
 
     /** @return array{ok:bool,id:?string,tipo:?string,url_fatura:?string,erro:?string} */

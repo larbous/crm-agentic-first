@@ -91,6 +91,9 @@ teste('cobrança avulsa: emite no Asaas e cacheia o cliente na empresa (não rec
             $chamadasPagamento++;
             return ['status' => 200, 'corpo' => json_encode(['id' => 'pay_00000' . $chamadasPagamento, 'invoiceUrl' => 'https://sandbox.asaas.com/i/pay_00000' . $chamadasPagamento]), 'erro' => null];
         }
+        if ($req['caminho'] === '/customers/cus_000001' && $req['metodo'] === 'PUT') {
+            return ['status' => 200, 'corpo' => json_encode(['id' => 'cus_000001']), 'erro' => null];
+        }
         throw new RuntimeException('rota inesperada: ' . $req['caminho']);
     }, function () use ($empresaId, &$chamadasCliente) {
         $x = new ActionExecutor();
@@ -108,6 +111,54 @@ teste('cobrança avulsa: emite no Asaas e cacheia o cliente na empresa (não rec
         verdadeiro($r2->ok, $r2->mensagem);
         igual(1, $chamadasCliente, 'o cliente do Asaas só é criado na primeira cobrança da empresa');
     });
+});
+
+teste('cliente no Asaas: name = razão social, company = nome fantasia, com endereço; cliente existente é atualizado (PUT)', function () {
+    bancoComSeed();
+    $empresaId = novaEmpresaFinanceiro([
+        'razao_social' => 'Padaria Sol Ltda', 'cnpj' => '11.222.333/0001-81', 'email_geral' => 'financeiro@padariasol.com.br',
+        'cep' => '30130-100', 'logradouro' => 'Av. Afonso Pena', 'numero' => '1500', 'complemento' => 'Sala 2', 'bairro' => 'Centro',
+    ]);
+    $clientes = [];
+    comAsaas(function (array $req) use (&$clientes) {
+        if (str_starts_with($req['caminho'], '/customers')) {
+            $clientes[] = $req;
+            return ['status' => 200, 'corpo' => json_encode(['id' => 'cus_1']), 'erro' => null];
+        }
+        return ['status' => 200, 'corpo' => json_encode(['id' => 'pay_' . count($clientes) . uniqid()]), 'erro' => null];
+    }, function () use ($empresaId, &$clientes) {
+        $dados = ['empresa_id' => $empresaId, 'tipo' => 'avulsa', 'descricao' => 'Site', 'valor' => '100,00', 'forma_pagamento' => 'pix', 'vencimento' => '10/10/2026'];
+        $x = new ActionExecutor();
+        verdadeiro($x->criarCobranca($dados, 'humano')->ok);
+        $x->criarCobranca($dados, 'humano');
+
+        igual(['POST', 'PUT'], array_column($clientes, 'metodo'));
+        igual('/customers/cus_1', $clientes[1]['caminho']);
+        $corpo = $clientes[0]['corpo'];
+        igual('Padaria Sol Ltda', $corpo['name']);
+        igual('Padaria Sol', $corpo['company']);
+        igual('11222333000181', $corpo['cpfCnpj']);
+        igual('30130100', $corpo['postalCode']);
+        igual('Av. Afonso Pena', $corpo['address']);
+        igual('1500', $corpo['addressNumber']);
+        igual('Sala 2', $corpo['complement']);
+        igual('Centro', $corpo['province']);
+        igual('financeiro@padariasol.com.br', $corpo['email']);
+        igual($corpo, $clientes[1]['corpo']);
+    });
+});
+
+teste('AsaasClient::telefone: remove o código do país, aceita fixo e celular e omite o que está fora do padrão', function () {
+    igual('31987654321', AsaasClient::telefone('+55 (31) 98765-4321'));
+    igual('3133334444', AsaasClient::telefone('55 31 3333-4444'));
+    igual('31987654321', AsaasClient::telefone('(31) 98765-4321'));
+    igual('3133334444', AsaasClient::telefone('(31) 3333-4444'));
+    igual('55987654321', AsaasClient::telefone('(55) 98765-4321')); // DDD 55 sem código do país: não confunde
+    igual('5533334444', AsaasClient::telefone('(55) 3333-4444'));
+    igual('55987654321', AsaasClient::telefone('+55 (55) 98765-4321')); // código do país + DDD 55
+    igual(null, AsaasClient::telefone('3333-4444'));
+    igual(null, AsaasClient::telefone(''));
+    igual(null, AsaasClient::telefone('+44 20 7946 0958'));
 });
 
 teste('cobrança recorrente: emite assinatura com o ciclo e a forma de pagamento certos', function () {
