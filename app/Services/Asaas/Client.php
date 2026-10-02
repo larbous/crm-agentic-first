@@ -63,6 +63,8 @@ final class Client
             'addressNumber' => $texto('numero'),
             'complement' => $texto('complemento'),
             'province' => $texto('bairro'),
+            'municipalInscription' => $texto('inscricao_municipal'),
+            'stateInscription' => $texto('inscricao_estadual'),
             'externalReference' => (string) $empresa['id'],
         ], static fn ($v) => $v !== null && $v !== '');
     }

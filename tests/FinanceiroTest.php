@@ -117,7 +117,7 @@ teste('cliente no Asaas: name = razão social, company = nome fantasia, com ende
     bancoComSeed();
     $empresaId = novaEmpresaFinanceiro([
         'razao_social' => 'Padaria Sol Ltda', 'cnpj' => '11.222.333/0001-81', 'email_geral' => 'financeiro@padariasol.com.br',
-        'cep' => '30130-100', 'logradouro' => 'Av. Afonso Pena', 'numero' => '1500', 'complemento' => 'Sala 2', 'bairro' => 'Centro',
+        'inscricao_municipal' => '12345', 'inscricao_estadual' => 'ISENTO', 'cep' => '30130-100', 'logradouro' => 'Av. Afonso Pena', 'numero' => '1500', 'complemento' => 'Sala 2', 'bairro' => 'Centro',
     ]);
     $clientes = [];
     comAsaas(function (array $req) use (&$clientes) {
@@ -143,6 +143,8 @@ teste('cliente no Asaas: name = razão social, company = nome fantasia, com ende
         igual('1500', $corpo['addressNumber']);
         igual('Sala 2', $corpo['complement']);
         igual('Centro', $corpo['province']);
+        igual('12345', $corpo['municipalInscription']);
+        igual('ISENTO', $corpo['stateInscription']);
         igual('financeiro@padariasol.com.br', $corpo['email']);
         igual($corpo, $clientes[1]['corpo']);
     });
