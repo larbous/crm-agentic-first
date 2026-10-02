@@ -326,3 +326,133 @@ teste('integração: registros vindos do Opensquad não disparam agentes nem squ
     igual(2, count((new ExecucaoRepository())->daFila(10)), 'empresa criada à mão continua disparando');
     Events::limpar();
 });
+
+// ---- Evento "proposta" ------------------------------------------------------------------------
+
+function eventoPropostaJf(array $mudar = []): array
+{
+    return array_replace_recursive([
+        'id' => 'proposta-jf', 'tipo' => 'proposta',
+        'empresa' => ['nome_fantasia' => 'JF Cabeleireiro', 'telefone' => '(11) 98888-7777'],
+        'proposta' => [
+            'titulo' => 'Presença local — JF Cabeleireiro',
+            'apresentacao' => "O que encontramos\n\nFicha do Google incompleta.",
+            'condicoes_pagamento' => 'Sem fidelidade.',
+            'itens' => [
+                ['descricao' => 'Biosfera completo', 'quantidade' => 1, 'unidade' => 'mês', 'valor_unitario' => 347, 'recorrente' => true],
+                ['descricao' => 'Site novo de uma página', 'valor_unitario' => '1.200,00', 'desconto' => '1.200,00'],
+            ],
+        ],
+    ], $mudar);
+}
+
+teste('integração: proposta cria rascunho com itens e totais no negócio aberto, sem mexer no valor do negócio', function () {
+    bancoIntegracao();
+    [, $corpo] = enviarLote([eventoLeadJf(['tarefas' => []])]);
+    $negocioId = (int) $corpo['resultados'][0]['negocio_id'];
+
+    [, $corpo] = enviarLote([eventoPropostaJf(['proposta' => ['numero' => 'X', 'status' => 'aceita']])], 'run-prop', 'diagnostico-fechamento');
+    $r = $corpo['resultados'][0];
+    igual('ok', $r['status'], json_encode($r));
+    igual($negocioId, (int) $r['negocio_id']);
+    contem('/propostas/' . $r['proposta_id'], (string) $r['link']);
+    contem('proposta.numero ignorado', implode(' | ', $r['avisos']));
+
+    $p = Repositorios::propostas()->encontrar((int) $r['proposta_id']);
+    igual('rascunho', $p['status'], 'nunca enviada pela integração');
+    igual($negocioId, (int) $p['negocio_id']);
+    igual(34700, (int) $p['total']);
+    igual(34700, (int) $p['total_recorrente']);
+    igual('opensquad:diagnostico-fechamento', $p['criado_por']);
+    igual(2, count((new \App\Repositories\ItemPropostaRepository())->porProposta((int) $p['id'])));
+    igual(150000, (int) Repositorios::negocios()->encontrar($negocioId)['valor_estimado'], 'sem a flag, o valor do negócio fica');
+    igual(1, (int) DB::conexao()->query("SELECT COUNT(*) FROM atividades WHERE tipo = 'proposta' AND negocio_id = {$negocioId}")->fetchColumn());
+});
+
+teste('integração: proposta exige empresa existente, negócio aberto, título e itens', function () {
+    bancoIntegracao();
+    [, $corpo] = enviarLote([eventoPropostaJf()], 'r1', 'diagnostico-fechamento');
+    contem('não encontrada', $corpo['resultados'][0]['mensagem']);
+
+    enviarLote([eventoLeadJf(['tarefas' => []])]);
+    $semItens = eventoPropostaJf();
+    $semItens['proposta']['itens'] = [];
+    [, $corpo] = enviarLote([$semItens], 'r2', 'diagnostico-fechamento');
+    contem('proposta.itens', $corpo['resultados'][0]['mensagem']);
+    $semTitulo = eventoPropostaJf();
+    unset($semTitulo['proposta']['titulo']);
+    [, $corpo] = enviarLote([$semTitulo], 'r3', 'diagnostico-fechamento');
+    contem('proposta.titulo', $corpo['resultados'][0]['mensagem']);
+    igual(0, contar('propostas'));
+});
+
+teste('integração: reenvio atualiza o próprio rascunho; rascunho editado no CRM não é tocado', function () {
+    bancoIntegracao();
+    enviarLote([eventoLeadJf(['tarefas' => []])]);
+    [, $corpo] = enviarLote([eventoPropostaJf()], 'run-a', 'diagnostico-fechamento');
+    $id = (int) $corpo['resultados'][0]['proposta_id'];
+
+    // Outro run (proposta revisada): mesmo rascunho, conteúdo novo.
+    $revisada = eventoPropostaJf(['proposta' => ['titulo' => 'Revisada']]);
+    $revisada['proposta']['itens'] = [['descricao' => 'Biosfera completo', 'valor_unitario' => 597, 'recorrente' => true]];
+    [, $corpo] = enviarLote([$revisada], 'run-b', 'diagnostico-fechamento');
+    $r = $corpo['resultados'][0];
+    igual('ok', $r['status'], json_encode($r));
+    igual($id, (int) $r['proposta_id']);
+    contem('(rascunho) atualizada', implode(' | ', $r['acoes']));
+    $p = Repositorios::propostas()->encontrar($id);
+    igual('Revisada', $p['titulo']);
+    igual(59700, (int) $p['total']);
+    igual(1, contar('propostas'));
+
+    // O operador editou o rascunho: a integração não sobrescreve, cria outra e avisa.
+    (new ActionExecutor())->atualizar('propostas', $id, ['titulo' => 'Ajuste do operador']);
+    [, $corpo] = enviarLote([eventoPropostaJf()], 'run-c', 'diagnostico-fechamento');
+    $r = $corpo['resultados'][0];
+    igual('ok', $r['status'], json_encode($r));
+    verdadeiro((int) $r['proposta_id'] !== $id);
+    contem('não foi alterada', implode(' | ', $r['avisos']));
+    igual('Ajuste do operador', Repositorios::propostas()->encontrar($id)['titulo']);
+    igual(2, contar('propostas'));
+});
+
+teste('integração: proposta já enviada ganha nova versão em rascunho; aceita é recusada', function () {
+    bancoIntegracao();
+    enviarLote([eventoLeadJf(['tarefas' => []])]);
+    [, $corpo] = enviarLote([eventoPropostaJf()], 'run-a', 'diagnostico-fechamento');
+    $id = (int) $corpo['resultados'][0]['proposta_id'];
+    verdadeiro((new ActionExecutor())->enviarProposta($id)->ok);
+
+    [, $corpo] = enviarLote([eventoPropostaJf(['proposta' => ['titulo' => 'Versão 2']])], 'run-b', 'diagnostico-fechamento');
+    $r = $corpo['resultados'][0];
+    igual('ok', $r['status'], json_encode($r));
+    $v2 = Repositorios::propostas()->encontrar((int) $r['proposta_id']);
+    igual(2, (int) $v2['versao']);
+    igual(Repositorios::propostas()->encontrar($id)['numero'], $v2['numero']);
+    igual('rascunho', $v2['status']);
+    igual('Versão 2', $v2['titulo']);
+    igual('enviada', Repositorios::propostas()->encontrar($id)['status'], 'a versão enviada fica como está');
+
+    DB::conexao()->exec("UPDATE propostas SET status = 'aceita' WHERE id = " . (int) $v2['id']);
+    [, $corpo] = enviarLote([eventoPropostaJf()], 'run-c', 'diagnostico-fechamento');
+    igual('erro', $corpo['resultados'][0]['status']);
+    contem('já foi aceita', $corpo['resultados'][0]['mensagem']);
+});
+
+teste('integração: atualizar_valor_negocio leva o total recorrente da proposta ao negócio; simulação não grava', function () {
+    bancoIntegracao();
+    [, $corpo] = enviarLote([eventoLeadJf(['tarefas' => []])]);
+    $negocioId = (int) $corpo['resultados'][0]['negocio_id'];
+
+    [, $corpo] = enviarLote([eventoPropostaJf(['atualizar_valor_negocio' => true])], 'run-s', 'diagnostico-fechamento', true);
+    contem('R$ 1.500,00 → R$ 347,00', implode(' | ', $corpo['resultados'][0]['acoes']));
+    igual(0, contar('propostas'));
+    igual(150000, (int) Repositorios::negocios()->encontrar($negocioId)['valor_estimado']);
+
+    [, $corpo] = enviarLote([eventoPropostaJf(['atualizar_valor_negocio' => true])], 'run-s', 'diagnostico-fechamento');
+    igual('ok', $corpo['resultados'][0]['status'], json_encode($corpo['resultados'][0]));
+    $negocio = Repositorios::negocios()->encontrar($negocioId);
+    igual(34700, (int) $negocio['valor_estimado']);
+    igual('mensal', $negocio['tipo_receita']);
+    igual(34700, (int) $negocio['valor_recorrente']);
+});

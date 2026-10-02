@@ -41,6 +41,16 @@ final class AuditoriaRepository
         return $r ?: null;
     }
 
+    /** Se o registro tem gravação de uma origem diferente de $origem (ex.: o operador editou um rascunho da integração). */
+    public function alteradoPorOutraOrigem(string $entidade, int $registroId, string $origem): bool
+    {
+        $st = $this->pdo()->prepare(
+            'SELECT 1 FROM log_auditoria WHERE entidade = :e AND registro_id = :id AND origem <> :o AND desfeito_em IS NULL LIMIT 1'
+        );
+        $st->execute(['e' => $entidade, 'id' => $registroId, 'o' => $origem]);
+        return $st->fetchColumn() !== false;
+    }
+
     public function marcarDesfeito(int $id, string $quando): void
     {
         $this->pdo()->prepare('UPDATE log_auditoria SET desfeito_em = :q WHERE id = :id')->execute(['q' => $quando, 'id' => $id]);
