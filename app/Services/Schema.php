@@ -364,7 +364,7 @@ final class Schema
             'negocio_id'      => $f('fk', 'Negócio', 'dados', ['fk' => 'negocios']),
             'contrato_id'     => $f('fk', 'Contrato', 'dados', ['fk' => 'contratos']),
             'tipo'            => $f('enum', 'Tipo', 'dados', ['op' => 'tipo_cobranca', 'req' => true]),
-            'descricao'       => $f('texto', 'Descrição', 'dados', ['req' => true, 'max' => 200, 'l' => 2]),
+            'descricao'       => $f('texto', 'Descrição (vai na fatura e na nota fiscal)', 'dados', ['req' => true, 'max' => 200, 'l' => 2]),
             'valor'           => $f('money', 'Valor (R$)', 'dados', ['req' => true]),
             'ciclo'           => $f('enum', 'Ciclo (recorrente)', 'dados', ['op' => 'ciclo_cobranca']),
             'forma_pagamento' => $f('enum', 'Forma de pagamento', 'dados', ['op' => 'forma_pagamento_asaas', 'req' => true]),
