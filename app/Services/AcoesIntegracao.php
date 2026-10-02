@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Core\DB;
+use App\Repositories\AuditoriaRepository;
 use App\Repositories\Repositorios;
 
 /**
@@ -19,6 +20,10 @@ use App\Repositories\Repositorios;
  *   empresa em cliente. Se o negócio já estava ganho, não cria outro.
  * - `perdido`: move o negócio aberto de uma empresa existente para a etapa de perda, com motivo.
  * - `atividade`: só registra nota e tarefas numa empresa existente.
+ * - `proposta`: grava a proposta comercial do negócio aberto de uma empresa existente, sempre em rascunho (o envio
+ *   ao cliente é do operador). Atualiza o rascunho que a própria integração criou, se ninguém o editou no CRM; se a
+ *   última proposta já foi enviada, cria uma nova versão. `atualizar_valor_negocio: true` leva o total da proposta
+ *   para o valor do negócio — a única gravação da integração que sobrescreve um campo preenchido, e só quando pedida.
  * Todos aceitam `nota` (vira atividade) e `tarefas` (lista).
  */
 trait AcoesIntegracao
@@ -32,6 +37,13 @@ trait AcoesIntegracao
         'titulo', 'valor_estimado', 'tipo_receita', 'valor_recorrente', 'previsao_fechamento', 'temperatura', 'prioridade',
         'dor_principal', 'objetivo_cliente', 'orcamento_cliente', 'prazo_desejado', 'criterio_decisao', 'concorrentes',
         'proximo_passo', 'proximo_passo_em', 'notas',
+    ];
+
+    /** Campos da proposta que a integração define; número, status, totais e aceite são do CRM. */
+    private static array $propostaPermitidos = [
+        'titulo', 'validade', 'apresentacao', 'escopo', 'fora_escopo', 'cronograma', 'garantia', 'observacoes',
+        'forma_pagamento', 'condicoes_pagamento', 'parcelas', 'entrada_percentual', 'prazo_entrega_dias',
+        'desconto_tipo', 'desconto_valor',
     ];
 
     private const LIMITE_TAREFAS_EVENTO = 20;
@@ -64,14 +76,15 @@ trait AcoesIntegracao
         $this->validarOrigem($origem);
 
         $executar = function () use ($evento, $origem): Resultado {
-            $ctx = ['acoes' => [], 'avisos' => [], 'empresa' => null, 'contato_id' => null, 'negocio' => null];
+            $ctx = ['acoes' => [], 'avisos' => [], 'empresa' => null, 'contato_id' => null, 'negocio' => null, 'proposta' => null];
             try {
                 match ((string) ($evento['tipo'] ?? '')) {
                     'lead'      => $this->integrarLead($evento, $origem, $ctx),
                     'ganho'     => $this->integrarGanho($evento, $origem, $ctx),
                     'perdido'   => $this->integrarPerdido($evento, $origem, $ctx),
                     'atividade' => $this->integrarAtividade($evento, $ctx),
-                    default     => throw new IntegracaoRecusada('Tipo de evento desconhecido: "' . ($evento['tipo'] ?? '') . '". Use lead, ganho, perdido ou atividade.'),
+                    'proposta'  => $this->integrarProposta($evento, $origem, $ctx),
+                    default     => throw new IntegracaoRecusada('Tipo de evento desconhecido: "' . ($evento['tipo'] ?? '') . '". Use lead, ganho, perdido, atividade ou proposta.'),
                 };
                 $this->integrarNotaETarefas($evento, $origem, $ctx);
             } catch (IntegracaoRecusada $e) {
@@ -81,6 +94,7 @@ trait AcoesIntegracao
                 'empresa_id' => $ctx['empresa']['id'] ?? null,
                 'contato_id' => $ctx['contato_id'],
                 'negocio_id' => $ctx['negocio']['id'] ?? null,
+                'proposta_id' => $ctx['proposta']['id'] ?? null,
                 'acoes'      => $ctx['acoes'],
                 'avisos'     => $ctx['avisos'],
             ]);
@@ -212,6 +226,94 @@ trait AcoesIntegracao
         if (empty($evento['nota']) && empty($evento['tarefas'])) {
             throw new IntegracaoRecusada('Evento "atividade" sem nota e sem tarefas: nada a registrar.');
         }
+    }
+
+    private function integrarProposta(array $evento, string $origem, array &$ctx): void
+    {
+        $this->exigirEmpresaExistente($evento, $ctx);
+        $negocio = Repositorios::negocios()->ultimoDaEmpresa((int) $ctx['empresa']['id'], ['aberto', 'pausado'])
+            ?? throw new IntegracaoRecusada("A empresa {$ctx['empresa']['nome_fantasia']} não tem negócio aberto: envie antes um evento \"lead\".");
+        $ctx['negocio'] = $negocio;
+
+        $bruta = $evento['proposta'] ?? null;
+        if (!is_array($bruta) || array_is_list($bruta)) {
+            throw new IntegracaoRecusada('Informe o objeto proposta (titulo, itens e textos).');
+        }
+        $dados = [];
+        foreach ($bruta as $campo => $valor) {
+            if ($campo === 'itens') {
+                continue;
+            }
+            if (!in_array($campo, self::$propostaPermitidos, true)) {
+                $ctx['avisos'][] = "campo proposta.{$campo} ignorado";
+                continue;
+            }
+            if ($valor !== null && $valor !== '' && !is_array($valor)) {
+                $dados[$campo] = $valor;
+            }
+        }
+        if (trim((string) ($dados['titulo'] ?? '')) === '') {
+            throw new IntegracaoRecusada('Informe proposta.titulo.');
+        }
+        $itens = $bruta['itens'] ?? null;
+        if (!is_array($itens) || !array_is_list($itens) || $itens === []) {
+            throw new IntegracaoRecusada('Informe proposta.itens: uma lista com ao menos um item (descricao, valor_unitario…).');
+        }
+        $dados['itens'] = $itens;
+
+        $ultima = Repositorios::propostas()->ultimasPor('negocio_id', (int) $negocio['id'])[0] ?? null;
+        $propostaId = $this->gravarPropostaIntegracao($ultima, $dados, (int) $negocio['id'], $origem, $ctx);
+        $proposta = Repositorios::propostas()->encontrar($propostaId);
+        $ctx['proposta'] = $proposta;
+        $this->atividadeDocumento('proposta', "Proposta {$proposta['numero']} v{$proposta['versao']} em rascunho (Opensquad)", 'Total: ' . moeda((int) $proposta['total']) . ((int) $proposta['total_recorrente'] > 0 ? ' · recorrente: ' . moeda((int) $proposta['total_recorrente']) . '/mês' : '') . '. Revise e envie pelo CRM.', $proposta);
+
+        if (($evento['atualizar_valor_negocio'] ?? false) === true) {
+            $recorrente = (int) $proposta['total_recorrente'];
+            $centavos = $recorrente > 0 ? $recorrente : (int) $proposta['total'];
+            $novos = ['valor_estimado' => self::reaisDeCentavos($centavos)];
+            if ($recorrente > 0) {
+                $novos += ['tipo_receita' => 'mensal', 'valor_recorrente' => self::reaisDeCentavos($recorrente)];
+            }
+            $this->exigirOk($this->atualizar('negocios', (int) $negocio['id'], $novos, $origem), 'Atualizar valor do negócio');
+            $ctx['acoes'][] = "valor do negócio {$negocio['codigo']}: " . moeda((int) $negocio['valor_estimado']) . ' → ' . moeda($centavos);
+            $ctx['negocio'] = Repositorios::negocios()->encontrar((int) $negocio['id']);
+        }
+    }
+
+    /**
+     * Rascunho que a integração criou e ninguém editou → atualiza. Última proposta enviada/visualizada/recusada/expirada
+     * → nova versão. Aceita → recusa (mexer em proposta aceita é do operador). Rascunho do operador → fica intacto e
+     * a integração cria outra proposta. Devolve o id da proposta gravada.
+     */
+    private function gravarPropostaIntegracao(?array $ultima, array $dados, int $negocioId, string $origem, array &$ctx): int
+    {
+        if ($ultima !== null && $ultima['status'] === 'aceita') {
+            throw new IntegracaoRecusada("A proposta {$ultima['numero']} v{$ultima['versao']} já foi aceita; altere-a no CRM.");
+        }
+        if ($ultima !== null && $ultima['status'] === 'rascunho' && $ultima['criado_por'] === $origem
+            && !(new AuditoriaRepository())->alteradoPorOutraOrigem('propostas', (int) $ultima['id'], $origem)) {
+            $this->exigirOk($this->atualizar('propostas', (int) $ultima['id'], $dados, $origem), 'Atualizar proposta');
+            $ctx['acoes'][] = "proposta {$ultima['numero']} v{$ultima['versao']} (rascunho) atualizada";
+            return (int) $ultima['id'];
+        }
+        if ($ultima !== null && $ultima['status'] !== 'rascunho') {
+            $nova = $this->exigirOk($this->novaVersaoProposta((int) $ultima['id'], $origem), 'Nova versão da proposta');
+            $this->exigirOk($this->atualizar('propostas', (int) $nova->id, $dados, $origem), 'Preencher nova versão');
+            $ctx['acoes'][] = "proposta {$ultima['numero']}: nova versão v" . ((int) $ultima['versao'] + 1) . " em rascunho (a v{$ultima['versao']} estava {$ultima['status']})";
+            return (int) $nova->id;
+        }
+        if ($ultima !== null) {
+            $ctx['avisos'][] = "a proposta {$ultima['numero']} em rascunho foi criada ou editada no CRM e não foi alterada";
+        }
+        $r = $this->exigirOk($this->criar('propostas', $dados + ['negocio_id' => $negocioId], $origem), 'Criar proposta');
+        $ctx['acoes'][] = 'proposta nova ' . Repositorios::propostas()->encontrar((int) $r->id)['numero'] . ' em rascunho';
+        return (int) $r->id;
+    }
+
+    /** Centavos → texto em reais aceito pela normalização de dinheiro ("347,00"). */
+    private static function reaisDeCentavos(int $centavos): string
+    {
+        return number_format($centavos / 100, 2, ',', '');
     }
 
     // ---- Empresa, contato e negócio -----------------------------------------------------------
