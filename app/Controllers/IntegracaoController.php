@@ -123,6 +123,9 @@ final class IntegracaoController
 
     private static function link(array $registro): ?string
     {
+        if (!empty($registro['proposta_id'])) {
+            return url_publica('/propostas/' . (int) $registro['proposta_id']);
+        }
         if (!empty($registro['negocio_id'])) {
             return url_publica('/negocios/' . (int) $registro['negocio_id']);
         }

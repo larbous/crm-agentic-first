@@ -505,7 +505,7 @@ Propostas e contratos usam views próprias com `@media print` (A4, margens, queb
 
 Squads de IA que rodam fora do CRM (projeto Opensquad da agência) registram o que produziram por `POST /api/integracao/opensquad`: rota pública, sem sessão e sem CSRF, autenticada pelo cabeçalho `X-Opensquad-Token` (valor em `integracao.opensquad_token`; vazio = integração desligada). Não usa `Authorization` porque hospedagem compartilhada com PHP em CGI costuma descartar esse cabeçalho.
 
-**Corpo:** `{"squad": "prospeccao-leads", "run": "2026-09-24-101500-x", "simular": false, "eventos": [...]}` (até 100 eventos, 1 MB). **Resposta** (200): `{"ok", "simulacao", "resultados": [{"id", "status": "ok|ja_processado|erro", "mensagem"?, "empresa_id", "contato_id", "negocio_id", "acoes": [...], "avisos": [...], "link"}]}`.
+**Corpo:** `{"squad": "prospeccao-leads", "run": "2026-09-24-101500-x", "simular": false, "eventos": [...]}` (até 100 eventos, 1 MB). **Resposta** (200): `{"ok", "simulacao", "resultados": [{"id", "status": "ok|ja_processado|erro", "mensagem"?, "empresa_id", "contato_id", "negocio_id", "proposta_id", "acoes": [...], "avisos": [...], "link"}]}` (`link` aponta para a proposta quando o evento grava uma; senão, para o negócio ou a empresa).
 
 | Tipo | Efeito |
 |---|---|
@@ -513,6 +513,7 @@ Squads de IA que rodam fora do CRM (projeto Opensquad da agência) registram o q
 | `ganho` | Como `lead`, e leva o negócio aberto à primeira etapa de ganho com `valor_fechado` (obrigatório); converte a empresa em cliente. Negócio já ganho: não cria outro. Sem negócio: cria já ganho. |
 | `perdido` | Empresa existente; negócio aberto → etapa de perda com `motivo` (nome; criado se faltar) e `detalhe`. |
 | `atividade` | Empresa existente; só `nota` e `tarefas`. |
+| `proposta` | Empresa existente com negócio aberto. Grava `proposta` (`titulo` e `itens` obrigatórios; textos `apresentacao`, `escopo`, `fora_escopo`, `cronograma`, `garantia`, `observacoes`, `condicoes_pagamento` e demais condições) **sempre em rascunho** — enviar ao cliente é do operador. Rascunho criado pela própria integração e não editado no CRM é atualizado; se a última proposta já saiu (enviada, visualizada, recusada, expirada), cria nova versão; proposta aceita recusa o evento; rascunho do operador fica intacto (cria outra, com aviso). `atualizar_valor_negocio: true` leva o total recorrente (ou o total) ao valor do negócio. |
 
 Todos aceitam `nota` (atividade) e `tarefas` (até 20; `vencimento` ou `em_dias`). `origem` (nome) é criada se não existir. Campos fora da whitelist viram aviso, não erro; `status`/`cliente_desde`/`campos_extras` da empresa não são definidos pela integração.
 
