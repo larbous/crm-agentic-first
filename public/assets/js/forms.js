@@ -13,6 +13,8 @@ const MASCARAS = {
     cpf: (d) => d.slice(0, 11).replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2'),
     cep: (d) => d.slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2'),
 };
+// Empresa pode ser pessoa física: até 11 dígitos formata como CPF, daí em diante como CNPJ.
+MASCARAS.documento = (d) => (d.length <= 11 ? MASCARAS.cpf(d) : MASCARAS.cnpj(d));
 
 document.addEventListener('input', (ev) => {
     const el = ev.target;
@@ -133,8 +135,8 @@ function iniciar() {
         }
     });
 
-    // CNPJ: botão "Buscar" ao lado do campo
-    const cnpj = document.querySelector('input[data-mascara="cnpj"]');
+    // CNPJ: botão "Buscar" ao lado do campo (o campo da empresa aceita CNPJ ou CPF; a consulta só vale para CNPJ)
+    const cnpj = document.querySelector('input[data-mascara="cnpj"], input[data-mascara="documento"]');
     if (cnpj && campoPorNome('nome_fantasia')) {
         const botao = document.createElement('button');
         botao.type = 'button';

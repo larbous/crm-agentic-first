@@ -30,6 +30,7 @@ function formatar_valor_campo(?string $entidade, string $campo, mixed $valor): s
         'bool'       => (int) $valor === 1 ? 'Sim' : 'Não',
         'enum'       => Schema::opcoes($def['op'])[$valor] ?? (string) $valor,
         'cnpj'       => cnpj_formatado((string) $valor),
+        'documento'  => documento_formatado((string) $valor),
         'cep'        => cep_formatado((string) $valor),
         'fk'         => '#' . $valor,
         default      => mb_strimwidth((string) $valor, 0, 160, '…'),

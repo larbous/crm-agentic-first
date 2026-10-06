@@ -27,15 +27,59 @@ final class Client
         return self::$transporte !== null || trim((string) Config::obter('asaas.api_key', '')) !== '';
     }
 
-    /** @return array{ok:bool,id:?string,erro:?string} */
+    /**
+     * Procura o cliente já cadastrado no Asaas antes de criar: a API aceita clientes duplicados de propósito
+     * (a própria documentação manda consultar antes), então criar direto duplicaria todo cliente que o operador
+     * já tivesse cadastrado pelo painel. Procura primeiro por `externalReference` (o id da empresa aqui, que só
+     * existe em cadastro feito por este CRM) e depois pelo documento, que é obrigatório no Asaas e por isso
+     * existe em qualquer cadastro feito à mão.
+     *
+     * @return array{ok:bool,id:?string,erro:?string}
+     */
     public static function obterOuCriarCliente(array $empresa): array
     {
+        $documento = so_digitos((string) ($empresa['cnpj'] ?? ''));
+        foreach ([['externalReference', (string) $empresa['id']], ['cpfCnpj', $documento]] as [$filtro, $valor]) {
+            if ($valor === '') {
+                continue;
+            }
+            $achado = self::procurarCliente($filtro, $valor);
+            if (!$achado['ok']) {
+                return $achado; // falha de rede/credencial: não cria por cima, para não duplicar
+            }
+            if ($achado['id'] !== null) {
+                return $achado;
+            }
+        }
+
         $r = self::requisitar('POST', '/customers', self::corpoCliente($empresa));
         if ($r['status'] < 200 || $r['status'] >= 300) {
             return ['ok' => false, 'id' => null, 'erro' => self::erroDoCorpo($r)];
         }
         $dados = json_decode($r['corpo'], true);
         return isset($dados['id']) ? ['ok' => true, 'id' => (string) $dados['id'], 'erro' => null] : ['ok' => false, 'id' => null, 'erro' => 'Resposta do Asaas sem id do cliente.'];
+    }
+
+    /**
+     * Um cliente do Asaas pelo filtro indicado, ou id null quando não existe. Cliente removido no painel é
+     * ignorado (`deleted`), senão reaproveitaríamos um cadastro que o Asaas recusa na hora de cobrar. Havendo
+     * mais de um (duplicata criada antes desta busca existir), fica com o primeiro: a escolha precisa ser
+     * sempre a mesma entre chamadas, senão cada emissão apontaria para um cadastro diferente.
+     *
+     * @return array{ok:bool,id:?string,erro:?string}
+     */
+    private static function procurarCliente(string $filtro, string $valor): array
+    {
+        $r = self::requisitar('GET', '/customers?' . http_build_query([$filtro => $valor, 'limit' => 100]), null);
+        if ($r['status'] < 200 || $r['status'] >= 300) {
+            return ['ok' => false, 'id' => null, 'erro' => self::erroDoCorpo($r)];
+        }
+        foreach ((array) (json_decode($r['corpo'], true)['data'] ?? []) as $cliente) {
+            if (!empty($cliente['id']) && empty($cliente['deleted'])) {
+                return ['ok' => true, 'id' => (string) $cliente['id'], 'erro' => null];
+            }
+        }
+        return ['ok' => true, 'id' => null, 'erro' => null];
     }
 
     /** Atualiza o cadastro do cliente já existente no Asaas com os dados atuais da empresa. */

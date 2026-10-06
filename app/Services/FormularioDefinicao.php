@@ -23,7 +23,7 @@ final class FormularioDefinicao
     public const MAX_PERGUNTAS_EXTRAS = 8;
 
     /** Tipos do Schema que um formulário público consegue preencher. */
-    private const TIPOS_SCHEMA = ['texto', 'textarea', 'email', 'tel', 'url', 'int', 'money', 'data', 'enum', 'bool', 'cnpj', 'cpf', 'cep', 'uf'];
+    private const TIPOS_SCHEMA = ['texto', 'textarea', 'email', 'tel', 'url', 'int', 'money', 'data', 'enum', 'bool', 'cnpj', 'cpf', 'documento', 'cep', 'uf'];
 
     /** Campos que o servidor decide (status, origem, aquisição): nunca vêm do visitante. */
     private const BLOQUEADOS = ['empresa.status', 'empresa.cliente_desde', 'contato.status', 'contato.ultimo_contato_em'];

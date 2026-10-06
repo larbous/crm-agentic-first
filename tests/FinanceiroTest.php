@@ -13,17 +13,39 @@ use App\Services\Rotinas;
 
 // Fase 17 — cobranças (Asaas), custos e DRE por cliente.
 
+/** CNPJ válido e distinto a cada chamada (a coluna é única): só os 2 dígitos verificadores são incógnita. */
+function cnpjTeste(): string
+{
+    static $n = 0;
+    $base = str_pad((string) (10000000 + ++$n), 8, '0', STR_PAD_LEFT) . '0001';
+    for ($dv = 0; $dv < 100; $dv++) {
+        $candidato = $base . str_pad((string) $dv, 2, '0', STR_PAD_LEFT);
+        if (cnpj_valido($candidato)) {
+            return $candidato;
+        }
+    }
+    throw new RuntimeException('Não foi possível gerar um CNPJ de teste.');
+}
+
+/** Empresa faturável: o Asaas exige documento, então o padrão já vem com CNPJ. */
 function novaEmpresaFinanceiro(array $dados = []): int
 {
-    $r = (new ActionExecutor())->criar('empresas', $dados + ['nome_fantasia' => 'Padaria Sol'], 'humano');
+    $r = (new ActionExecutor())->criar('empresas', $dados + ['nome_fantasia' => 'Padaria Sol', 'cnpj' => cnpjTeste()], 'humano');
     verdadeiro($r->ok, $r->mensagem . json_encode($r->erros));
     return (int) $r->id;
 }
 
-/** Roda $fn com a API do Asaas "configurada" e o transporte HTTP trocado pelo fake. Restaura tudo ao final. */
-function comAsaas(callable $transporte, callable $fn): void
+/**
+ * Roda $fn com a API do Asaas "configurada" e o transporte HTTP trocado pelo fake. Restaura tudo ao final.
+ * A busca por cliente já existente (GET /customers) é respondida por $busca, que por padrão diz "não achei"
+ * — é o caso da maioria dos testes, em que o cliente ainda não existe no Asaas e precisa ser criado.
+ */
+function comAsaas(callable $transporte, callable $fn, ?callable $busca = null): void
 {
-    AsaasClient::definirTransporte($transporte);
+    $busca ??= static fn (): array => ['status' => 200, 'corpo' => json_encode(['data' => [], 'totalCount' => 0]), 'erro' => null];
+    AsaasClient::definirTransporte(static function (array $req) use ($transporte, $busca): array {
+        return $req['metodo'] === 'GET' && str_starts_with($req['caminho'], '/customers?') ? $busca($req) : $transporte($req);
+    });
     Config::definir(array_replace_recursive(configNeutra(), ['asaas' => ['api_key' => 'chave-teste', 'ambiente' => 'sandbox', 'webhook_token' => 'segredo-teste']]));
     try {
         $fn();
@@ -290,6 +312,116 @@ teste('cobrança: depois de emitida no Asaas só as notas podem ser editadas', f
         $r2 = $x->atualizar('cobrancas', $id, ['notas' => 'Cliente pediu 2ª via'], 'humano');
         verdadeiro($r2->ok, $r2->mensagem);
     });
+});
+
+// ---- Cliente no Asaas: procura antes de criar ------------------------------------------------------
+
+teste('cliente no Asaas: cadastro feito no painel é reaproveitado pelo CNPJ, sem criar duplicado', function () {
+    bancoComSeed();
+    $cnpj = cnpjTeste();
+    $empresaId = novaEmpresaFinanceiro(['cnpj' => $cnpj]);
+    $buscas = [];
+    $criou = false;
+    comAsaas(function (array $req) use (&$criou) {
+        if ($req['caminho'] === '/customers') {
+            $criou = true;
+            return ['status' => 200, 'corpo' => json_encode(['id' => 'cus_novo']), 'erro' => null];
+        }
+        return ['status' => 200, 'corpo' => json_encode(['id' => 'pay_1']), 'erro' => null];
+    }, function () use ($empresaId, &$criou) {
+        $r = (new ActionExecutor())->criarCobranca([
+            'empresa_id' => $empresaId, 'tipo' => 'avulsa', 'descricao' => 'Primeira', 'valor' => '10,00',
+            'forma_pagamento' => 'boleto', 'vencimento' => '10/10/2026',
+        ], 'humano');
+        verdadeiro($r->ok, $r->mensagem);
+        igual(false, $criou, 'achou pelo painel: não pode criar cliente novo');
+        igual('cus_painel', Repositorios::empresas()->encontrar($empresaId)['asaas_customer_id']);
+    }, function (array $req) use (&$buscas, $cnpj): array {
+        $buscas[] = $req['caminho'];
+        // Cadastro feito à mão no painel: não tem externalReference, só casa pelo documento.
+        $achou = str_contains($req['caminho'], 'cpfCnpj=' . $cnpj);
+        return ['status' => 200, 'corpo' => json_encode(['data' => $achou ? [['id' => 'cus_painel', 'deleted' => false]] : []]), 'erro' => null];
+    });
+    igual(2, count($buscas), 'procura por externalReference e depois por documento');
+    verdadeiro(str_contains($buscas[0], 'externalReference='), $buscas[0]);
+});
+
+teste('cliente no Asaas: cadastro removido no painel é ignorado e um novo é criado', function () {
+    bancoComSeed();
+    $empresaId = novaEmpresaFinanceiro();
+    comAsaas(function (array $req) {
+        return ['status' => 200, 'corpo' => json_encode(['id' => $req['caminho'] === '/customers' ? 'cus_novo' : 'pay_1']), 'erro' => null];
+    }, function () use ($empresaId) {
+        verdadeiro((new ActionExecutor())->criarCobranca([
+            'empresa_id' => $empresaId, 'tipo' => 'avulsa', 'descricao' => 'Com removido', 'valor' => '10,00',
+            'forma_pagamento' => 'boleto', 'vencimento' => '10/10/2026',
+        ], 'humano')->ok);
+        igual('cus_novo', Repositorios::empresas()->encontrar($empresaId)['asaas_customer_id']);
+    }, static fn (): array => ['status' => 200, 'corpo' => json_encode(['data' => [['id' => 'cus_removido', 'deleted' => true]]]), 'erro' => null]);
+});
+
+teste('cliente no Asaas: busca que falha não cria cliente por cima (evita duplicar)', function () {
+    bancoComSeed();
+    $empresaId = novaEmpresaFinanceiro();
+    $criou = false;
+    comAsaas(function (array $req) use (&$criou) {
+        if ($req['caminho'] === '/customers') {
+            $criou = true;
+        }
+        return ['status' => 200, 'corpo' => json_encode(['id' => 'cus_novo']), 'erro' => null];
+    }, function () use ($empresaId, &$criou) {
+        $r = (new ActionExecutor())->emitirCobranca((int) (new ActionExecutor())->criar('cobrancas', [
+            'empresa_id' => $empresaId, 'tipo' => 'avulsa', 'descricao' => 'Busca fora do ar', 'valor' => '10,00',
+            'forma_pagamento' => 'boleto', 'vencimento' => '10/10/2026',
+        ], 'humano')->id, 'humano');
+        igual(false, $r->ok);
+        igual(false, $criou, 'com a busca fora do ar, criar cliente duplicaria o cadastro');
+    }, static fn (): array => ['status' => 0, 'corpo' => '', 'erro' => 'timeout']);
+});
+
+teste('emissão: empresa sem CNPJ/CPF é recusada antes de falar com o Asaas', function () {
+    bancoComSeed();
+    $empresaId = (int) (new ActionExecutor())->criar('empresas', ['nome_fantasia' => 'JP Gramas'], 'humano')->id;
+    $falou = false;
+    comAsaas(function (array $req) use (&$falou) {
+        $falou = true;
+        return ['status' => 200, 'corpo' => json_encode(['id' => 'cus_1']), 'erro' => null];
+    }, function () use ($empresaId, &$falou) {
+        $r = (new ActionExecutor())->criarCobranca([
+            'empresa_id' => $empresaId, 'tipo' => 'avulsa', 'descricao' => 'Sem documento', 'valor' => '10,00',
+            'forma_pagamento' => 'boleto', 'vencimento' => '10/10/2026',
+        ], 'humano');
+        verdadeiro($r->ok, 'a cobrança local é criada mesmo assim');
+        contem('Preencha o CNPJ/CPF de JP Gramas', (string) Repositorios::cobrancas()->encontrar((int) $r->id)['asaas_erro']);
+        igual(false, $falou, 'não chega a chamar o Asaas');
+    });
+});
+
+teste('empresa pessoa física: o documento aceita CPF e vai para o Asaas em cpfCnpj', function () {
+    bancoComSeed();
+    $x = new ActionExecutor();
+    $r = $x->criar('empresas', ['nome_fantasia' => 'JP Gramas', 'razao_social' => 'João Paulo de Meira', 'cnpj' => '123.456.789-09'], 'humano');
+    verdadeiro($r->ok, json_encode($r->erros));
+    $empresaId = (int) $r->id;
+    igual('12345678909', Repositorios::empresas()->encontrar($empresaId)['cnpj']);
+
+    // Documento que não é nem CNPJ nem CPF continua sendo recusado.
+    igual(false, $x->atualizar('empresas', $empresaId, ['cnpj' => '123'], 'humano')->ok);
+
+    $enviado = null;
+    comAsaas(function (array $req) use (&$enviado) {
+        if ($req['caminho'] === '/customers') {
+            $enviado = $req['corpo'];
+            return ['status' => 200, 'corpo' => json_encode(['id' => 'cus_pf']), 'erro' => null];
+        }
+        return ['status' => 200, 'corpo' => json_encode(['id' => 'pay_1']), 'erro' => null];
+    }, function () use ($x, $empresaId) {
+        verdadeiro($x->criarCobranca([
+            'empresa_id' => $empresaId, 'tipo' => 'avulsa', 'descricao' => 'Corte de grama', 'valor' => '200,00',
+            'forma_pagamento' => 'pix', 'vencimento' => '10/10/2026',
+        ], 'humano')->ok);
+    });
+    igual('12345678909', $enviado['cpfCnpj'] ?? null);
 });
 
 // ---- Webhook: autenticação, idempotência e sincronização de status --------------------------------

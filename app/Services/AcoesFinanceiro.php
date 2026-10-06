@@ -51,6 +51,11 @@ trait AcoesFinanceiro
 
         $clienteId = $empresa['asaas_customer_id'];
         if ($clienteId === null) {
+            // O Asaas exige cpfCnpj para criar cliente, e é por ele que achamos um cadastro feito pelo painel.
+            // Recusar aqui dá ao operador o campo que falta; sem isso a emissão só morreria com a mensagem do Asaas.
+            if (so_digitos((string) ($empresa['cnpj'] ?? '')) === '') {
+                return $this->falhaNaEmissao($id, 'Preencha o CNPJ/CPF de ' . $empresa['nome_fantasia'] . ': o Asaas exige o documento para cadastrar o cliente.');
+            }
             $cliente = AsaasClient::obterOuCriarCliente($empresa);
             if (!$cliente['ok']) {
                 return $this->falhaNaEmissao($id, 'Não foi possível criar o cliente no Asaas: ' . $cliente['erro']);

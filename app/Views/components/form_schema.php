@@ -14,6 +14,7 @@ function valor_para_formulario(array $def, mixed $valor): string
     return match ($def['t']) {
         'money'    => centavos_para_texto((int) $valor),
         'cnpj'     => cnpj_formatado((string) $valor),
+        'documento' => documento_formatado((string) $valor),
         'cep'      => cep_formatado((string) $valor),
         'datahora' => str_replace(' ', 'T', substr((string) $valor, 0, 16)),
         default    => (string) $valor,
@@ -97,6 +98,10 @@ function campos_do_schema(string $entidade, string $grupo, array $valores, array
             case 'cpf':
                 $campo = $base + ['tipo' => 'text'];
                 $attrs = ['inputmode' => 'numeric', 'data-mascara' => 'cpf', 'maxlength' => 14, 'placeholder' => '000.000.000-00'];
+                break;
+            case 'documento':
+                $campo = $base + ['tipo' => 'text'];
+                $attrs = ['inputmode' => 'numeric', 'data-mascara' => 'documento', 'maxlength' => 18, 'placeholder' => 'CNPJ ou CPF'];
                 break;
             case 'cep':
                 $campo = $base + ['tipo' => 'text'];
