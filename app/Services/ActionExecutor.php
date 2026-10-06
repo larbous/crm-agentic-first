@@ -665,6 +665,12 @@ final class ActionExecutor
                 return cnpj_valido((string) $valor) ? so_digitos((string) $valor) : $this->falhar($erro, 'CNPJ inválido.');
             case 'cpf':
                 return cpf_valido((string) $valor) ? so_digitos((string) $valor) : $this->falhar($erro, 'CPF inválido.');
+            case 'documento':
+                // Empresa pode ser pessoa física (MEI, autônomo): o Asaas usa um campo só (cpfCnpj) e aceita os dois.
+                $digitos = so_digitos((string) $valor);
+                return cnpj_valido($digitos) || cpf_valido($digitos)
+                    ? $digitos
+                    : $this->falhar($erro, "O campo {$def['r']} precisa ser um CNPJ ou um CPF válido.");
             case 'cep':
                 return strlen(so_digitos((string) $valor)) === 8 ? so_digitos((string) $valor) : $this->falhar($erro, 'CEP inválido.');
             case 'uf':

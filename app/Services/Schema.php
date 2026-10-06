@@ -11,7 +11,7 @@ namespace App\Services;
  * Campo: t = tipo, r = rótulo, g = grupo (aba do formulário), req = obrigatório, op = opções (enum),
  * fk = tabela referenciada, max = tamanho máximo, sis = controlado pelo servidor (não aceito em entrada),
  * l = largura no formulário (2 = linha inteira).
- * Tipos: texto textarea email tel url int money data datahora vencimento enum bool fk cnpj cpf cep uf cor extras
+ * Tipos: texto textarea email tel url int money data datahora vencimento enum bool fk cnpj cpf documento cep uf cor extras
  * (extras = JSON de campos definidos pelo operador; ver CamposExtras).
  */
 final class Schema
@@ -149,7 +149,7 @@ final class Schema
             // Dados (identificação + comercial)
             'nome_fantasia'   => $f('texto', 'Nome fantasia', 'dados', ['req' => true, 'max' => 160]),
             'razao_social'    => $f('texto', 'Razão social', 'dados', ['max' => 200]),
-            'cnpj'            => $f('cnpj', 'CNPJ', 'dados'),
+            'cnpj'            => $f('documento', 'CNPJ / CPF', 'dados'),
             'inscricao_estadual'  => $f('texto', 'Inscrição estadual', 'dados', ['max' => 40]),
             'inscricao_municipal' => $f('texto', 'Inscrição municipal', 'dados', ['max' => 40]),
             'porte'           => $f('enum', 'Porte', 'dados', ['op' => 'porte']),

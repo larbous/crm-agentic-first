@@ -90,7 +90,7 @@ $abas = [
 <div class="grid gap-4 lg:grid-cols-3">
     <div class="grid content-start gap-4">
         <?= card(['tamanho' => 'sm', 'titulo' => 'Dados', 'corpo_html' => ficha([
-            'CNPJ' => cnpj_formatado($r['cnpj']), 'Porte' => $op('porte', $r['porte']), 'Segmento' => (string) $r['segmento'],
+            'CNPJ / CPF' => documento_formatado($r['cnpj']), 'Porte' => $op('porte', $r['porte']), 'Segmento' => (string) $r['segmento'],
             'Origem' => (string) $r['origem_nome'], 'Indicado por' => (string) $r['indicado_por'],
             'Ticket potencial' => $r['ticket_potencial'] !== null ? moeda((int) $r['ticket_potencial']) : '',
             'LTV (negócios ganhos)' => moeda((int) $r['ltv']), 'MRR (contratos vigentes)' => (int) $r['mrr'] > 0 ? moeda((int) $r['mrr']) : '', 'Cliente desde' => data_br($r['cliente_desde']),

@@ -41,7 +41,7 @@ $condicoes = array_filter([
         <div>
             <div class="documento-rotulo">Para</div>
             <div><strong><?= e($empresa['razao_social'] ?? $empresa['nome_fantasia'] ?? '—') ?></strong></div>
-            <?php if (!empty($empresa['cnpj'])): ?><div class="documento-mini">CNPJ <?= e(cnpj_formatado($empresa['cnpj'])) ?></div><?php endif; ?>
+            <?php if (!empty($empresa['cnpj'])): ?><div class="documento-mini"><?= strlen(so_digitos($empresa['cnpj'])) === 11 ? 'CPF' : 'CNPJ' ?> <?= e(documento_formatado($empresa['cnpj'])) ?></div><?php endif; ?>
         </div>
         <?php if ($contato): ?>
             <div>
