@@ -368,3 +368,15 @@ vira checklist de fase até isso acontecer.
   que hoje assume 1 empresa por contato (ex. LTV, filtros, exportações). Repensar também o que acontece se
   isso um dia precisar coexistir com login de contato (portal do cliente) — a essa altura "qual empresa esse
   contato está vendo" deixa de ser implícito.
+
+---
+
+## Pendência conhecida — Envio de proposta/contrato por e-mail ao cliente
+
+Fora do roteiro das 17 fases. Registrado em 2026-10-02 a partir de uma pergunta direta do usuário. Decisão do usuário: **deixar como está por enquanto**; sem escopo definido, então não vira checklist de fase até isso acontecer.
+
+- **Hoje "Enviar" só muda o status** (proposta → `enviada`, contrato → `enviado`) e libera o link público por token (`AcoesDocumentos`). Nenhum e-mail é disparado: o operador copia o link e manda por conta própria. O canal de e-mail da Fase 14 (`Canais\Email::enviar`) só é usado nas respostas da caixa de entrada.
+- **O que já funciona e não precisa mudar**: o cliente aprova/recusa a proposta e assina o contrato pelo link público; a primeira abertura registra `visualizada_em` (proposta, com evento `proposta.visualizada`) e `visualizado_em` (contrato, só atividade, sem evento).
+- **Melhoria proposta**: ao enviar, disparar e-mail ao cliente com texto padrão + link público, via `Email::enviar`.
+- **Pontos a decidir antes**: qual destinatário usar (contato principal da empresa ou escolhido no envio); se o e-mail sai automático ao clicar em "Enviar" ou com prévia/confirmação; se o contrato passa a ter evento de visualização (`contrato.visualizado`, hoje fora do SPEC §events).
+- **Limites conhecidos da visualização**: a proposta só registra abertura enquanto o status é `enviada` (abrir o link antes de "Enviar" não conta); no contrato, abertura com usuário logado no CRM não conta como visualização do cliente.
