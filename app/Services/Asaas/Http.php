@@ -21,8 +21,8 @@ final class Http
             CURLOPT_TIMEOUT        => max(5, $timeout),
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTPS,
             // O Asaas recusa a requisição sem User-Agent ("É obrigatório preencher User-Agent no cabeçalho").
-            // ASCII de propósito: cabeçalho com acento (o nome do app é "CRM Lárbous") não é seguro em HTTP.
-            CURLOPT_USERAGENT      => 'CRM-Larbous/1.0 (+https://github.com/larbous/crm-agentic-first)',
+            // ASCII de propósito: cabeçalho com acento (o nome do app é "CRM Agentic First by Lárbous") não é seguro em HTTP.
+            CURLOPT_USERAGENT      => 'CRM-Agentic-First/1.0 (+https://github.com/larbous/crm-agentic-first)',
         ];
         if ($corpo !== null) {
             $opcoes[CURLOPT_POSTFIELDS] = json_encode($corpo, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

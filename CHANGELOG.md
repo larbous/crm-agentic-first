@@ -2,7 +2,7 @@
 
 ## v1.0.0
 
-Primeira versão pública do CRM Lárbous — CRM interno *agentic-first* em PHP puro + SQLite, sem Composer e sem dependências externas.
+Primeira versão pública do CRM Agentic First by Lárbous — CRM interno *agentic-first* em PHP puro + SQLite, sem Composer e sem dependências externas.
 
 ### Destaques
 

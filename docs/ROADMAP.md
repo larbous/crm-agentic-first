@@ -1,4 +1,4 @@
-# ROADMAP — CRM Lárbous
+# ROADMAP — CRM Agentic First by Lárbous
 
 Implementar em ordem. Uma fase por vez. Marcar `[x]` ao concluir cada item. Referências de seção apontam para `docs/SPEC.md`.
 

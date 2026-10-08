@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Inicialização comum: autoloader PSR-4 (App\ → /app), configuração, fuso e helpers.
  * Usado pelo front controller, pelos scripts CLI e pelos testes.
  *
- * CRM Lárbous — github.com/larbous/crm-agentic-first — licença MIT.
+ * CRM Agentic First by Lárbous — github.com/larbous/crm-agentic-first — licença MIT.
  */
 
 spl_autoload_register(static function (string $classe): void {

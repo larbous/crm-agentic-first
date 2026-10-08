@@ -9,7 +9,7 @@
 Use um destes canais privados:
 
 1. **Recomendado:** [relatar uma vulnerabilidade de forma privada no GitHub](https://github.com/larbous/crm-agentic-first/security/advisories/new) (aba *Security* → *Report a vulnerability*).
-2. Por e-mail: **agencia.larbous@gmail.com**, com o assunto `[SEGURANÇA] CRM Lárbous`.
+2. Por e-mail: **agencia.larbous@gmail.com**, com o assunto `[SEGURANÇA] CRM Agentic First by Lárbous`.
 
 Inclua, se puder: a versão/commit, o passo a passo para reproduzir, o impacto que você enxerga e (opcionalmente) uma sugestão de correção. **Não inclua** dados reais de clientes nem chaves de API reais no relato.
 
@@ -43,6 +43,6 @@ Fora do escopo: problemas na sua hospedagem, na configuração do seu servidor o
 
 ## English summary
 
-**Please do not report security issues in public issues.** Use GitHub's private vulnerability reporting ([Security → Report a vulnerability](https://github.com/larbous/crm-agentic-first/security/advisories/new)) or email **agencia.larbous@gmail.com** with the subject `[SECURITY] CRM Lárbous`. We aim to acknowledge within 7 days (best effort, small team) and ask for coordinated disclosure. Only the `main` branch receives fixes.
+**Please do not report security issues in public issues.** Use GitHub's private vulnerability reporting ([Security → Report a vulnerability](https://github.com/larbous/crm-agentic-first/security/advisories/new)) or email **agencia.larbous@gmail.com** with the subject `[SECURITY] CRM Agentic First by Lárbous`. We aim to acknowledge within 7 days (best effort, small team) and ask for coordinated disclosure. Only the `main` branch receives fixes.
 
 Hardening tips: serve over HTTPS; finish the installer right after deploying (the `/instalar` route creates the admin account for whoever reaches it first); point the document root at `public/`; keep secrets only in `config.local.php`; use long random webhook tokens; back up `storage/db/crm.sqlite`.

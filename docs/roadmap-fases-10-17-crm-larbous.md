@@ -1,4 +1,4 @@
-# CRM Lárbous — Roteiro de Fases 10 a 17
+# CRM Agentic First by Lárbous — Roteiro de Fases 10 a 17
 
 Continuação do roadmap original (fases 1-9, já concluídas e commitadas). As 9 melhorias identificadas numa análise comparativa com outras ferramentas do mercado foram agrupadas em 8 fases, sequenciadas por dependência técnica e custo/benefício — não pela ordem em que foram levantadas.
 

@@ -1,4 +1,4 @@
-# SPEC — CRM Lárbous
+# SPEC — CRM Agentic First by Lárbous
 
 Versão 1.0 · CRM interno, agentic-first, 1 operador.
 

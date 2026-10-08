@@ -1,4 +1,4 @@
-# CRM Lárbous
+# CRM Agentic First by Lárbous
 
 **Um CRM que você opera por chat, com agentes de IA embutidos — e que sobe em qualquer hospedagem PHP só de copiar a pasta.**
 
@@ -14,7 +14,7 @@
 <details>
 <summary><strong>🇬🇧 English summary</strong></summary>
 
-**CRM Lárbous is a self-hosted, AI-native CRM for small agencies and sales teams — no framework, no Composer, no npm.** You copy the folder to any PHP host (shared hosting included), open the URL, and a setup screen creates the database and your admin user.
+**CRM Agentic First by Lárbous is a self-hosted, AI-native CRM for small agencies and sales teams — no framework, no Composer, no npm.** You copy the folder to any PHP host (shared hosting included), open the URL, and a setup screen creates the database and your admin user.
 
 - **Operate by chat *or* by screens.** Type `/nota called the client, sending the proposal` or plain language ("create an $8k deal for Padaria Central, contact Ana"), or use the regular CRUD screens — both write through the same gate.
 - **AI as a first-class citizen, with hard guardrails.** The AI never writes SQL and never touches the database: it returns JSON that the server validates against a whitelist before executing. Every action is audited and undoable; agents can only do what their JSON definition allows, with a confidence threshold and human approval queue.
@@ -43,7 +43,7 @@
 
 ## O que é isso
 
-CRM Lárbous é um CRM completo — empresas, contatos, negócios, kanban, propostas, contratos, tarefas, cobranças — nascido dentro de uma agência web de verdade, para um único operador rodar a empresa inteira sem precisar contratar um time de vendas para alimentar planilhas.
+CRM Agentic First by Lárbous é um CRM completo — empresas, contatos, negócios, kanban, propostas, contratos, tarefas, cobranças — nascido dentro de uma agência web de verdade, para um único operador rodar a empresa inteira sem precisar contratar um time de vendas para alimentar planilhas.
 
 Ele se destaca por dois motivos, e não só um:
 
@@ -241,7 +241,7 @@ Não é preciso pedir permissão para propor algo — abra a issue ou o PR e vam
 
 ## Sobre a Lárbous
 
-O CRM Lárbous nasceu dentro da [Lárbous](https://agencia.larbous.com.br), agência web brasileira, para resolver um problema próprio antes de virar código aberto.
+O CRM Agentic First by Lárbous nasceu dentro da [Lárbous](https://agencia.larbous.com.br), agência web brasileira, para resolver um problema próprio antes de virar código aberto.
 
 [![Site](https://img.shields.io/badge/site-agencia.larbous.com.br-4f46e5)](https://agencia.larbous.com.br)
 [![WhatsApp](https://img.shields.io/badge/WhatsApp-(11)%2098630--9175-25D366?logo=whatsapp&logoColor=white)](https://wa.me/5511986309175)

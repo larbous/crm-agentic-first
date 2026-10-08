@@ -6,12 +6,12 @@ declare(strict_types=1);
  * Configuração da aplicação. Valores locais/sensíveis ficam em config.local.php
  * (não versionado), que sobrescreve as chaves abaixo.
  *
- * Parte do CRM Lárbous — github.com/larbous/crm-agentic-first — licença MIT.
+ * Parte do CRM Agentic First by Lárbous — github.com/larbous/crm-agentic-first — licença MIT.
  */
 
 $padrao = [
     'app' => [
-        'nome'     => 'CRM Lárbous',
+        'nome'     => 'CRM Agentic First by Lárbous',
         'debug'    => false,
         'fuso'     => 'America/Sao_Paulo',
         'base_url' => '', // vazio = raiz do domínio; ex.: '/crm' se estiver em subpasta

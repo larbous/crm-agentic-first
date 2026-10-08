@@ -7,7 +7,7 @@
 <div class="w-full max-w-sm">
     <div class="mb-6 flex items-center justify-center gap-2">
         <span class="app-marca-logo" aria-hidden="true">L</span>
-        <span class="text-lg font-semibold">CRM Lárbous</span>
+        <span class="text-lg font-semibold">CRM Agentic First by Lárbous</span>
     </div>
     <?= card([
         'titulo'     => 'Entrar',
@@ -23,6 +23,6 @@
             . '</form>',
     ]) ?>
     <p class="text-muted-foreground mt-4 text-center text-xs">
-        CRM Lárbous · <a class="underline-offset-4 hover:underline" href="https://github.com/larbous/crm-agentic-first" target="_blank" rel="noopener">github.com/larbous</a>
+        CRM Agentic First by Lárbous · <a class="underline-offset-4 hover:underline" href="https://github.com/larbous/crm-agentic-first" target="_blank" rel="noopener">github.com/larbous</a>
     </p>
 </div>

@@ -1,4 +1,4 @@
-# CLAUDE.md — CRM Lárbous
+# CLAUDE.md — CRM Agentic First by Lárbous
 
 CRM interno da Lárbous (agência web), com conceito **agentic-first**: o operador trabalha por chat e por telas de CRUD; agentes de IA e squads executam processos. Praticamente 1 operador.
 

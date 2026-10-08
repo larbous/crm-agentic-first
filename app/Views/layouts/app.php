@@ -76,7 +76,7 @@ $item = static function (array $n) use ($ativo, $acoesPendentes, $caixaNaoLidas)
         <header>
             <a href="<?= e(url('/')) ?>" class="app-marca">
                 <span class="app-marca-logo" aria-hidden="true">L</span>
-                <span class="app-marca-nome">CRM Lárbous</span>
+                <span class="app-marca-nome">CRM Agentic First by Lárbous</span>
             </a>
         </header>
         <section>
