@@ -231,6 +231,143 @@ final class Client
         };
     }
 
+    // ---- Leitura do que nasce no painel do Asaas (importação) ------------------------------------
+
+    /**
+     * Cliente do Asaas pelo id. Serve para descobrir de qual empresa do CRM é um pagamento criado no painel: o
+     * `externalReference` (id da empresa, quando o cliente foi criado por este CRM) ou o documento.
+     *
+     * @return array{ok:bool,http:int,cliente:?array{id:string,nome:string,documento:string,referencia:string,removido:bool},erro:?string}
+     */
+    public static function obterCliente(string $id): array
+    {
+        $r = self::requisitar('GET', '/customers/' . rawurlencode($id), null);
+        if ($r['status'] < 200 || $r['status'] >= 300) {
+            return ['ok' => false, 'http' => $r['status'], 'cliente' => null, 'erro' => self::erroDoCorpo($r)];
+        }
+        $d = json_decode($r['corpo'], true);
+        if (!is_array($d) || empty($d['id'])) {
+            return ['ok' => false, 'http' => $r['status'], 'cliente' => null, 'erro' => 'Resposta do Asaas sem dados do cliente.'];
+        }
+        return ['ok' => true, 'http' => $r['status'], 'erro' => null, 'cliente' => [
+            'id' => (string) $d['id'],
+            'nome' => trim((string) ($d['name'] ?? '')) !== '' ? trim((string) $d['name']) : trim((string) ($d['company'] ?? '')),
+            'documento' => so_digitos((string) ($d['cpfCnpj'] ?? '')),
+            'referencia' => trim((string) ($d['externalReference'] ?? '')),
+            'removido' => !empty($d['deleted']),
+        ]];
+    }
+
+    /**
+     * Assinatura do Asaas pelo id, já normalizada (ver assinaturaDoObjeto). Um pagamento de ciclo só traz o id da
+     * assinatura (`payment.subscription`), então ciclo e valor vêm daqui.
+     *
+     * @return array{ok:bool,http:int,assinatura:?array,erro:?string}
+     */
+    public static function obterAssinatura(string $id): array
+    {
+        $r = self::requisitar('GET', '/subscriptions/' . rawurlencode($id), null);
+        if ($r['status'] < 200 || $r['status'] >= 300) {
+            return ['ok' => false, 'http' => $r['status'], 'assinatura' => null, 'erro' => self::erroDoCorpo($r)];
+        }
+        $d = json_decode($r['corpo'], true);
+        if (!is_array($d) || empty($d['id'])) {
+            return ['ok' => false, 'http' => $r['status'], 'assinatura' => null, 'erro' => 'Resposta do Asaas sem dados da assinatura.'];
+        }
+        return ['ok' => true, 'http' => $r['status'], 'assinatura' => self::assinaturaDoObjeto($d), 'erro' => null];
+    }
+
+    /**
+     * Objeto `subscription` (da API ou do webhook) no vocabulário do CRM. Ciclo fora de mensal/anual vira null:
+     * o CRM só distingue esses dois, e o ciclo original fica em `ciclo_asaas` para quem precisar avisar o operador.
+     *
+     * @return array{id:string,customer:string,valor:int,ciclo:?string,ciclo_asaas:string,forma_pagamento:?string,descricao:string,vencimento:string,situacao:string,removida:bool,referencia:string}
+     */
+    public static function assinaturaDoObjeto(array $d): array
+    {
+        $removida = !empty($d['deleted']);
+        return [
+            'id' => (string) ($d['id'] ?? ''),
+            'customer' => (string) ($d['customer'] ?? ''),
+            'valor' => (int) (reais_para_centavos($d['value'] ?? null) ?? 0),
+            'ciclo' => self::cicloLocal((string) ($d['cycle'] ?? '')),
+            'ciclo_asaas' => (string) ($d['cycle'] ?? ''),
+            'forma_pagamento' => self::formaPagamentoLocal((string) ($d['billingType'] ?? '')),
+            'descricao' => trim((string) ($d['description'] ?? '')),
+            'vencimento' => substr(trim((string) ($d['nextDueDate'] ?? '')), 0, 10),
+            'situacao' => $removida ? 'excluida' : self::situacaoAssinatura((string) ($d['status'] ?? '')),
+            'removida' => $removida,
+            'referencia' => trim((string) ($d['externalReference'] ?? '')),
+        ];
+    }
+
+    /** MONTHLY/YEARLY → mensal/anual; qualquer outro ciclo (semanal, trimestral, semestral…) não existe no CRM: null. */
+    public static function cicloLocal(string $cycle): ?string
+    {
+        return match ($cycle) {
+            'MONTHLY' => 'mensal',
+            'YEARLY' => 'anual',
+            default => null,
+        };
+    }
+
+    /** Nome do ciclo do Asaas em português, para a nota que avisa que o CRM não o representa. */
+    public static function cicloRotulo(string $cycle): string
+    {
+        return match ($cycle) {
+            'WEEKLY' => 'semanal',
+            'BIWEEKLY' => 'quinzenal',
+            'BIMONTHLY' => 'bimestral',
+            'QUARTERLY' => 'trimestral',
+            'SEMIANNUALLY' => 'semestral',
+            default => mb_strtolower($cycle),
+        };
+    }
+
+    /** ACTIVE/INACTIVE/EXPIRED do Asaas → ativa/inativa/expirada. */
+    public static function situacaoAssinatura(string $status): string
+    {
+        return match ($status) {
+            'ACTIVE' => 'ativa',
+            'INACTIVE' => 'inativa',
+            'EXPIRED' => 'expirada',
+            default => mb_strtolower($status),
+        };
+    }
+
+    /** `billingType` → forma de pagamento do CRM. Null para o que o CRM não tem (débito, transferência…): quem chama decide o padrão. */
+    public static function formaPagamentoLocal(string $billingType): ?string
+    {
+        return match ($billingType) {
+            'BOLETO' => 'boleto',
+            'PIX' => 'pix',
+            'CREDIT_CARD' => 'cartao',
+            'UNDEFINED' => 'indefinido',
+            default => null,
+        };
+    }
+
+    /**
+     * Status local a partir do próprio objeto `payment` (não do evento): serve para importar um pagamento que o CRM
+     * nunca viu, onde o evento que chegou (ex.: PAYMENT_UPDATED) não diz em que pé a cobrança está. Sem `status`
+     * reconhecível cai no que o evento diz, e por fim em null.
+     */
+    public static function statusDoPagamento(array $payment, ?string $evento = null): ?string
+    {
+        if (!empty($payment['deleted'])) {
+            return 'cancelado';
+        }
+        $status = match ((string) ($payment['status'] ?? '')) {
+            'PENDING', 'AWAITING_RISK_ANALYSIS', 'APPROVED_BY_RISK_ANALYSIS' => 'pendente',
+            'RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH' => 'pago',
+            'OVERDUE' => 'vencido',
+            'REFUNDED', 'REFUND_REQUESTED', 'REFUND_IN_PROGRESS', 'REPROVED_BY_RISK_ANALYSIS',
+            'CHARGEBACK_REQUESTED', 'CHARGEBACK_DISPUTE', 'AWAITING_CHARGEBACK_REVERSAL' => 'cancelado',
+            default => null,
+        };
+        return $status ?? ($evento !== null ? self::mapearStatus($evento) : null);
+    }
+
     // ---- Apoio ----------------------------------------------------------------------------
 
     /** @return array{ok:bool,id:?string,tipo:?string,url_fatura:?string,erro:?string} */

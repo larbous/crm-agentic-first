@@ -216,7 +216,7 @@ Para conferir sem esperar o worker: `php cron/worker.php --verbose`. Mensagens r
 
 ## Financeiro: cobranças pelo Asaas (Fase 17)
 
-Cobranças (avulsas e recorrentes) são criadas no Asaas a partir da tela **Financeiro → Cobranças**; o status (pendente, pago, vencido, cancelado) chega pelo webhook. Sem as chaves abaixo em `config.local.php`, a cobrança fica salva localmente como pendente, sem tentar falar com o Asaas.
+O **Asaas é a fonte da verdade** das cobranças: crie e altere cobranças e assinaturas (avulsas ou recorrentes) pelo painel do Asaas, e o CRM acompanha pelo webhook — o que nasce lá vira cobrança aqui sozinho, e status, vencimento, valor, nota fiscal e a situação da assinatura (ativa, inativa, excluída) chegam em seguida. Também é possível criar pela tela **Financeiro → Cobranças**, que emite no Asaas; depois de emitida, a cobrança só muda pelo Asaas. Sem as chaves abaixo em `config.local.php`, a cobrança criada aqui fica salva localmente como pendente, sem tentar falar com o Asaas, e nada do painel chega ao CRM.
 
 ```php
 'asaas' => [
@@ -227,9 +227,12 @@ Cobranças (avulsas e recorrentes) são criadas no Asaas a partir da tela **Fina
 ```
 
 1. Crie a conta em <https://www.asaas.com> (ou use uma conta sandbox em <https://sandbox.asaas.com> para testar sem dinheiro real) e gere a chave de API em *Integrações → Chave de API*.
-2. Em *Integrações → Webhooks*, cadastre a URL `https://SEU-DOMINIO/webhooks/asaas`, marque ao menos os eventos `PAYMENT_CREATED`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_DELETED` e `PAYMENT_REFUNDED`, e defina um **token de acesso** — o mesmo texto de `asaas.webhook_token`. O site precisa estar em **HTTPS** com endereço público (o Asaas não chama `localhost`).
+2. Em *Integrações → Webhooks*, cadastre a URL `https://SEU-DOMINIO/webhooks/asaas`, marque os eventos de cobrança (`PAYMENT_CREATED`, `PAYMENT_UPDATED`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_DELETED` e `PAYMENT_REFUNDED`), os de assinatura (`SUBSCRIPTION_CREATED`, `SUBSCRIPTION_UPDATED`, `SUBSCRIPTION_INACTIVATED` e `SUBSCRIPTION_DELETED`) e os de nota fiscal (`INVOICE_*`). Sem os de assinatura, uma assinatura cancelada ou alterada no painel não chega ao CRM. Defina um **token de acesso** — o mesmo texto de `asaas.webhook_token`. O site precisa estar em **HTTPS** com endereço público (o Asaas não chama `localhost`).
 3. **NF-e/NFS-e**: emitida pelo Asaas, acoplada à cobrança; a configuração fiscal (regime tributário, código de serviço, município) é feita no painel do Asaas, não no CRM. A partir de 1º/set/2026 o Emissor Nacional de NFS-e passou a valer também para ME/EPP no Simples Nacional — confirme que a conta Asaas já está migrada antes de emitir notas em produção.
-4. **Empresa → Cliente no Asaas**: o cliente é criado na primeira cobrança de cada empresa (campo interno `empresas.asaas_customer_id`); cobranças seguintes da mesma empresa reaproveitam o mesmo cliente.
+4. **Empresa → Cliente no Asaas**: o CRM liga cada empresa ao seu cliente do Asaas (campo interno `empresas.asaas_customer_id`), achando pelo **CNPJ/CPF** (ou, para clientes criados pelo CRM, pela referência externa). Cadastre a empresa no CRM **com o mesmo CNPJ/CPF** que o cliente tem no Asaas: é por ele que um pagamento criado no painel descobre de qual empresa é.
+   - Pagamento ou assinatura de um cliente sem empresa correspondente **não se perde**: fica em *Financeiro → Cobranças → Pendentes de vínculo*, e o worker tenta de novo a cada 5 minutos. Cadastre a empresa (ou preencha o documento dela) e ele vira cobrança sozinho; "Tentar agora" não espera o intervalo.
+   - O CRM só distingue ciclo **mensal** e **anual**. Uma assinatura de outro ciclo (semanal, trimestral, semestral…) é importada sem ciclo, com uma nota avisando qual é.
+   - Cada assinatura é **uma linha** no CRM, com o status do ciclo mais recente; o histórico completo, ciclo a ciclo, fica no painel do Asaas.
 5. Sem o webhook chegar (ex.: ambiente ainda sem HTTPS), o worker tem um fallback: cobrança pendente que já passou do vencimento vira "vencido" sozinha, sem esperar o Asaas.
 
 Para conferir sem esperar o Asaas: use o botão "Emitir no Asaas" na página da cobrança para tentar de novo se a emissão falhou, e o Postman/`curl` para simular um webhook (`asaas-access-token: SEU-TOKEN`) contra `/webhooks/asaas` em ambiente de teste.

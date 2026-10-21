@@ -523,11 +523,12 @@ teste('cobrança avulsa: vencimento adiado no painel do Asaas chega pelo webhook
     igual('2026-09-30', Repositorios::cobrancas()->encontrar($id)['vencimento']);
 });
 
-teste('webhook do Asaas: evento sem cobrança correspondente é ignorado sem erro', function () {
+teste('webhook do Asaas: evento sem cliente e sem cobrança correspondente é ignorado sem erro', function () {
     bancoComSeed();
     $r = (new ActionExecutor())->processarEventoAsaas('PAYMENT_RECEIVED', ['id' => 'pay_desconhecido']);
     verdadeiro($r->ok);
-    contem('não encontrada', $r->mensagem);
+    contem('ignorado', $r->mensagem);
+    igual(0, Repositorios::cobrancas()->listar()['total'], 'sem cliente não há como importar nem guardar pendência');
 });
 
 teste('AsaasClient::mapearStatus: eventos conhecidos mapeiam para pendente/pago/vencido/cancelado; desconhecido é null', function () {

@@ -53,6 +53,7 @@ final class Rotinas
             'clientes_em_risco'   => $this->clientesEmRisco(),
             'chamados_parados'    => $this->chamadosParados(),
             'cobrancas_vencidas'  => $this->cobrancasVencidas(),
+            'pendencias_asaas'    => $this->executor->reprocessarPendenciasAsaas(),
         ];
     }
 

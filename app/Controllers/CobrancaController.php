@@ -6,6 +6,9 @@ namespace App\Controllers;
 
 use App\Core\Response;
 use App\Core\Router;
+use App\Core\Session;
+use App\Core\View;
+use App\Repositories\AsaasPendenciaRepository;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\Repositorios;
 use App\Services\Schema;
@@ -35,6 +38,36 @@ final class CobrancaController extends CrudController
     {
         $r->post('/financeiro/cobrancas/{id:\d+}/emitir', [self::class, 'emitir']);
         $r->post('/financeiro/cobrancas/{id:\d+}/cancelar', [self::class, 'cancelar']);
+        $r->get('/financeiro/cobrancas/pendencias', [self::class, 'pendencias']);
+        $r->post('/financeiro/cobrancas/pendencias/tentar', [self::class, 'tentarPendencias']);
+    }
+
+    /** Pagamentos do Asaas que ainda não têm empresa no CRM. */
+    public function pendencias(): Response
+    {
+        return View::pagina('cobrancas/pendencias', ['titulo' => 'Pendentes de vínculo', 'pendencias' => (new AsaasPendenciaRepository())->abertas()]);
+    }
+
+    /** Tenta importar agora as pendências, sem esperar o intervalo do worker (útil logo depois de cadastrar a empresa). */
+    public function tentarPendencias(): Response
+    {
+        $antes = (new AsaasPendenciaRepository())->contarAbertas();
+        $this->executor()->reprocessarPendenciasAsaas(50, 0);
+        $depois = (new AsaasPendenciaRepository())->contarAbertas();
+        $resolvidas = max(0, $antes - $depois);
+        Session::flash($resolvidas > 0 ? 'success' : 'info', $resolvidas > 0
+            ? $resolvidas . ($resolvidas === 1 ? ' pendência virou cobrança.' : ' pendências viraram cobrança.')
+            : 'Nada novo: as pendências continuam sem empresa correspondente.');
+        return Response::redirecionar(url('/financeiro/cobrancas/pendencias'));
+    }
+
+    /** No topo da lista: aviso quando há pagamentos do Asaas esperando uma empresa. */
+    protected function acoesExtrasLista(): string
+    {
+        $n = (new AsaasPendenciaRepository())->contarAbertas();
+        return $n > 0
+            ? botao('Pendentes de vínculo (' . $n . ')', ['href' => url('/financeiro/cobrancas/pendencias'), 'variante' => 'outline', 'icone' => 'triangle-alert'])
+            : '';
     }
 
     protected function colunas(): array

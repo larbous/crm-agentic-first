@@ -31,8 +31,9 @@ if ($r['asaas_id'] === null && trim((string) ($r['asaas_erro'] ?? '')) !== '') {
     $avisoAsaas = '<div class="mb-4">' . alerta('Não foi possível emitir no Asaas', (string) $r['asaas_erro'], 'destructive') . '</div>';
 }
 
+$situacaoAssinatura = ['ativa' => 'Ativa', 'inativa' => 'Inativa (sem novas cobranças)', 'expirada' => 'Expirada', 'excluida' => 'Excluída no Asaas'];
 $hist = '';
-$rotulos = ['criar' => 'Criada', 'atualizar' => 'Editada', 'emitir' => 'Emitida no Asaas', 'cancelar' => 'Cancelada', 'status_asaas' => 'Status atualizado pelo Asaas', 'arquivar' => 'Arquivada', 'desfazer' => 'Ação desfeita'];
+$rotulos = ['criar' => 'Criada', 'atualizar' => 'Editada', 'emitir' => 'Emitida no Asaas', 'cancelar' => 'Cancelada', 'status_asaas' => 'Status atualizado pelo Asaas', 'importar_asaas' => 'Importada do Asaas', 'vincular_asaas' => 'Vinculada ao Asaas', 'assinatura_asaas' => 'Assinatura atualizada pelo Asaas', 'nfe_asaas' => 'Nota fiscal atualizada pelo Asaas', 'arquivar' => 'Arquivada', 'desfazer' => 'Ação desfeita'];
 foreach ($historico as $h) {
     $hist .= '<li class="flex justify-between gap-2 border-b py-1.5 text-sm last:border-b-0"><span>' . e($rotulos[$h['acao']] ?? $h['acao'])
         . ' <span class="text-muted-foreground text-xs">· ' . e($h['origem']) . '</span></span><span class="text-muted-foreground text-xs">' . e(datahora_br($h['data'])) . '</span></li>';
@@ -69,6 +70,7 @@ foreach ($historico as $h) {
         <?= card(['tamanho' => 'sm', 'titulo' => 'Asaas', 'corpo_html' => ficha([
             'Cliente' => (string) ($r['asaas_customer_id'] ?? ''),
             'Cobrança/assinatura' => (string) ($r['asaas_id'] ?? 'Não emitida'),
+            'Assinatura' => $r['asaas_tipo'] === 'subscription' ? ['html' => badge($situacaoAssinatura[$r['asaas_assinatura_status'] ?? ''] ?? 'Situação desconhecida', ($r['asaas_assinatura_status'] ?? '') === 'ativa' ? 'success' : 'secondary')] : '',
             'NF-e' => trim((string) $r['nfe_status']) !== '' ? ($r['nfe_url'] ? ['html' => '<a class="underline-offset-4 hover:underline" target="_blank" rel="noopener" href="' . e((string) $r['nfe_url']) . '">' . e((string) $r['nfe_status']) . '</a>'] : (string) $r['nfe_status']) : 'Não emitida',
         ], 1)]) ?>
         <?php if (trim((string) $r['notas']) !== ''): ?>

@@ -30,6 +30,7 @@ final class ActionExecutor
     use AcoesPesquisas;
     use AcoesCaixa;
     use AcoesFinanceiro;
+    use AcoesAsaasImportacao;
     use AcoesIntegracao;
 
     private const PADROES = [
@@ -1023,7 +1024,10 @@ final class ActionExecutor
         $tipoNovo = $v['tipo'] ?? null;
         $tipoEfetivo = $tipoNovo ?? ($atual['tipo'] ?? null);
 
-        if ($tipoEfetivo === 'recorrente' && empty($v['ciclo'] ?? $atual['ciclo'] ?? null)) {
+        // Importada do Asaas com um ciclo que o CRM não tem (trimestral, semestral…) fica recorrente SEM ciclo; editar só
+        // as notas dela não pode cobrar um ciclo que a operação nem toca.
+        $tocaCiclo = $atual === null || $tipoNovo !== null || array_key_exists('ciclo', $v);
+        if ($tocaCiclo && $tipoEfetivo === 'recorrente' && empty($v['ciclo'] ?? $atual['ciclo'] ?? null)) {
             return ['ciclo' => 'Informe o ciclo de cobrança (mensal ou anual).'];
         }
         if ($tipoEfetivo === 'avulsa' && ($tipoNovo !== null || array_key_exists('ciclo', $v))) {

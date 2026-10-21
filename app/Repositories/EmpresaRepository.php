@@ -55,6 +55,14 @@ final class EmpresaRepository extends BaseRepository
         return $st->fetch() ?: null;
     }
 
+    /** Empresa ativa já ligada a este cliente do Asaas (`asaas_customer_id`), linha completa. */
+    public function porAsaasCustomerId(string $customerId): ?array
+    {
+        $st = $this->pdo()->prepare('SELECT * FROM empresas WHERE asaas_customer_id = :c AND arquivado_em IS NULL ORDER BY id LIMIT 1');
+        $st->execute(['c' => $customerId]);
+        return $st->fetch() ?: null;
+    }
+
     /** Empresa ativa com este e-mail geral. */
     public function porEmailGeral(string $email): ?array
     {

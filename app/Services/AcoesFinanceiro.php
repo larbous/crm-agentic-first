@@ -79,6 +79,7 @@ trait AcoesFinanceiro
             $depois = [
                 'asaas_customer_id' => $clienteId, 'asaas_id' => $envio['id'], 'asaas_tipo' => $envio['tipo'],
                 'url_fatura' => $envio['url_fatura'], 'status' => 'pendente',
+                'asaas_assinatura_status' => $envio['tipo'] === 'subscription' ? 'ativa' : null,
             ];
             $antes = array_intersect_key($cobranca, $depois);
             // asaas_erro fica fora do diff de auditoria: é diagnóstico da integração, não mudança de negócio.
@@ -135,22 +136,23 @@ trait AcoesFinanceiro
             $cobranca = $repo->porAsaasId((string) $payment['subscription']);
         }
         if ($cobranca === null) {
-            return Resultado::sucesso(null, 'Cobrança não encontrada para este evento (ignorado).');
+            return $this->importarPagamentoAsaas($evento, $payment);
         }
 
         $novoStatus = AsaasClient::mapearStatus($evento);
         $viraPaga = $novoStatus === 'pago' && $novoStatus !== $cobranca['status'];
         $mudaFatura = !empty($payment['invoiceUrl']) && $payment['invoiceUrl'] !== $cobranca['url_fatura'];
         $novoVencimento = self::vencimentoDoEvento($cobranca, $payment);
+        $espelho = self::espelhoDoPagamento($cobranca, $payment);
         // asaas_payment_id sempre acompanha o pagamento mais recente do ciclo (mesmo numa avulsa, onde já é igual a asaas_id):
         // é por ele que o webhook de NF-e reencontra a cobrança (invoice.payment nunca é o id da assinatura).
         $novoPaymentId = !empty($payment['id']) && (string) $payment['id'] !== (string) ($cobranca['asaas_payment_id'] ?? '') ? (string) $payment['id'] : null;
-        if (($novoStatus === null || $novoStatus === $cobranca['status']) && !$mudaFatura && $novoVencimento === null && $novoPaymentId === null) {
+        if (($novoStatus === null || $novoStatus === $cobranca['status']) && !$mudaFatura && $novoVencimento === null && $novoPaymentId === null && $espelho === []) {
             return Resultado::sucesso((int) $cobranca['id'], 'Nada a atualizar.');
         }
 
-        return $this->transacao(function () use ($repo, $cobranca, $novoStatus, $viraPaga, $novoVencimento, $novoPaymentId, $payment): Resultado {
-            $depois = [];
+        return $this->transacao(function () use ($repo, $cobranca, $novoStatus, $viraPaga, $novoVencimento, $novoPaymentId, $espelho, $payment): Resultado {
+            $depois = $espelho;
             if ($novoStatus !== null && $novoStatus !== $cobranca['status']) {
                 $depois['status'] = $novoStatus;
                 if ($novoStatus === 'pago') {
@@ -250,6 +252,35 @@ trait AcoesFinanceiro
             $logId = Audit::registrar('sistema', 'cobrancas', $id, 'nfe_asaas', $antes, $depois);
             return Resultado::sucesso($id, 'Situação da nota fiscal atualizada.', $repo->encontrar($id), $logId);
         });
+    }
+
+    /**
+     * Valor, descrição e forma de pagamento que o painel do Asaas mudou: com o Asaas como fonte da verdade, a linha
+     * do CRM acompanha o pagamento (é ele que o cliente paga e que entra na receita). Numa assinatura, evento de um
+     * ciclo anterior (vencimento menor que o da linha) não sobrescreve os dados do ciclo atual.
+     *
+     * @return array<string,mixed>
+     */
+    private static function espelhoDoPagamento(array $cobranca, array $payment): array
+    {
+        $vencimento = substr(trim((string) ($payment['dueDate'] ?? '')), 0, 10);
+        if ($cobranca['asaas_tipo'] === 'subscription' && $vencimento !== '' && $vencimento < (string) $cobranca['vencimento']) {
+            return [];
+        }
+        $depois = [];
+        $valor = reais_para_centavos($payment['value'] ?? null);
+        if ($valor !== null && $valor > 0 && $valor !== (int) $cobranca['valor']) {
+            $depois['valor'] = $valor;
+        }
+        $descricao = mb_strimwidth(trim((string) ($payment['description'] ?? '')), 0, 200, '…');
+        if ($descricao !== '' && $descricao !== (string) $cobranca['descricao']) {
+            $depois['descricao'] = $descricao;
+        }
+        $forma = AsaasClient::formaPagamentoLocal((string) ($payment['billingType'] ?? ''));
+        if ($forma !== null && $forma !== $cobranca['forma_pagamento']) {
+            $depois['forma_pagamento'] = $forma;
+        }
+        return $depois;
     }
 
     /**

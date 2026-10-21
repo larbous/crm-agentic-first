@@ -60,6 +60,8 @@ final class AsaasWebhookController
                 $r = $x->processarEventoAsaas($evento, $dados);
             } elseif (($nota = (array) ($payload['invoice'] ?? [])) !== []) {
                 $r = $x->processarEventoNotaAsaas($evento, $nota);
+            } elseif (($assinatura = (array) ($payload['subscription'] ?? [])) !== []) {
+                $r = $x->processarEventoAssinaturaAsaas($evento, $assinatura);
             }
             if ($r !== null && !$r->ok) {
                 error_log('Webhook Asaas: evento recusado: ' . $r->mensagem);
