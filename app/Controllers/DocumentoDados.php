@@ -38,6 +38,7 @@ final class DocumentoDados
     {
         return [
             'c'       => $contrato,
+            'corpo'   => Variaveis::renderizarContrato($contrato),
             'empresa' => $contrato['empresa_id'] ? Repositorios::empresas()->encontrar((int) $contrato['empresa_id'], true) : null,
             'contato' => $contrato['contato_id'] ? Repositorios::contatos()->encontrar((int) $contrato['contato_id'], true) : null,
             'agencia' => self::agencia(),

@@ -17,9 +17,9 @@ final class Html
 {
     /** tag => atributos permitidos */
     private const TAGS = [
-        'p' => [], 'br' => [], 'hr' => [], 'h1' => [], 'h2' => [], 'h3' => [], 'h4' => [], 'h5' => [], 'h6' => [],
+        'p' => ['align'], 'br' => [], 'hr' => [], 'h1' => ['align'], 'h2' => ['align'], 'h3' => ['align'], 'h4' => ['align'], 'h5' => ['align'], 'h6' => ['align'],
         'strong' => [], 'b' => [], 'em' => [], 'i' => [], 'u' => [], 'sub' => [], 'sup' => [], 'small' => [],
-        'ul' => [], 'ol' => [], 'li' => [], 'blockquote' => [], 'span' => [], 'div' => [],
+        'ul' => [], 'ol' => ['type'], 'li' => [], 'blockquote' => [], 'span' => [], 'div' => ['align'],
         'table' => [], 'thead' => [], 'tbody' => [], 'tfoot' => [], 'tr' => [],
         'th' => ['colspan', 'rowspan', 'align'], 'td' => ['colspan', 'rowspan', 'align'],
         'a' => ['href', 'title'],
@@ -93,6 +93,8 @@ final class Html
             if ($nome === 'href' && !self::urlSegura($attr->value)) {
                 $el->removeAttribute($attr->name);
             } elseif (in_array($nome, ['colspan', 'rowspan'], true) && !ctype_digit($attr->value)) {
+                $el->removeAttribute($attr->name);
+            } elseif ($nome === 'type' && !in_array($attr->value, ['a', 'A', 'i', 'I', '1'], true)) {
                 $el->removeAttribute($attr->name);
             } elseif ($nome === 'align' && !in_array(strtolower($attr->value), ['left', 'right', 'center', 'justify'], true)) {
                 $el->removeAttribute($attr->name);

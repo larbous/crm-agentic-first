@@ -8,8 +8,8 @@
  * @var string $linkPublico
  * @var list<array> $anexos
  */
-use App\Services\Html;
 use App\Services\Schema;
+use App\Services\Variaveis;
 
 $r = $registro;
 $id = (int) $r['id'];
@@ -28,7 +28,7 @@ foreach ($historico as $h) {
 
 $abas = [
     ['rotulo' => 'Documento', 'html' => trim((string) $r['conteudo']) !== ''
-        ? '<div class="documento" style="max-width:none;box-shadow:none"><div class="documento-corpo">' . Html::sanitizar((string) $r['conteudo']) . '</div></div>'
+        ? '<div class="documento" style="max-width:none;box-shadow:none"><div class="documento-corpo">' . Variaveis::renderizarContrato($r) . '</div></div>'
         : vazio('Contrato sem conteúdo', 'Edite o contrato para gerar o texto a partir de um modelo.', ['icone' => 'file-text', 'acao_html' => $rascunho ? botao('Editar', ['href' => url('/contratos/' . $id . '/editar'), 'icone' => 'pencil']) : ''])],
     ['rotulo' => 'Tarefas', 'contagem' => count(array_filter($tarefas, 'tarefa_aberta')), 'html' => tarefas_mini($tarefas, 'contrato_id', $id, $voltar)],
     ['rotulo' => 'Histórico', 'contagem' => count($historico), 'html' => $hist !== '' ? '<ul>' . $hist . '</ul>' : vazio('Sem histórico', '', ['icone' => 'scroll-text'])],

@@ -50,6 +50,7 @@ final class Variaveis
         foreach (self::CAMPOS_AGENCIA as $campo => $descricao) {
             $agencia['{larbous.' . $campo . '}'] = $descricao;
         }
+        $agencia['{larbous.crm_url}'] = 'Endereço deste CRM (para solicitações do cliente)';
         $grupos['Agência (Lárbous)'] = $agencia;
         return $grupos;
     }
@@ -58,11 +59,11 @@ final class Variaveis
     private static function calculadas(string $ns): array
     {
         return match ($ns) {
-            'empresa'  => ['nome' => 'Nome fantasia', 'razao' => 'Razão social (ou nome fantasia)', 'endereco_completo' => 'Endereço completo'],
+            'empresa'  => ['nome' => 'Nome fantasia', 'razao' => 'Razão social (ou nome fantasia)', 'endereco_completo' => 'Endereço completo', 'endereco_linha' => 'Logradouro, número, complemento e bairro (sem cidade e CEP)'],
             'contato'  => ['nome_completo' => 'Nome e sobrenome', 'primeiro_nome' => 'Primeiro nome'],
             'negocio'  => ['valor_extenso' => 'Valor (fechado ou estimado) por extenso'],
             'proposta' => ['itens' => 'Tabela de itens', 'desconto' => 'Desconto formatado', 'total_extenso' => 'Total por extenso', 'numero_versao' => 'Número e versão (PROP-2026-0001 v2)'],
-            'contrato' => ['valor_total_extenso' => 'Valor total por extenso', 'valor_mensal_extenso' => 'Valor mensal por extenso', 'vigencia' => 'Vigência (de … a …)'],
+            'contrato' => ['valor_total_extenso' => 'Valor total por extenso', 'valor_mensal_extenso' => 'Valor mensal por extenso', 'vigencia' => 'Vigência (de … a …)', 'link' => 'Link público para visualizar e assinar'],
             default    => [],
         };
     }
@@ -100,6 +101,9 @@ final class Variaveis
         }
 
         if ($ns === 'larbous') {
+            if ($campo === 'crm_url') {
+                return $esc(rtrim(url_publica('/'), '/'));
+            }
             return $campo !== null && isset(self::CAMPOS_AGENCIA[$campo])
                 ? $esc((string) (new ConfiguracaoRepository())->obter('empresa.' . $campo, ''))
                 : null;
@@ -165,6 +169,8 @@ final class Variaveis
                 $cid = trim(implode('/', array_filter([$l['cidade'] ?? '', $l['uf'] ?? ''])));
                 $cep = ($l['cep'] ?? '') !== '' ? 'CEP ' . cep_formatado($l['cep']) : '';
                 return $esc(implode(', ', array_filter([$rua, $cid, $cep])));
+            case 'empresa.endereco_linha':
+                return $esc(implode(', ', array_filter([$l['logradouro'] ?? '', $l['numero'] ?? '', $l['complemento'] ?? '', $l['bairro'] ?? ''], static fn ($v) => trim((string) $v) !== '')));
             case 'contato.nome_completo':
                 return $esc(trim(($l['nome'] ?? '') . ' ' . ($l['sobrenome'] ?? '')));
             case 'contato.primeiro_nome':
@@ -186,12 +192,29 @@ final class Variaveis
                 return $esc(valor_por_extenso(isset($l['valor_total']) ? (int) $l['valor_total'] : null));
             case 'contrato.valor_mensal_extenso':
                 return $esc(valor_por_extenso(isset($l['valor_mensal']) ? (int) $l['valor_mensal'] : null));
+            case 'contrato.link':
+                return $esc(url_publica('/c/' . ($l['token_publico'] ?? '')));
             case 'contrato.vigencia':
                 $de = data_br($l['data_inicio'] ?? null);
                 $ate = data_br($l['data_fim'] ?? null);
                 return $esc($de !== '' && $ate !== '' ? "de {$de} a {$ate}" : trim($de . ' ' . $ate));
         }
         return '';
+    }
+
+    /**
+     * Texto do contrato pronto para exibir/imprimir: variáveis preenchidas com os dados atuais (empresa, contato,
+     * negócio, proposta e o próprio contrato) e HTML sanitizado. Variáveis desconhecidas ficam como estão.
+     */
+    public static function renderizarContrato(array $contrato): string
+    {
+        $conteudo = (string) ($contrato['conteudo'] ?? '');
+        if (!str_contains($conteudo, '{')) {
+            return Html::sanitizar($conteudo);
+        }
+        $ctx = self::contexto(['contrato_id' => (int) $contrato['id']]);
+        $ctx['contrato'] = $contrato;
+        return Html::sanitizar(self::renderizar($conteudo, $ctx, true));
     }
 
     /** Tabela de itens da proposta (HTML no modo HTML; lista de linhas no modo texto). */

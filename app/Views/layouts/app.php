@@ -200,6 +200,7 @@ $item = static function (array $n) use ($ativo, $acoesPendentes, $caixaNaoLidas)
 <script type="module" src="<?= e(asset('js/chat.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/busca.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/forms.js')) ?>"></script>
+<script type="module" src="<?= e(asset('js/editor-html.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/ia-rapida.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/kanban.js')) ?>"></script>
 <script type="module" src="<?= e(asset('js/propostas.js')) ?>"></script>

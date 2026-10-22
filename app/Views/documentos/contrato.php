@@ -2,6 +2,7 @@
 /**
  * Documento do contrato (usado na impressão e no link público).
  * @var array $c contrato
+ * @var string $corpo texto do contrato com as variáveis já preenchidas e sanitizado
  * @var array|null $empresa
  * @var array|null $contato
  * @var array $agencia
@@ -27,7 +28,7 @@ $assinado = in_array($c['status'], ['assinado', 'ativo', 'vencido', 'renovado'],
 
     <h1 class="documento-titulo"><?= e($c['titulo']) ?></h1>
 
-    <div class="documento-corpo"><?= Html::sanitizar((string) $c['conteudo']) ?></div>
+    <div class="documento-corpo"><?= $corpo ?></div>
 
     <?php if (trim((string) $c['clausulas_especiais']) !== ''): ?>
         <section class="documento-secao"><h2>Cláusulas especiais</h2><?= Html::textoParaHtml((string) $c['clausulas_especiais']) ?></section>

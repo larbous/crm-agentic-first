@@ -497,6 +497,8 @@ trait AcoesDocumentos
             $status = $c['data_inicio'] === null || $c['data_inicio'] <= hoje() ? 'ativo' : 'assinado';
             [$novo, $logId] = $this->gravarCampos('contratos', $c, [
                 'status' => $status, 'assinado_em' => agora(), 'assinatura_nome' => $nome, 'assinatura_documento' => $documento,
+                // O que foi assinado fica gravado: as variáveis são substituídas pelos valores do momento da assinatura.
+                'conteudo' => Variaveis::renderizarContrato($c),
                 'assinatura_ip' => substr((string) ($dados['ip'] ?? ''), 0, 64),
             ], $origem, 'assinar_contrato');
             $this->atividadeDocumento('contrato', "Contrato {$c['numero']} assinado", "Assinado por {$nome}", $c);

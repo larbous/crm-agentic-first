@@ -140,12 +140,58 @@
     @apply mt-5 mb-2 font-semibold;
   }
 
+  /* Estilos pré-definidos do editor de contratos: título, seção, cláusula, destaque */
   .documento-corpo h1 {
-    @apply text-lg;
+    @apply mt-2 mb-4 text-center text-lg tracking-wide uppercase;
   }
 
   .documento-corpo h2 {
     @apply text-base;
+  }
+
+  .documento-corpo h3 {
+    @apply text-sm tracking-wide uppercase;
+  }
+
+  .documento-corpo [align='center'] {
+    text-align: center;
+  }
+
+  .documento-corpo [align='right'] {
+    text-align: right;
+  }
+
+  .documento-corpo [align='left'] {
+    text-align: left;
+  }
+
+  .documento-corpo [align='justify'] {
+    text-align: justify;
+  }
+
+  .documento-corpo hr {
+    @apply my-4;
+    border-color: #d1d5db;
+  }
+
+  .documento-corpo li {
+    @apply my-0.5;
+  }
+
+  .documento-corpo ol[type='a'] {
+    list-style-type: lower-alpha;
+  }
+
+  .documento-corpo ol[type='A'] {
+    list-style-type: upper-alpha;
+  }
+
+  .documento-corpo ol[type='i'] {
+    list-style-type: lower-roman;
+  }
+
+  .documento-corpo ol[type='I'] {
+    list-style-type: upper-roman;
   }
 
   .documento-corpo p {

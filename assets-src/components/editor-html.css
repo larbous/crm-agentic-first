@@ -1,0 +1,61 @@
+/* Editor de texto formatado dos contratos (editor-html.js) */
+@layer components {
+  .editor-html {
+    @apply rounded-md border;
+  }
+
+  .editor-barra {
+    @apply bg-muted/40 flex flex-wrap items-center gap-1 rounded-t-md border-b p-1.5;
+  }
+
+  .editor-barra[hidden] {
+    display: none;
+  }
+
+  .editor-grupo {
+    @apply flex items-center gap-0.5;
+  }
+
+  .editor-fonte {
+    @apply ms-auto;
+  }
+
+  .editor-sep {
+    @apply bg-border mx-1 h-5 w-px;
+  }
+
+  .editor-select {
+    @apply h-8 w-auto max-w-44 py-0 text-xs;
+  }
+
+  /* Folha branca, como o contrato impresso */
+  .editor-area {
+    @apply max-h-[36rem] min-h-72 overflow-y-auto rounded-b-md p-5 text-[13px] leading-relaxed outline-none;
+    background: #fff;
+    color: #111827;
+  }
+
+  .editor-area:focus-visible {
+    @apply ring-ring/50 ring-2 ring-inset;
+  }
+
+  .editor-area[hidden] {
+    display: none;
+  }
+
+  .editor-area table {
+    border: 1px dashed #d1d5db;
+  }
+
+  .editor-fonte-texto {
+    @apply rounded-t-none border-0;
+  }
+
+  .editor-fonte-texto[hidden] {
+    display: none;
+  }
+
+  .editor-barra button[aria-pressed='true'] {
+    @apply bg-accent;
+  }
+}
