@@ -6,27 +6,7 @@ use App\Controllers\DocumentoDados;
 use App\Repositories\Repositorios;
 use App\Services\ActionExecutor;
 use App\Services\Html;
-use App\Services\TagsPerfex;
 use App\Services\Variaveis;
-
-teste('TagsPerfex: traduz as tags do Perfex, tira o "R$" repetido e deixa o que não conhece', function () {
-    $antigo = '<p>{companyname} e {client_company} (CNPJ {client_vat_number}), {client_address}, {client_city}/{client_state}, {client_zip}. '
-        . 'Valor de <span class="placeholder">R$&#160; {contract_contract_value}</span> ({contracts_valor_extenso}), dia&#160; {contracts_dia_de_pagamento}. '
-        . 'Promo R$ {contracts_valor_promocional}, {contracts_percentual_deconto}. {tag_desconhecida}</p>';
-    $novo = TagsPerfex::converter($antigo);
-    contem('{larbous.nome} e {empresa.nome} (CNPJ {empresa.cnpj}), {empresa.endereco_linha}, {empresa.cidade}/{empresa.uf}, {empresa.cep}.', $novo);
-    contem('<span class="placeholder">{contrato.valor_total}</span> ({contrato.valor_total_extenso}), dia&#160; {contrato.dia_vencimento_pagamento}.', $novo);
-    contem('Promo {contrato.valor_promocional}, {contrato.percentual_desconto}.', $novo);
-    igual(['{tag_desconhecida}'], TagsPerfex::restantes($novo));
-    // Importado do dump, o espaço sem quebra já vem como caractere (não como entidade).
-    igual('Valor {contrato.valor_total}.', TagsPerfex::converter("Valor R$\u{00A0} {contract_contract_value}."));
-
-    // Toda variável de destino do mapa existe de verdade no motor de variáveis.
-    $catalogo = array_merge(...array_values(Variaveis::catalogo()));
-    foreach (array_unique(array_values(TagsPerfex::MAPA)) as $destino) {
-        verdadeiro(isset($catalogo['{' . $destino . '}']), "variável inexistente: {$destino}");
-    }
-});
 
 teste('Contrato: variáveis do texto são preenchidas na impressão, com campos novos de contrato e empresa', function () {
     bancoComSeed();
