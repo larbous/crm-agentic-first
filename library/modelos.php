@@ -23,7 +23,7 @@ TXT],
 <p>Contrato nº <strong>{contrato.numero}</strong>, firmado em {hoje.extenso}.</p>
 
 <h2>1. DAS PARTES</h2>
-<p><strong>CONTRATADA:</strong> {larbous.nome}, inscrita no CNPJ sob o nº {larbous.cnpj}, com sede em {larbous.endereco}, representada por {larbous.responsavel}.</p>
+<p><strong>CONTRATADA:</strong> {larbous.razao}, inscrita no CNPJ sob o nº {larbous.cnpj}, com sede em {larbous.endereco}, representada por {larbous.responsavel}.</p>
 <p><strong>CONTRATANTE:</strong> {empresa.razao}, inscrita no CNPJ sob o nº {empresa.cnpj}, com sede em {empresa.endereco_completo}, neste ato representada por {contato.nome_completo}.</p>
 
 <h2>2. DO OBJETO</h2>

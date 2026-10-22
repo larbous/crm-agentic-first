@@ -17,7 +17,7 @@ final class Variaveis
 {
     /** Dados da agência lidos de configuracoes (chaves empresa.*). */
     public const CAMPOS_AGENCIA = [
-        'nome' => 'Nome da agência', 'cnpj' => 'CNPJ da agência', 'endereco' => 'Endereço da agência', 'cidade' => 'Cidade (foro)',
+        'nome' => 'Nome da agência (nome fantasia)', 'razao' => 'Razão social da agência (ou nome fantasia, se vazia)', 'cnpj' => 'CNPJ da agência', 'endereco' => 'Endereço da agência', 'cidade' => 'Cidade (foro)',
         'email' => 'E-mail da agência', 'telefone' => 'Telefone da agência', 'site' => 'Site da agência', 'responsavel' => 'Responsável / representante legal',
     ];
 
@@ -104,9 +104,15 @@ final class Variaveis
             if ($campo === 'crm_url') {
                 return $esc(rtrim(url_publica('/'), '/'));
             }
-            return $campo !== null && isset(self::CAMPOS_AGENCIA[$campo])
-                ? $esc((string) (new ConfiguracaoRepository())->obter('empresa.' . $campo, ''))
-                : null;
+            if ($campo === null || !isset(self::CAMPOS_AGENCIA[$campo])) {
+                return null;
+            }
+            $config = new ConfiguracaoRepository();
+            $valor = (string) $config->obter('empresa.' . $campo, '');
+            if ($campo === 'razao' && $valor === '') {
+                $valor = (string) $config->obter('empresa.nome', '');
+            }
+            return $esc($valor);
         }
 
         if (!isset(self::ENTIDADES[$ns]) || $campo === null) {
