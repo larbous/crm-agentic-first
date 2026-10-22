@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\ConfiguracaoRepository;
+use App\Repositories\ContratoComentarioRepository;
 use App\Repositories\ItemPropostaRepository;
 use App\Repositories\Repositorios;
 
@@ -246,7 +247,9 @@ trait AcoesDocumentos
             return [$atual, null];
         }
         $repo->atualizar((int) $atual['id'], $alterados + ['atualizado_em' => agora()]);
-        $logId = Audit::registrar($origem, $entidade, (int) $atual['id'], $acao, array_intersect_key($atual, $alterados), $alterados);
+        // O desenho da assinatura (dezenas de KB) não vai para o log; o que importa é o hash e os dados da assinatura.
+        $semImagem = static fn (array $d): array => array_map(static fn ($v) => is_string($v) && str_starts_with($v, 'data:image/') ? '[imagem]' : $v, $d);
+        $logId = Audit::registrar($origem, $entidade, (int) $atual['id'], $acao, $semImagem(array_intersect_key($atual, $alterados)), $semImagem($alterados));
         return [$repo->encontrar((int) $atual['id'], true), $logId];
     }
 
@@ -491,19 +494,80 @@ trait AcoesDocumentos
             if ($documento === null) {
                 $erros['documento'] = 'Informe um CPF ou CNPJ válido.';
             }
+            $email = mb_strtolower(trim((string) ($dados['email'] ?? '')));
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 160) {
+                $erros['email'] = 'Informe um e-mail válido.';
+            }
+            $imagem = Assinatura::imagemValida($dados['assinatura'] ?? null);
+            if ($imagem === null) {
+                $erros['assinatura'] = 'Desenhe sua assinatura no quadro.';
+            }
             if ($erros !== []) {
                 return Resultado::falha($erros);
             }
+            $conteudo = Variaveis::renderizarContrato($c);
             $status = $c['data_inicio'] === null || $c['data_inicio'] <= hoje() ? 'ativo' : 'assinado';
             [$novo, $logId] = $this->gravarCampos('contratos', $c, [
                 'status' => $status, 'assinado_em' => agora(), 'assinatura_nome' => $nome, 'assinatura_documento' => $documento,
-                // O que foi assinado fica gravado: as variáveis são substituídas pelos valores do momento da assinatura.
-                'conteudo' => Variaveis::renderizarContrato($c),
                 'assinatura_ip' => substr((string) ($dados['ip'] ?? ''), 0, 64),
+                'assinatura_email' => $email, 'assinatura_imagem' => $imagem,
+                'assinatura_user_agent' => mb_substr((string) ($dados['user_agent'] ?? ''), 0, 300),
+                // O que foi assinado fica gravado: as variáveis são substituídas pelos valores do momento da assinatura,
+                // e o hash do texto permite provar depois que ele não mudou.
+                'conteudo' => $conteudo,
+                'assinatura_hash' => Assinatura::hash((string) $c['numero'], $conteudo),
             ], $origem, 'assinar_contrato');
             $this->atividadeDocumento('contrato', "Contrato {$c['numero']} assinado", "Assinado por {$nome}", $c);
             $this->enfileirar('contrato.assinado', ['entidade' => 'contratos', 'id' => $id, 'origem' => $origem, 'registro' => $novo]);
             return Resultado::sucesso($id, 'Contrato assinado. Obrigado!', $novo, $logId);
+        });
+    }
+
+    /**
+     * Comentário na conversa do contrato. Do cliente (link público): vira atividade na timeline e uma tarefa para a equipe
+     * responder. Da equipe: só aparece na conversa. Vale enquanto o contrato não é rascunho nem está cancelado.
+     */
+    public function comentarContrato(int $id, string $autor, string $nome, string $texto, ?string $ip = null, string $origem = 'humano'): Resultado
+    {
+        $this->validarOrigem($origem);
+        return $this->transacao(function () use ($id, $autor, $nome, $texto, $ip): Resultado {
+            $c = Repositorios::contratos()->encontrar($id);
+            if ($c === null) {
+                return $this->documentoNaoEncontrado('Contrato');
+            }
+            if ($c['status'] === 'rascunho' || $c['status'] === 'cancelado') {
+                return Resultado::erroGeral('Este contrato não aceita comentários.');
+            }
+            $nome = trim($nome);
+            $texto = trim(str_replace("
+", "
+", $texto));
+            $erros = [];
+            if (mb_strlen($nome) < 2 || mb_strlen($nome) > 160 || !mb_check_encoding($nome, 'UTF-8')) {
+                $erros['nome'] = 'Informe seu nome.';
+            }
+            if (mb_strlen($texto) < 2 || mb_strlen($texto) > 2000 || !mb_check_encoding($texto, 'UTF-8')) {
+                $erros['texto'] = 'Escreva o comentário (até 2000 caracteres).';
+            }
+            $repo = new ContratoComentarioRepository();
+            if ($autor === 'cliente' && $repo->contar($id, 'cliente') >= 30) {
+                $erros['texto'] = 'Limite de comentários atingido. Fale com a equipe por outro canal.';
+            }
+            if ($erros !== []) {
+                return Resultado::falha($erros);
+            }
+            $repo->inserir($id, $autor === 'cliente' ? 'cliente' : 'equipe', $nome, $texto, $ip);
+            if ($autor === 'cliente') {
+                $this->atividadeDocumento('contrato', "Comentário do cliente no contrato {$c['numero']}", mb_strimwidth($texto, 0, 300, '…'), $c);
+                $agora = agora();
+                Repositorios::tarefas()->inserir([
+                    'titulo' => "Responder comentário do cliente — contrato {$c['numero']}", 'descricao' => "{$nome}: " . mb_strimwidth($texto, 0, 500, '…'),
+                    'tipo' => 'followup', 'prioridade' => 'alta', 'status' => 'pendente', 'vencimento' => hoje(), 'recorrencia' => 'nenhuma',
+                    'empresa_id' => $c['empresa_id'], 'contato_id' => $c['contato_id'], 'negocio_id' => $c['negocio_id'], 'contrato_id' => $id,
+                    'criado_em' => $agora, 'atualizado_em' => $agora, 'criado_por' => 'sistema',
+                ]);
+            }
+            return Resultado::sucesso($id, 'Comentário enviado.');
         });
     }
 

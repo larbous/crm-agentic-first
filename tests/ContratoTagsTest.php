@@ -42,7 +42,7 @@ teste('Contrato: variáveis do texto são preenchidas na impressão, com campos 
 
     // Ao assinar, o texto assinado fica congelado, sem variáveis.
     verdadeiro($x->enviarContrato((int) $r->id)->ok);
-    verdadeiro($x->assinarContrato((int) $r->id, ['nome' => 'Ana Souza', 'documento' => CPF_VALIDO])->ok);
+    verdadeiro($x->assinarContrato((int) $r->id, dadosAssinatura())->ok);
     $assinado = Repositorios::contratos()->encontrar((int) $r->id)['conteudo'];
     contem('Padaria Central Ltda (11.222.333/0001-81)', $assinado);
     verdadeiro(!str_contains($assinado, '{empresa.razao}'), 'variáveis resolvidas na assinatura');
@@ -54,4 +54,64 @@ teste('Html::sanitizar mantém alinhamento e tipo de lista do editor e remove o 
     igual('<h3>b</h3>', Html::sanitizar('<h3 align="evil">b</h3>'));
     igual('<ol type="a"><li>x</li></ol>', Html::sanitizar('<ol type="a" onclick="x()"><li>x</li></ol>'));
     igual('<ol><li>x</li></ol>', Html::sanitizar('<ol type="zzz"><li>x</li></ol>'));
+});
+
+teste('Assinatura digital: exige e-mail e desenho, grava prova (hash, navegador, imagem) e detecta alteração do texto', function () {
+    bancoComSeed();
+    $x = new ActionExecutor();
+    [, , $neg] = negocioComContato($x);
+    $id = (int) $x->criar('contratos', ['titulo' => 'C', 'recorrencia' => 'unica', 'negocio_id' => $neg, 'conteudo' => '<p>Contratada {larbous.nome}, cliente {empresa.nome}.</p>'])->id;
+    verdadeiro($x->enviarContrato($id)->ok);
+
+    $sem = $x->assinarContrato($id, dadosAssinatura(['assinatura' => '', 'email' => 'ruim']));
+    verdadeiro(!$sem->ok);
+    verdadeiro(isset($sem->erros['assinatura'], $sem->erros['email']), json_encode($sem->erros));
+    verdadeiro(!$x->assinarContrato($id, dadosAssinatura(['assinatura' => 'data:image/png;base64,AAAA']))->ok, 'PNG inválido');
+    verdadeiro(!$x->assinarContrato($id, dadosAssinatura(['assinatura' => 'data:image/svg+xml;base64,' . base64_encode('<svg onload="x()"/>')]))->ok, 'só PNG');
+
+    $r = $x->assinarContrato($id, dadosAssinatura(['ip' => '203.0.113.5']));
+    verdadeiro($r->ok, json_encode($r->erros));
+    $c = Repositorios::contratos()->encontrar($id);
+    igual('ana@exemplo.com.br', $c['assinatura_email']);
+    igual('Teste/1.0', $c['assinatura_user_agent']);
+    verdadeiro(str_starts_with($c['assinatura_imagem'], 'data:image/png;base64,'));
+    igual(64, strlen($c['assinatura_hash']));
+    verdadeiro(\App\Services\Assinatura::integro($c));
+    verdadeiro(!str_contains($c['conteudo'], '{empresa.nome}'), 'texto congelado');
+
+    // O desenho não vai para o log de auditoria (só um marcador).
+    $log = (new \App\Repositories\AuditoriaRepository())->listar(['entidade' => 'contratos', 'registro_id' => (string) $id], 1, 20)['linhas'];
+    foreach ($log as $linha) {
+        verdadeiro(!str_contains((string) $linha['depois'], 'base64'), 'log sem imagem');
+    }
+
+    // Se o texto for adulterado depois, a verificação acusa; a página do contrato mostra o comprovante.
+    verdadeiro(!\App\Services\Assinatura::integro(['conteudo' => $c['conteudo'] . 'x'] + $c));
+    $html = \App\Core\View::partial('documentos/contrato', DocumentoDados::contrato($c));
+    contem('Comprovante de assinatura eletrônica', $html);
+    contem($c['assinatura_imagem'], $html);
+    contem('idêntico ao que foi assinado', $html);
+});
+
+teste('Contrato: comentários do cliente avisam a equipe (atividade e tarefa) e a equipe responde na mesma conversa', function () {
+    bancoComSeed();
+    $x = new ActionExecutor();
+    [, , $neg] = negocioComContato($x);
+    $id = (int) $x->criar('contratos', ['titulo' => 'C', 'recorrencia' => 'unica', 'negocio_id' => $neg, 'conteudo' => '<p>Texto</p>'])->id;
+    verdadeiro(!$x->comentarContrato($id, 'cliente', 'Ana', 'Oi')->ok, 'rascunho não aceita comentários');
+    verdadeiro($x->enviarContrato($id)->ok);
+
+    verdadeiro(!$x->comentarContrato($id, 'cliente', '', 'x')->ok, 'nome e texto obrigatórios');
+    $r = $x->comentarContrato($id, 'cliente', 'Ana Souza', 'Podemos mudar o prazo da cláusula 3?', '203.0.113.9', 'sistema');
+    verdadeiro($r->ok, json_encode($r->erros));
+    verdadeiro($x->comentarContrato($id, 'equipe', 'Luiz', 'Claro, ajustamos hoje.')->ok);
+
+    $conversa = (new \App\Repositories\ContratoComentarioRepository())->porContrato($id);
+    igual(['cliente', 'equipe'], array_column($conversa, 'autor'));
+    $tarefas = Repositorios::tarefas()->porVinculo('contrato_id', $id);
+    igual(1, count($tarefas), 'só o comentário do cliente cria tarefa');
+    contem('Responder comentário do cliente', $tarefas[0]['titulo']);
+
+    $x->cancelarContrato($id);
+    verdadeiro(!$x->comentarContrato($id, 'cliente', 'Ana', 'Ainda aí?')->ok, 'cancelado não aceita comentários');
 });

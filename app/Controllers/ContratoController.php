@@ -35,6 +35,7 @@ final class ContratoController extends CrudController
         $r->post('/contratos/{id:\d+}/enviar', [self::class, 'enviar']);
         $r->post('/contratos/{id:\d+}/cancelar', [self::class, 'cancelar']);
         $r->post('/contratos/{id:\d+}/renovar', [self::class, 'renovar']);
+        $r->post('/contratos/{id:\d+}/comentar', [self::class, 'comentar']);
         $r->get('/contratos/{id:\d+}/imprimir', [self::class, 'imprimir']);
     }
 
@@ -130,6 +131,7 @@ final class ContratoController extends CrudController
             'renovacoes' => array_filter(Repositorios::contratos()->por('empresa_id', (int) $registro['empresa_id']), static fn (array $c) => (int) $c['contrato_origem_id'] === $id),
             'historico'  => (new AuditoriaRepository())->listar(['entidade' => 'contratos', 'registro_id' => (string) $id], 1, 30)['linhas'],
             'linkPublico' => url_publica('/c/' . $registro['token_publico']),
+            'comentarios' => (new \App\Repositories\ContratoComentarioRepository())->porContrato($id),
         ];
     }
 
@@ -150,6 +152,15 @@ final class ContratoController extends CrudController
         $r = $this->executor()->renovarContrato((int) $p['id'], 'humano');
         $this->flash($r);
         return Response::redirecionar(url('/contratos/' . ($r->ok ? (int) $r->id . '/editar' : (int) $p['id'])));
+    }
+
+    /** Resposta da equipe na conversa do contrato (o cliente vê no link público). */
+    public function comentar(array $p): Response
+    {
+        $usuario = \App\Core\Auth::usuario();
+        $r = $this->executor()->comentarContrato((int) $p['id'], 'equipe', (string) ($usuario['nome'] ?? 'Equipe'), (string) ($_POST['texto'] ?? ''), null, 'humano');
+        $this->flash($r->ok ? $r : \App\Services\Resultado::erroGeral(implode(' ', $r->erros)));
+        return Response::redirecionar(url('/contratos/' . (int) $p['id'] . '#comentarios'));
     }
 
     public function imprimir(array $p): Response

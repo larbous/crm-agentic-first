@@ -29,6 +29,7 @@ final class PublicoController
         $r->post("/p/{$t}/recusar", [self::class, 'recusar']);
         $r->get("/c/{$t}", [self::class, 'contrato']);
         $r->post("/c/{$t}/assinar", [self::class, 'assinar']);
+        $r->post("/c/{$t}/comentar", [self::class, 'comentar']);
     }
 
     // ---- Proposta --------------------------------------------------------------------------
@@ -123,7 +124,8 @@ final class PublicoController
             return $this->paginaContrato($contrato, ['concordo' => 'Marque a caixa para confirmar que leu e concorda com o contrato.'], 422);
         }
         $r = (new ActionExecutor())->assinarContrato((int) $contrato['id'], [
-            'nome' => $_POST['nome'] ?? '', 'documento' => $_POST['documento'] ?? '', 'ip' => $this->ip(),
+            'nome' => $_POST['nome'] ?? '', 'documento' => $_POST['documento'] ?? '', 'email' => $_POST['email'] ?? '',
+            'assinatura' => $_POST['assinatura'] ?? '', 'ip' => $this->ip(), 'user_agent' => (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''),
         ], 'sistema');
         if (!$r->ok) {
             return $this->paginaContrato($contrato, $r->erros, 422);
@@ -132,9 +134,24 @@ final class PublicoController
         return Response::redirecionar(url('/c/' . $p['token']));
     }
 
+    public function comentar(array $p): Response
+    {
+        $contrato = $this->contratoVisivel($p['token']);
+        if ($contrato === null || $this->honeypot()) {
+            return $this->naoEncontrado();
+        }
+        $r = (new ActionExecutor())->comentarContrato((int) $contrato['id'], 'cliente', (string) ($_POST['nome'] ?? ''), (string) ($_POST['texto'] ?? ''), $this->ip(), 'sistema');
+        if (!$r->ok) {
+            return $this->paginaContrato($contrato, ['comentario' => $r->erros], 422);
+        }
+        Session::flash('success', $r->mensagem);
+        return Response::redirecionar(url('/c/' . $p['token'] . '#comentarios'));
+    }
+
     private function paginaContrato(array $contrato, array $erros = [], int $status = 200): Response
     {
         return $this->pagina('publico/contrato', DocumentoDados::contrato($contrato) + [
+            'comentarios' => (new \App\Repositories\ContratoComentarioRepository())->porContrato((int) $contrato['id']),
             'titulo'      => $contrato['titulo'],
             'token'       => $contrato['token_publico'],
             'erros'       => $erros,

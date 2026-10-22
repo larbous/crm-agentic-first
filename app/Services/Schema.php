@@ -631,6 +631,10 @@ final class Schema
             'assinatura_nome' => $f('texto', 'Assinatura: nome', 'basico', ['sis' => true]),
             'assinatura_documento' => $f('texto', 'Assinatura: documento', 'basico', ['sis' => true]),
             'assinatura_ip' => $f('texto', 'Assinatura: IP', 'basico', ['sis' => true]),
+            'assinatura_email' => $f('texto', 'Assinatura: e-mail', 'basico', ['sis' => true]),
+            'assinatura_imagem' => $f('texto', 'Assinatura: desenho', 'basico', ['sis' => true]),
+            'assinatura_hash' => $f('texto', 'Assinatura: hash do texto', 'basico', ['sis' => true]),
+            'assinatura_user_agent' => $f('texto', 'Assinatura: navegador', 'basico', ['sis' => true]),
         ]];
     }
 }

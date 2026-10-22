@@ -160,6 +160,13 @@ foreach (\App\Services\Variaveis::CAMPOS_AGENCIA as $chave => $rotuloAg) {
 $painelAgencia = '<form method="post" action="' . e(url('/configuracoes/agencia')) . '" class="grid gap-4">' . csrf_field()
     . '<p class="text-muted-foreground text-sm">Usados no cabeçalho de propostas e contratos e nas variáveis <code>{larbous.nome}</code>, <code>{larbous.cnpj}</code> etc.</p>'
     . '<div class="grid gap-4 md:grid-cols-2">' . $campoAg
+    . '<div class="md:col-span-2"><div class="field"><label for="ag-pad">Assinatura da agência (contratada)</label>'
+    . ($agencia['assinatura_imagem'] !== '' ? '<img class="documento-assinatura-img mb-2 border bg-white p-1" style="margin-inline:0" src="' . e($agencia['assinatura_imagem']) . '" alt="Assinatura atual">'
+        . '<label class="text-sm"><input type="checkbox" name="remover_assinatura" value="1"> Remover a assinatura atual</label>' : '')
+    . '<div class="flex items-center justify-between gap-2"><span class="text-muted-foreground text-xs">Desenhe para ' . ($agencia['assinatura_imagem'] !== '' ? 'trocar a assinatura' : 'cadastrar') . '. Ela sai automaticamente em todos os contratos.</span>'
+    . '<button type="button" class="btn" data-variant="ghost" data-size="xs" data-pad-limpar>Limpar</button></div>'
+    . '<canvas id="ag-pad" class="assinatura-pad" width="600" height="200" data-pad data-pad-opcional aria-label="Quadro para desenhar a assinatura"></canvas>'
+    . '<input type="hidden" name="assinatura" value="" data-pad-valor></div></div>'
     . campo(['nome' => 'validade_dias', 'id' => 'ag-validade', 'rotulo' => 'Validade padrão das propostas (dias)', 'tipo' => 'number', 'valor' => $agencia['validade_dias'] ?? '15', 'attrs' => ['min' => 1, 'max' => 365]])
     . '</div><div>' . botao('Salvar dados da agência', ['tipo' => 'submit', 'icone' => 'check']) . '</div></form>';
 

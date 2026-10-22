@@ -1,0 +1,43 @@
+/* Assinatura digital e comentários do contrato (assinatura.js) */
+@layer components {
+  .assinatura-dialogo {
+    @apply bg-card text-card-foreground m-auto w-[min(34rem,calc(100vw-2rem))] max-w-none rounded-lg border p-5 shadow-lg;
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+  }
+
+  .assinatura-dialogo::backdrop {
+    background: rgb(0 0 0 / 0.5);
+  }
+
+  .assinatura-pad {
+    @apply bg-background block w-full cursor-crosshair rounded-md border border-dashed;
+    aspect-ratio: 3 / 1;
+    touch-action: none;
+  }
+
+  .documento-assinatura-img {
+    @apply mx-auto -mb-2 max-h-16 w-auto;
+  }
+
+  .documento-comprovante {
+    @apply mt-6 text-left;
+    break-inside: avoid;
+  }
+
+  .documento-comprovante .documento-lista {
+    @apply grid-cols-1;
+  }
+
+  .documento-comprovante .documento-lista dd {
+    @apply min-w-0 break-words;
+  }
+
+  .comentario {
+    @apply rounded-md border p-3;
+  }
+
+  .comentario[data-autor='equipe'] {
+    @apply bg-muted/40;
+  }
+}

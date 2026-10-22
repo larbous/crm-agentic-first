@@ -65,7 +65,7 @@ teste('iniciais() gera até duas letras', function () {
 
 teste('url() e asset() respeitam base_url', function () {
     igual('/login', url('/login'));
-    igual('/assets/css/app.css', asset('css/app.css'));
+    igual('/assets/css/app.css?v=' . filemtime(__DIR__ . '/../public/assets/css/app.css'), asset('css/app.css'));
     $original = \App\Core\Config::obter('caminhos');
     \App\Core\Config::definir(['app' => ['base_url' => '/crm/']]);
     igual('/crm/login', url('login'));

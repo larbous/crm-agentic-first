@@ -25,7 +25,10 @@ function url(string $caminho = '/'): string
 /** URL de arquivo estático em /public/assets. */
 function asset(string $caminho): string
 {
-    return url('assets/' . ltrim($caminho, '/'));
+    $arquivo = dirname(__DIR__, 2) . '/public/assets/' . ltrim($caminho, '/');
+    // Versão pela data do arquivo: navegador e CDN buscam o CSS/JS de novo quando ele muda no deploy.
+    $versao = is_file($arquivo) ? '?v=' . filemtime($arquivo) : '';
+    return url('assets/' . ltrim($caminho, '/')) . $versao;
 }
 
 function csrf_token(): string

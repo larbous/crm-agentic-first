@@ -35,7 +35,7 @@ final class AgenteDefinicao
     ];
 
     /** Nunca vão para a IA: tokens de links públicos e IP de quem aceitou/assinou. */
-    public const CAMPOS_SENSIVEIS = ['token_publico', 'aceite_ip', 'assinatura_ip'];
+    public const CAMPOS_SENSIVEIS = ['token_publico', 'aceite_ip', 'assinatura_ip', 'assinatura_email', 'assinatura_imagem', 'assinatura_user_agent'];
 
     /**
      * @param string|array $entrada JSON (texto) ou array já decodificado

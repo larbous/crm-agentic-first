@@ -33,7 +33,7 @@ final class Variaveis
             $schema = Schema::entidade($entidade);
             $itens = [];
             foreach ($schema['campos'] as $campo => $def) {
-                if (in_array($campo, ['token_publico', 'aceite_ip', 'assinatura_ip', 'campos_extras'], true)) {
+                if (in_array($campo, ['token_publico', 'aceite_ip', 'assinatura_ip', 'assinatura_email', 'assinatura_imagem', 'assinatura_hash', 'assinatura_user_agent', 'campos_extras'], true)) {
                     continue;
                 }
                 $itens['{' . $ns . '.' . $campo . '}'] = $def['r'];

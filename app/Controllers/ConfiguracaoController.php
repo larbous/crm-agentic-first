@@ -50,7 +50,7 @@ final class ConfiguracaoController
                 static fn (string $e): array => Repositorios::camposExtras()->daEntidade($e, false),
                 CamposExtras::ENTIDADES,
             )),
-            'agencia'   => DocumentoDados::agencia() + ['validade_dias' => (new \App\Repositories\ConfiguracaoRepository())->obter('proposta.validade_dias', '15')],
+            'agencia'   => DocumentoDados::agencia() + ['assinatura_imagem' => (string) (new \App\Repositories\ConfiguracaoRepository())->obter('empresa.assinatura_imagem', '')] + ['validade_dias' => (new \App\Repositories\ConfiguracaoRepository())->obter('proposta.validade_dias', '15')],
         ]);
     }
 
@@ -64,6 +64,15 @@ final class ConfiguracaoController
                 return $this->responder(false, "O campo {$campo} é inválido ou muito longo.", 'agencia');
             }
             $x->definirConfiguracao('empresa.' . $campo, $valor === '' ? null : $valor);
+        }
+        if (!empty($_POST['assinatura'])) {
+            $imagem = \App\Services\Assinatura::imagemValida($_POST['assinatura']);
+            if ($imagem === null) {
+                return $this->responder(false, 'A assinatura desenhada é inválida. Desenhe de novo.', 'agencia');
+            }
+            $x->definirConfiguracao('empresa.assinatura_imagem', $imagem);
+        } elseif (($_POST['remover_assinatura'] ?? '') === '1') {
+            $x->definirConfiguracao('empresa.assinatura_imagem', null);
         }
         $dias = trim((string) ($_POST['validade_dias'] ?? '15'));
         if (!ctype_digit($dias) || (int) $dias < 1 || (int) $dias > 365) {

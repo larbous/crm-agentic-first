@@ -26,10 +26,23 @@ foreach ($historico as $h) {
         . ' <span class="text-muted-foreground text-xs">· ' . e($h['origem']) . '</span></span><span class="text-muted-foreground text-xs">' . e(datahora_br($h['data'])) . '</span></li>';
 }
 
+$conversa = '';
+foreach ($comentarios as $m) {
+    $conversa .= '<li class="comentario" data-autor="' . e($m['autor']) . '"><div class="text-sm font-medium">' . e($m['nome'])
+        . ' <span class="text-muted-foreground text-xs font-normal">· ' . ($m['autor'] === 'cliente' ? 'cliente' : 'equipe') . ' · ' . e(datahora_br($m['criado_em'])) . '</span></div>'
+        . '<p class="mt-1 text-sm whitespace-pre-line">' . e($m['texto']) . '</p></li>';
+}
+$podeComentar = !in_array($r['status'], ['rascunho', 'cancelado'], true);
+$painelConversa = ($conversa !== '' ? '<ul class="mb-4 grid gap-3">' . $conversa . '</ul>' : vazio('Sem comentários', $podeComentar ? 'Os comentários do cliente no link público aparecem aqui.' : 'Comentários ficam disponíveis depois que o contrato é enviado.', ['icone' => 'message-square']))
+    . ($podeComentar ? '<form method="post" action="' . e(url('/contratos/' . $id . '/comentar')) . '" class="grid gap-2">' . csrf_field()
+        . campo(['nome' => 'texto', 'id' => 'resposta-texto', 'rotulo' => 'Responder ao cliente', 'tipo' => 'textarea', 'linhas' => 3, 'attrs' => ['maxlength' => 2000]])
+        . '<div>' . botao('Enviar resposta', ['tipo' => 'submit', 'icone' => 'send', 'tamanho' => 'sm']) . '</div></form>' : '');
+
 $abas = [
     ['rotulo' => 'Documento', 'html' => trim((string) $r['conteudo']) !== ''
         ? '<div class="documento" style="max-width:none;box-shadow:none"><div class="documento-corpo">' . Variaveis::renderizarContrato($r) . '</div></div>'
         : vazio('Contrato sem conteúdo', 'Edite o contrato para gerar o texto a partir de um modelo.', ['icone' => 'file-text', 'acao_html' => $rascunho ? botao('Editar', ['href' => url('/contratos/' . $id . '/editar'), 'icone' => 'pencil']) : ''])],
+    ['rotulo' => 'Comentários', 'contagem' => count($comentarios), 'html' => '<div id="comentarios">' . $painelConversa . '</div>'],
     ['rotulo' => 'Tarefas', 'contagem' => count(array_filter($tarefas, 'tarefa_aberta')), 'html' => tarefas_mini($tarefas, 'contrato_id', $id, $voltar)],
     ['rotulo' => 'Histórico', 'contagem' => count($historico), 'html' => $hist !== '' ? '<ul>' . $hist . '</ul>' : vazio('Sem histórico', '', ['icone' => 'scroll-text'])],
     ['rotulo' => 'Anexos', 'contagem' => count($anexos), 'html' => anexos_painel($anexos, 'contratos', $id, $voltar)],
@@ -95,8 +108,11 @@ $abas = [
         ])]) ?>
         <?php if ($r['assinado_em']): ?>
             <?= card(['tamanho' => 'sm', 'titulo' => 'Assinatura', 'corpo_html' => ficha([
-                'Nome' => (string) $r['assinatura_nome'], 'Documento' => documento_formatado($r['assinatura_documento']), 'IP' => (string) $r['assinatura_ip'], 'Data' => datahora_br($r['assinado_em']),
-            ], 1)]) ?>
+                'Nome' => (string) $r['assinatura_nome'], 'Documento' => documento_formatado($r['assinatura_documento']), 'E-mail' => (string) $r['assinatura_email'],
+                'IP' => (string) $r['assinatura_ip'], 'Data' => datahora_br($r['assinado_em']), 'Navegador' => (string) $r['assinatura_user_agent'],
+                'Verificação (SHA-256)' => ['html' => '<span class="font-mono text-xs break-all">' . e(\App\Services\Assinatura::hashLegivel($r['assinatura_hash'])) . '</span>'],
+                'Integridade' => $r['assinatura_hash'] ? (\App\Services\Assinatura::integro($r) ? 'Texto idêntico ao assinado' : 'ATENÇÃO: texto alterado') : 'Assinado antes do código de verificação',
+            ], 1) . (($img = \App\Services\Assinatura::imagemValida($r['assinatura_imagem'] ?? '')) !== null ? '<img class="mt-3 max-h-20 rounded border bg-white p-1" src="' . e($img) . '" alt="Assinatura desenhada">' : '')]) ?>
         <?php endif; ?>
         <?php if ($renovacoes !== []): ?>
             <?php $lr = '<ul>'; foreach ($renovacoes as $c) { $lr .= '<li class="flex items-center justify-between gap-2 py-1">' . link_para('/contratos/' . (int) $c['id'], $c['numero']) . badge_contrato($c) . '</li>'; } ?>
