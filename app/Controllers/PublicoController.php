@@ -11,6 +11,7 @@ use App\Core\Session;
 use App\Core\View;
 use App\Repositories\Repositorios;
 use App\Services\ActionExecutor;
+use App\Services\Avisos;
 use App\Services\Resultado;
 
 /**
@@ -130,6 +131,7 @@ final class PublicoController
         if (!$r->ok) {
             return $this->paginaContrato($contrato, $r->erros, 422);
         }
+        Avisos::contratoAssinado(Repositorios::contratos()->encontrar((int) $contrato['id'], true) ?? $contrato);
         Session::flash('success', $r->mensagem);
         return Response::redirecionar(url('/c/' . $p['token']));
     }
@@ -144,6 +146,7 @@ final class PublicoController
         if (!$r->ok) {
             return $this->paginaContrato($contrato, ['comentario' => $r->erros], 422);
         }
+        Avisos::contratoComentado($contrato, trim((string) ($_POST['nome'] ?? '')), trim((string) ($_POST['texto'] ?? '')));
         Session::flash('success', $r->mensagem);
         return Response::redirecionar(url('/c/' . $p['token'] . '#comentarios'));
     }

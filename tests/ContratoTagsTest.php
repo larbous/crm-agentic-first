@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Controllers\DocumentoDados;
 use App\Repositories\Repositorios;
 use App\Services\ActionExecutor;
+use App\Services\Canais\Canais;
+use App\Services\Canais\Conexao;
 use App\Services\Html;
 use App\Services\Variaveis;
 
@@ -114,4 +116,49 @@ teste('Contrato: comentários do cliente avisam a equipe (atividade e tarefa) e 
 
     $x->cancelarContrato($id);
     verdadeiro(!$x->comentarContrato($id, 'cliente', 'Ana', 'Ainda aí?')->ok, 'cancelado não aceita comentários');
+});
+
+teste('Avisos: assinatura e comentário do cliente chegam por e-mail ao login dos operadores; sem SMTP não faz nada e nunca quebra', function () {
+    bancoComSeed();
+    $x = new ActionExecutor();
+    $hash = password_hash('x', PASSWORD_DEFAULT);
+    $repo = new \App\Repositories\UsuarioRepository();
+    $repo->criar('Operador', 'luiz@agencia.exemplo.com.br', $hash);
+    [, , $neg] = negocioComContato($x);
+    $id = (int) $x->criar('contratos', ['titulo' => 'Site', 'recorrencia' => 'unica', 'negocio_id' => $neg, 'conteudo' => '<p>Texto</p>'])->id;
+    $x->enviarContrato($id);
+    $x->assinarContrato($id, dadosAssinatura());
+    $c = Repositorios::contratos()->encontrar($id);
+
+    // Sem configuração: silêncio.
+    \App\Services\Avisos::contratoAssinado($c);
+    verdadeiro(!\App\Services\Avisos::configurado());
+
+    $smtp = new SmtpFalso();
+    comCanais(['email' => ['smtp_host' => 'smtp.falso', 'smtp_usuario' => 'resend', 'smtp_senha' => 're_chave', 'de_email' => 'crm@agencia.exemplo.com.br', 'de_nome' => 'Lárbous']], function () use ($smtp, $c) {
+        Canais::definirFabricaConexao(static fn (): Conexao => $smtp);
+        verdadeiro(\App\Services\Avisos::configurado());
+        \App\Services\Avisos::contratoAssinado($c);
+        igual(['resend', 're_chave'], $smtp->usuarios);
+        igual('luiz@agencia.exemplo.com.br', $smtp->para);
+        contem('assinado por Ana Souza', $smtp->mensagem);
+        $corpo = static fn (string $m): string => (string) base64_decode(substr($m, (int) strpos($m, "
+
+") + 4));
+        contem('ana@exemplo.com.br', $corpo($smtp->mensagem));
+
+        $smtp2 = new SmtpFalso();
+        Canais::definirFabricaConexao(static fn (): Conexao => $smtp2);
+        \App\Services\Avisos::contratoComentado($c, 'Ana Souza', 'Podemos ajustar o prazo?');
+        contem('Podemos ajustar o prazo?', $corpo($smtp2->mensagem));
+    });
+
+    // Falha do servidor SMTP não propaga.
+    $ruim = new SmtpFalso();
+    $ruim->recusarSenha = true;
+    comCanais(['email' => ['smtp_host' => 'smtp.falso', 'smtp_usuario' => 'a', 'smtp_senha' => 'b', 'de_email' => 'crm@agencia.exemplo.com.br']], function () use ($ruim, $c) {
+        Canais::definirFabricaConexao(static fn (): Conexao => $ruim);
+        \App\Services\Avisos::contratoAssinado($c);
+    });
+    verdadeiro(true);
 });

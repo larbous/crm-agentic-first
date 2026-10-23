@@ -202,6 +202,20 @@ Cada canal é opcional e só liga quando as chaves abaixo existem em `config.loc
 ],
 ```
 
+**Avisos por e-mail ao operador (contrato assinado, comentário do cliente) com o Resend**
+
+Os avisos usam só o SMTP do bloco `email` e vão para o e-mail de login de cada usuário ativo; o IMAP não é necessário. Com o relay SMTP do [Resend](https://resend.com) (domínio de envio verificado lá):
+
+```php
+'email' => [
+    'smtp_host' => 'smtp.resend.com', 'smtp_porta' => 465, 'smtp_seguranca' => 'ssl',
+    'smtp_usuario' => 'resend', 'smtp_senha' => 're_SUA_CHAVE_DE_API',
+    'de_email' => 'crm@seudominio.com.br', 'de_nome' => 'Lárbous',
+],
+```
+
+Sem essa configuração o CRM simplesmente não envia avisos. Falhas de envio vão para o log de erros do PHP e nunca impedem a assinatura.
+
 **WhatsApp (Cloud API oficial) e Instagram Direct — mesmo webhook**
 
 1. Em <https://developers.facebook.com>, crie um app do tipo *Business* e adicione o produto **WhatsApp** (e o de **Instagram**, se for usar).
