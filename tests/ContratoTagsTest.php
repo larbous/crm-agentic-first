@@ -142,9 +142,7 @@ teste('Avisos: assinatura e comentário do cliente chegam por e-mail ao login do
         igual(['resend', 're_chave'], $smtp->usuarios);
         igual('luiz@agencia.exemplo.com.br', $smtp->para);
         contem('assinado por Ana Souza', $smtp->mensagem);
-        $corpo = static fn (string $m): string => (string) base64_decode(substr($m, (int) strpos($m, "
-
-") + 4));
+        $corpo = static fn (string $m): string => (string) base64_decode(substr($m, (int) strpos($m, "\r\n\r\n") + 4));
         contem('ana@exemplo.com.br', $corpo($smtp->mensagem));
 
         $smtp2 = new SmtpFalso();
