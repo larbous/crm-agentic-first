@@ -24,79 +24,88 @@ function ehCampoDeTexto(el) {
     return el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 }
 
-document.addEventListener('click', (ev) => {
-    const alvo = ev.target instanceof Element ? ev.target : null;
-    if (!alvo) return;
+/*
+ * O módulo pode ser carregado duas vezes: pelo <script src="ui.js?v=..."> (asset versionado) e pelos
+ * `import './ui.js'` dos demais módulos (URL sem versão). Sem a trava, cada clique alternaria o tema
+ * duas vezes (= nada acontece) e toasts/flash sairiam duplicados.
+ */
+if (!window.__uiIniciado) {
+    window.__uiIniciado = true;
 
-    if (alvo.closest('[data-alternar-tema]')) {
-        alternarTema();
-        return;
-    }
-    if (alvo.closest('[data-alternar-sidebar]')) {
-        document.getElementById('sidebar')?.toggle?.();
-        return;
-    }
-    const abrir = alvo.closest('[data-abrir-modal]');
-    if (abrir) {
-        document.getElementById(abrir.getAttribute('data-abrir-modal'))?.showModal();
-        return;
-    }
-    const enviar = alvo.closest('[data-enviar-form]');
-    if (enviar) {
-        document.getElementById(enviar.getAttribute('data-enviar-form'))?.requestSubmit();
-        return;
-    }
-    if (alvo.closest('[data-imprimir]')) {
-        window.print();
-        return;
-    }
-    const copiar = alvo.closest('[data-copiar]');
-    if (copiar) {
-        const texto = copiar.getAttribute('data-copiar') ?? '';
-        navigator.clipboard.writeText(texto).then(
-            () => toast('success', 'Link copiado', texto),
-            () => toast('error', 'Não foi possível copiar', 'Copie o link manualmente.'),
-        );
-        return;
-    }
-    const demo = alvo.closest('[data-toast-demo]');
-    if (demo) {
-        toast(demo.getAttribute('data-toast-demo'), 'Título do toast', 'Descrição da notificação.');
-    }
-});
+    document.addEventListener('click', (ev) => {
+        const alvo = ev.target instanceof Element ? ev.target : null;
+        if (!alvo) return;
 
-// Formulários com data-confirmar pedem confirmação antes de enviar (arquivar, desfazer, desvincular…).
-document.addEventListener('submit', (ev) => {
-    const form = ev.target;
-    if (form instanceof HTMLFormElement && form.dataset.confirmar && !window.confirm(form.dataset.confirmar)) {
-        ev.preventDefault();
-    }
-});
+        if (alvo.closest('[data-alternar-tema]')) {
+            alternarTema();
+            return;
+        }
+        if (alvo.closest('[data-alternar-sidebar]')) {
+            document.getElementById('sidebar')?.toggle?.();
+            return;
+        }
+        const abrir = alvo.closest('[data-abrir-modal]');
+        if (abrir) {
+            document.getElementById(abrir.getAttribute('data-abrir-modal'))?.showModal();
+            return;
+        }
+        const enviar = alvo.closest('[data-enviar-form]');
+        if (enviar) {
+            document.getElementById(enviar.getAttribute('data-enviar-form'))?.requestSubmit();
+            return;
+        }
+        if (alvo.closest('[data-imprimir]')) {
+            window.print();
+            return;
+        }
+        const copiar = alvo.closest('[data-copiar]');
+        if (copiar) {
+            const texto = copiar.getAttribute('data-copiar') ?? '';
+            navigator.clipboard.writeText(texto).then(
+                () => toast('success', 'Link copiado', texto),
+                () => toast('error', 'Não foi possível copiar', 'Copie o link manualmente.'),
+            );
+            return;
+        }
+        const demo = alvo.closest('[data-toast-demo]');
+        if (demo) {
+            toast(demo.getAttribute('data-toast-demo'), 'Título do toast', 'Descrição da notificação.');
+        }
+    });
 
-// Atalho "/" foca a busca global (quando habilitada).
-document.addEventListener('keydown', (ev) => {
-    if (ev.key === '/' && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !ehCampoDeTexto(document.activeElement)) {
-        const busca = document.getElementById('busca-global');
-        if (busca && !busca.disabled) {
+    // Formulários com data-confirmar pedem confirmação antes de enviar (arquivar, desfazer, desvincular…).
+    document.addEventListener('submit', (ev) => {
+        const form = ev.target;
+        if (form instanceof HTMLFormElement && form.dataset.confirmar && !window.confirm(form.dataset.confirmar)) {
             ev.preventDefault();
-            busca.focus();
         }
+    });
+
+    // Atalho "/" foca a busca global (quando habilitada).
+    document.addEventListener('keydown', (ev) => {
+        if (ev.key === '/' && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !ehCampoDeTexto(document.activeElement)) {
+            const busca = document.getElementById('busca-global');
+            if (busca && !busca.disabled) {
+                ev.preventDefault();
+                busca.focus();
+            }
+        }
+    });
+
+    // Mensagens flash da sessão viram toasts.
+    function mostrarFlash() {
+        const bruto = document.getElementById('flash-dados')?.textContent;
+        if (!bruto) return;
+        try {
+            for (const m of JSON.parse(bruto)) {
+                toast(m.tipo, m.mensagem);
+            }
+        } catch (_) { /* JSON inválido: ignora */ }
     }
-});
 
-// Mensagens flash da sessão viram toasts.
-function mostrarFlash() {
-    const bruto = document.getElementById('flash-dados')?.textContent;
-    if (!bruto) return;
-    try {
-        for (const m of JSON.parse(bruto)) {
-            toast(m.tipo, m.mensagem);
-        }
-    } catch (_) { /* JSON inválido: ignora */ }
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(mostrarFlash, 0));
-} else {
-    setTimeout(mostrarFlash, 0);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(mostrarFlash, 0));
+    } else {
+        setTimeout(mostrarFlash, 0);
+    }
 }
