@@ -126,6 +126,9 @@ trait AcoesDocumentos
                 $erros['modelo_id'] = 'Escolha um modelo do tipo proposta.';
             }
         }
+        if (($v['layout'] ?? 'padrao') === 'personalizado' && trim((string) ($v['html_personalizado'] ?? '')) === '') {
+            $erros['html_personalizado'] = 'Cole o HTML da proposta ou volte ao layout padrão.';
+        }
         $v['data_emissao'] ??= hoje();
         $dias = (int) ((new ConfiguracaoRepository())->obter('proposta.validade_dias', '15') ?? 15);
         $v['validade'] ??= date('Y-m-d', strtotime($v['data_emissao'] . ' +' . max(1, $dias) . ' days'));
@@ -157,6 +160,9 @@ trait AcoesDocumentos
             return ['_' => 'Só propostas em rascunho podem ser editadas. Crie uma nova versão para alterar.'];
         }
         $erros = [];
+        if (($novos['layout'] ?? $atual['layout']) === 'personalizado' && trim((string) (array_key_exists('html_personalizado', $novos) ? $novos['html_personalizado'] : $atual['html_personalizado'])) === '') {
+            $erros['html_personalizado'] = 'Cole o HTML da proposta ou volte ao layout padrão.';
+        }
         $itensRepo = new ItemPropostaRepository();
         $atuais = $itensRepo->porProposta((int) $atual['id']);
         $itens = $this->itensPendentes ?? $atuais;
@@ -413,7 +419,7 @@ trait AcoesDocumentos
             $linha = array_intersect_key($p, array_flip([
                 'negocio_id', 'empresa_id', 'contato_id', 'numero', 'titulo', 'modelo_id', 'subtotal', 'desconto_tipo', 'desconto_valor', 'total',
                 'total_recorrente', 'forma_pagamento', 'condicoes_pagamento', 'parcelas', 'entrada_percentual', 'prazo_entrega_dias',
-                'apresentacao', 'escopo', 'fora_escopo', 'cronograma', 'garantia', 'observacoes',
+                'apresentacao', 'escopo', 'fora_escopo', 'cronograma', 'garantia', 'observacoes', 'layout', 'html_personalizado',
             ])) + [
                 'versao' => (int) $p['versao'] + 1, 'status' => 'rascunho', 'data_emissao' => hoje(),
                 'validade' => date('Y-m-d', strtotime('+' . max(1, $dias) . ' days')), 'token_publico' => token_publico(),

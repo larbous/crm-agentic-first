@@ -95,3 +95,18 @@ if (raiz) {
 
     recalcular();
 }
+
+// Layout da proposta: no formato personalizado só o campo de HTML aparece; no padrão, só as seções de texto.
+const seletorLayout = document.querySelector('select[name="layout"]');
+
+if (seletorLayout) {
+    const secoesPadrao = ['apresentacao', 'escopo', 'fora_escopo', 'cronograma', 'garantia', 'observacoes'];
+    const alternar = () => {
+        const personalizado = seletorLayout.value === 'personalizado';
+        const wrapper = (nome) => document.querySelector(`[data-campo="${nome}"]`);
+        wrapper('html_personalizado')?.toggleAttribute('hidden', !personalizado);
+        secoesPadrao.forEach((nome) => wrapper(nome)?.toggleAttribute('hidden', personalizado));
+    };
+    seletorLayout.addEventListener('change', alternar);
+    alternar();
+}

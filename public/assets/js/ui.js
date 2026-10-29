@@ -108,4 +108,28 @@ if (!window.__uiIniciado) {
     } else {
         setTimeout(mostrarFlash, 0);
     }
+
+    // Proposta com layout personalizado: o HTML do operador vive num iframe isolado; a altura acompanha o conteúdo.
+    const ajustarIframes = () => {
+        for (const frame of document.querySelectorAll('iframe[data-documento-iframe]')) {
+            const ajustar = () => {
+                const doc = frame.contentDocument;
+                if (!doc?.documentElement) return;
+                frame.style.height = '0px'; // recolhe antes de medir, para a altura poder diminuir
+                frame.style.height = Math.max(doc.documentElement.scrollHeight, doc.body?.scrollHeight ?? 0) + 'px';
+            };
+            frame.addEventListener('load', () => {
+                ajustar();
+                frame.contentDocument?.querySelectorAll('img').forEach((img) => img.addEventListener('load', ajustar));
+            });
+            if (frame.contentDocument?.readyState === 'complete') ajustar();
+            window.addEventListener('resize', ajustar);
+            window.addEventListener('beforeprint', ajustar);
+        }
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', ajustarIframes);
+    } else {
+        ajustarIframes();
+    }
 }

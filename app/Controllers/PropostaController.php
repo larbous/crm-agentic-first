@@ -89,7 +89,7 @@ final class PropostaController extends CrudController
 
     protected function padroesNovo(): array
     {
-        $padrao = parent::padroesNovo() + ['desconto_tipo' => 'valor', 'data_emissao' => hoje(), 'itens' => []];
+        $padrao = parent::padroesNovo() + ['desconto_tipo' => 'valor', 'layout' => 'padrao', 'data_emissao' => hoje(), 'itens' => []];
         if (!empty($padrao['negocio_id']) && ($n = Repositorios::negocios()->encontrar((int) $padrao['negocio_id'])) !== null) {
             $padrao += [
                 'titulo'     => 'Proposta — ' . $n['titulo'],

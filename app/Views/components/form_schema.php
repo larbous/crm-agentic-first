@@ -49,7 +49,11 @@ function campos_do_schema(string $entidade, string $grupo, array $valores, array
 
         switch ($def['t']) {
             case 'textarea':
-                $campo = $base + ['tipo' => 'textarea', 'ia' => true];
+                $campo = $base + ['tipo' => 'textarea', 'ia' => empty($def['codigo'])];
+                if (!empty($def['codigo'])) {
+                    $campo += ['linhas' => 16, 'ajuda' => 'Cole o documento completo (HTML e CSS). Variáveis como {empresa.nome}, {contato.nome_completo}, {proposta.total}, {proposta.itens} são preenchidas ao exibir. Scripts são ignorados.'];
+                    $attrs = ['class' => 'textarea font-mono text-[13px]', 'spellcheck' => 'false', 'placeholder' => '<!doctype html><html>…<style>…</style>…</html>'];
+                }
                 break;
             case 'html':
                 $campo = $base + ['controle_html' => editor_html($nome, $base['valor'], ['erro' => $base['erro'], 'id' => 'campo-' . $nome])];
@@ -119,7 +123,7 @@ function campos_do_schema(string $entidade, string $grupo, array $valores, array
         $campo['attrs'] = $attrs + ($campo['attrs'] ?? []);
 
         $largura = ($def['l'] ?? 1) === 2 || $def['t'] === 'textarea' ? ' md:col-span-2' : '';
-        $html .= '<div class="' . trim($largura) . '">' . campo($campo) . '</div>';
+        $html .= '<div class="' . trim($largura) . '" data-campo="' . e($nome) . '">' . campo($campo) . '</div>';
     }
     return '<div class="grid gap-4 md:grid-cols-2">' . $html . '</div>';
 }

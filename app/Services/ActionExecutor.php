@@ -40,7 +40,7 @@ final class ActionExecutor
         'etapas'   => ['tipo' => 'aberta', 'probabilidade_padrao' => 0],
         'chamados' => ['prioridade' => 'media', 'status' => 'aberto'],
         'servicos' => ['categoria' => 'outro', 'unidade' => 'projeto'],
-        'propostas' => ['desconto_tipo' => 'valor'],
+        'propostas' => ['desconto_tipo' => 'valor', 'layout' => 'padrao'],
         'contratos' => ['recorrencia' => 'unica', 'indice_reajuste' => 'nenhum'],
         'despesas' => ['status' => 'pendente', 'forma_pagamento' => 'a_vista'],
     ];

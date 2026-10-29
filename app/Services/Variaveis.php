@@ -223,6 +223,28 @@ final class Variaveis
         return Html::sanitizar(self::renderizar($conteudo, $ctx, true));
     }
 
+    /**
+     * Documento completo da proposta de layout personalizado, pronto para o srcdoc do iframe isolado: variáveis preenchidas
+     * (valores escapados) e HTML/CSS do operador mantidos como estão — o isolamento é do iframe sandbox, sem scripts.
+     * Links abrem fora do iframe (<base target="_blank">).
+     */
+    public static function renderizarProposta(array $proposta): string
+    {
+        $html = (string) ($proposta['html_personalizado'] ?? '');
+        if (str_contains($html, '{')) {
+            $ctx = self::contexto(['proposta_id' => (int) $proposta['id']]);
+            $html = self::renderizar($html, $ctx, true);
+        }
+        $cabeca = '<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><base target="_blank">';
+        if (preg_match('/<head[^>]*>/i', $html) === 1) {
+            return preg_replace('/<head[^>]*>/i', '$0' . $cabeca, $html, 1) ?? $html;
+        }
+        if (preg_match('/<html[^>]*>/i', $html) === 1) {
+            return preg_replace('/<html[^>]*>/i', '$0<head>' . $cabeca . '</head>', $html, 1) ?? $html;
+        }
+        return '<!doctype html><html lang="pt-BR"><head>' . $cabeca . '</head><body>' . $html . '</body></html>';
+    }
+
     /** Tabela de itens da proposta (HTML no modo HTML; lista de linhas no modo texto). */
     public static function tabelaItens(array $itens, bool $html): string
     {

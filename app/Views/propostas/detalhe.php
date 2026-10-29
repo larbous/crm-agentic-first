@@ -43,8 +43,15 @@ foreach ($historico as $h) {
         . ' <span class="text-muted-foreground text-xs">· ' . e($h['origem']) . '</span></span><span class="text-muted-foreground text-xs">' . e(datahora_br($h['data'])) . '</span></li>';
 }
 
+$personalizado = ($r['layout'] ?? 'padrao') === 'personalizado';
+$previa = $personalizado
+    ? '<div class="mb-4"><div class="text-muted-foreground mb-1 text-xs">Layout personalizado (HTML do cliente) — é este documento que aparece no link público e na impressão.</div>'
+        . '<iframe title="Pré-visualização" sandbox="allow-same-origin" data-documento-iframe class="w-full rounded-md border" style="display:block;min-height:50vh;background:#fff" srcdoc="'
+        . e(App\Services\Variaveis::renderizarProposta($r)) . '"></iframe></div>'
+    : '';
+
 $abas = [
-    ['rotulo' => 'Documento', 'html' =>
+    ['rotulo' => 'Documento', 'html' => $previa .
         ($linhasItens !== [] ? tabela(['descricao' => 'Item', 'qtd' => 'Qtd.', 'unitario' => 'Unitário', 'desconto' => 'Desconto', 'total' => 'Total'], $linhasItens)
             : vazio('Sem itens', 'Adicione itens editando a proposta.', ['icone' => 'receipt-text']))
         . '<dl class="mt-4 ml-auto grid max-w-xs gap-1 text-sm"><div class="flex justify-between"><dt class="text-muted-foreground">Subtotal</dt><dd>' . e(moeda((int) $r['subtotal'])) . '</dd></div>'

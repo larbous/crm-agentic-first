@@ -9,6 +9,7 @@
  */
 use App\Services\Html;
 use App\Services\Schema;
+use App\Services\Variaveis;
 
 $secoes = ['apresentacao' => 'Apresentação', 'escopo' => 'Escopo', 'fora_escopo' => 'Fora do escopo', 'cronograma' => 'Cronograma', 'garantia' => 'Garantia', 'observacoes' => 'Observações'];
 $desconto = 0;
@@ -21,7 +22,21 @@ $condicoes = array_filter([
     'Entrada' => $p['entrada_percentual'] !== null ? $p['entrada_percentual'] . '%' : null,
     'Prazo de entrega' => $p['prazo_entrega_dias'] !== null ? $p['prazo_entrega_dias'] . ' dias' : null,
 ], static fn ($v) => $v !== null && $v !== '');
-?>
+
+if (($p['layout'] ?? 'padrao') === 'personalizado' && trim((string) $p['html_personalizado']) !== ''):
+    // Layout personalizado: o HTML/CSS do operador roda num iframe isolado (sandbox sem scripts); ui.js ajusta a altura.
+    ?>
+<div class="documento-personalizado">
+    <iframe title="Proposta <?= e($p['numero']) ?>" sandbox="allow-same-origin" data-documento-iframe
+        style="display:block;width:100%;min-height:60vh;border:0;background:#fff" srcdoc="<?= e(Variaveis::renderizarProposta($p)) ?>"></iframe>
+    <?php if ($p['status'] === 'aceita'): ?>
+        <section class="documento-aceite">
+            <strong>Proposta aceita eletronicamente</strong>
+            <div>Por <?= e($p['aceite_nome']) ?> (<?= e(documento_formatado($p['aceite_documento'])) ?>) em <?= e(datahora_br($p['respondida_em'])) ?> · IP <?= e($p['aceite_ip']) ?></div>
+        </section>
+    <?php endif; ?>
+</div>
+<?php return; endif; ?>
 <article class="documento">
     <header class="documento-cabecalho">
         <div>
