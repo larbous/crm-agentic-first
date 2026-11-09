@@ -44,14 +44,29 @@ final class CobrancaRepository extends BaseRepository
         return 'a.vencimento DESC, a.id DESC';
     }
 
+    /** Cobrança avulsa pelo id do pagamento no Asaas (numa assinatura, use daAssinatura: várias linhas têm o mesmo asaas_id). */
     public function porAsaasId(string $asaasId): ?array
     {
-        $st = $this->pdo()->prepare($this->selectBase() . ' WHERE a.asaas_id = :id');
+        $st = $this->pdo()->prepare($this->selectBase() . " WHERE a.asaas_id = :id AND a.asaas_tipo = 'payment'");
         $st->execute(['id' => $asaasId]);
         return $st->fetch() ?: null;
     }
 
-    /** Pelo id do pagamento (payment) mais recente do ciclo — é o que o webhook de NF-e referencia (invoice.payment), não a assinatura. */
+    /** Ciclos (uma linha por pagamento) de uma assinatura do Asaas, do mais antigo ao mais recente. @return list<array> */
+    public function daAssinatura(string $assinaturaId): array
+    {
+        $st = $this->pdo()->prepare($this->selectBase() . " WHERE a.asaas_id = :id AND a.asaas_tipo = 'subscription' ORDER BY a.vencimento, a.id");
+        $st->execute(['id' => $assinaturaId]);
+        return $st->fetchAll();
+    }
+
+    /** Todas as linhas de assinaturas do Asaas (para o relatório da reconciliação). @return list<array> */
+    public function deAssinaturas(): array
+    {
+        return $this->pdo()->query($this->selectBase() . " WHERE a.asaas_tipo = 'subscription' ORDER BY a.asaas_id, a.vencimento, a.id")->fetchAll();
+    }
+
+    /** Pelo id do pagamento (payment) do ciclo — é o que o webhook de NF-e referencia (invoice.payment), não a assinatura. */
     public function porAsaasPaymentId(string $paymentId): ?array
     {
         $st = $this->pdo()->prepare($this->selectBase() . ' WHERE a.asaas_payment_id = :id');

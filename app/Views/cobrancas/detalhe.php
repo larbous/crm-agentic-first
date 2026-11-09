@@ -3,6 +3,7 @@
  * Detalhe da cobrança (Fase 17): dados, situação no Asaas e histórico.
  * @var array $registro
  * @var list<array> $historico
+ * @var list<array> $ciclos parcelas (uma por pagamento) da mesma assinatura do Asaas, incluindo esta
  */
 use App\Services\Schema;
 
@@ -19,10 +20,14 @@ if ($r['asaas_id'] === null) {
 } elseif ($r['url_fatura']) {
     $acoes .= botao('Ver fatura', ['href' => (string) $r['url_fatura'], 'variante' => 'outline', 'icone' => 'external-link', 'attrs' => ['target' => '_blank', 'rel' => 'noopener']]);
 }
+$ehAssinatura = $r['asaas_tipo'] === 'subscription' && $r['asaas_id'] !== null;
 if (!in_array($r['status'], ['cancelado', 'pago'], true)) {
-    $acoes .= '<form method="post" action="' . e(url("/financeiro/cobrancas/{$id}/cancelar")) . '" data-confirmar="Cancelar esta cobrança? Se já emitida, também será cancelada no Asaas.">' . csrf_field()
+    $confirmar = $ehAssinatura
+        ? 'Cancelar a assinatura? Ela será cancelada no Asaas, junto com todas as parcelas ainda em aberto (não só esta).'
+        : 'Cancelar esta cobrança? Se já emitida, também será cancelada no Asaas.';
+    $acoes .= '<form method="post" action="' . e(url("/financeiro/cobrancas/{$id}/cancelar")) . '" data-confirmar="' . e($confirmar) . '">' . csrf_field()
         . '<input type="hidden" name="voltar" value="' . e($voltar) . '">'
-        . botao('Cancelar cobrança', ['tipo' => 'submit', 'variante' => 'ghost', 'icone' => 'x']) . '</form>';
+        . botao($ehAssinatura ? 'Cancelar assinatura' : 'Cancelar cobrança', ['tipo' => 'submit', 'variante' => 'ghost', 'icone' => 'x']) . '</form>';
 }
 
 // Falha da última tentativa de emissão: fica na tela até emitir com sucesso (o toast some em segundos).
@@ -33,7 +38,7 @@ if ($r['asaas_id'] === null && trim((string) ($r['asaas_erro'] ?? '')) !== '') {
 
 $situacaoAssinatura = ['ativa' => 'Ativa', 'inativa' => 'Inativa (sem novas cobranças)', 'expirada' => 'Expirada', 'excluida' => 'Excluída no Asaas'];
 $hist = '';
-$rotulos = ['criar' => 'Criada', 'atualizar' => 'Editada', 'emitir' => 'Emitida no Asaas', 'cancelar' => 'Cancelada', 'status_asaas' => 'Status atualizado pelo Asaas', 'importar_asaas' => 'Importada do Asaas', 'vincular_asaas' => 'Vinculada ao Asaas', 'assinatura_asaas' => 'Assinatura atualizada pelo Asaas', 'nfe_asaas' => 'Nota fiscal atualizada pelo Asaas', 'arquivar' => 'Arquivada', 'desfazer' => 'Ação desfeita'];
+$rotulos = ['criar' => 'Criada', 'atualizar' => 'Editada', 'emitir' => 'Emitida no Asaas', 'cancelar' => 'Cancelada', 'status_asaas' => 'Status atualizado pelo Asaas', 'importar_asaas' => 'Importada do Asaas', 'ciclo_asaas' => 'Parcela gerada pela assinatura no Asaas', 'vincular_asaas' => 'Vinculada ao Asaas', 'assinatura_asaas' => 'Assinatura atualizada pelo Asaas', 'nfe_asaas' => 'Nota fiscal atualizada pelo Asaas', 'arquivar' => 'Arquivada', 'desfazer' => 'Ação desfeita'];
 foreach ($historico as $h) {
     $hist .= '<li class="flex justify-between gap-2 border-b py-1.5 text-sm last:border-b-0"><span>' . e($rotulos[$h['acao']] ?? $h['acao'])
         . ' <span class="text-muted-foreground text-xs">· ' . e($h['origem']) . '</span></span><span class="text-muted-foreground text-xs">' . e(datahora_br($h['data'])) . '</span></li>';
@@ -69,8 +74,9 @@ foreach ($historico as $h) {
         ], 1)]) ?>
         <?= card(['tamanho' => 'sm', 'titulo' => 'Asaas', 'corpo_html' => ficha([
             'Cliente' => (string) ($r['asaas_customer_id'] ?? ''),
-            'Cobrança/assinatura' => (string) ($r['asaas_id'] ?? 'Não emitida'),
-            'Assinatura' => $r['asaas_tipo'] === 'subscription' ? ['html' => badge($situacaoAssinatura[$r['asaas_assinatura_status'] ?? ''] ?? 'Situação desconhecida', ($r['asaas_assinatura_status'] ?? '') === 'ativa' ? 'success' : 'secondary')] : '',
+            ($ehAssinatura ? 'Assinatura' : 'Cobrança') => (string) ($r['asaas_id'] ?? 'Não emitida'),
+            'Pagamento' => $ehAssinatura ? (string) ($r['asaas_payment_id'] ?? 'Aguardando o Asaas gerar') : '',
+            'Situação da assinatura' => $ehAssinatura ? ['html' => badge($situacaoAssinatura[$r['asaas_assinatura_status'] ?? ''] ?? 'Situação desconhecida', ($r['asaas_assinatura_status'] ?? '') === 'ativa' ? 'success' : 'secondary')] : '',
             'NF-e' => trim((string) $r['nfe_status']) !== '' ? ($r['nfe_url'] ? ['html' => '<a class="underline-offset-4 hover:underline" target="_blank" rel="noopener" href="' . e((string) $r['nfe_url']) . '">' . e((string) $r['nfe_status']) . '</a>'] : (string) $r['nfe_status']) : 'Não emitida',
         ], 1)]) ?>
         <?php if (trim((string) $r['notas']) !== ''): ?>
@@ -78,6 +84,9 @@ foreach ($historico as $h) {
         <?php endif; ?>
     </div>
     <div class="grid content-start gap-4 lg:col-span-2">
+        <?php if (count($ciclos ?? []) > 1): ?>
+            <?= card(['titulo' => 'Parcelas desta assinatura', 'corpo_html' => '<ul>' . implode('', array_map('cobranca_linha', $ciclos)) . '</ul>']) ?>
+        <?php endif; ?>
         <?= card(['titulo' => 'Histórico', 'corpo_html' => $hist !== '' ? '<ul>' . $hist . '</ul>' : '<p class="text-muted-foreground text-sm">Sem registros.</p>']) ?>
     </div>
 </div>

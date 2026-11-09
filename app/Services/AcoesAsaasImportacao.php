@@ -16,8 +16,11 @@ use Throwable;
  * - Pagamento ou assinatura que o CRM nunca viu vira uma cobrança (a empresa é achada pelo cliente do Asaas: id já
  *   ligado, `externalReference` ou documento). Se a empresa não existe ou o Asaas não respondeu, o item fica em
  *   `asaas_pendencias` e o worker tenta de novo — nunca é descartado em silêncio.
- * - Eventos `SUBSCRIPTION_*` mantêm ciclo e situação da assinatura; excluir a assinatura cancela o que ainda está
- *   em aberto (o Asaas também remove os pagamentos pendentes e vencidos dela).
+ * - Cada pagamento de uma assinatura é uma linha (ciclo). Pagamento novo de uma assinatura que o CRM já conhece
+ *   vira uma linha nova, com os dados da linha mais recente dela (empresa, negócio, contrato, ciclo).
+ * - Eventos `SUBSCRIPTION_*` mantêm ciclo e situação da assinatura em todas as linhas dela. Excluir a assinatura não
+ *   cancela os boletos já gerados (continuam pagáveis no Asaas; se forem removidos, chega PAYMENT_DELETED de cada
+ *   um); só cancela a linha que ainda esperava o primeiro pagamento.
  * - Cobrança criada pelo próprio CRM cujo id ainda não foi gravado (o webhook chega antes da resposta da
  *   emissão) é reconhecida pelo `externalReference` e completada, em vez de duplicada.
  */
@@ -88,13 +91,62 @@ trait AcoesAsaasImportacao
         return $this->gravarCobrancaImportada($dados + $campos, $evento, $payment, $chave);
     }
 
+    /**
+     * Pagamento de uma assinatura que o CRM conhece, mas sem linha própria e sem linha à espera do primeiro pagamento:
+     * é um ciclo novo. Herda empresa, negócio, contrato, ciclo e situação da linha mais recente não arquivada; valor,
+     * descrição, forma e vencimento vêm do pagamento. Assinatura toda arquivada no CRM é ignorada (o operador a tirou).
+     *
+     * @param list<array> $ciclos linhas da assinatura, da mais antiga à mais recente
+     */
+    private function novoCicloAssinaturaAsaas(string $evento, array $payment, array $ciclos): Resultado
+    {
+        $base = null;
+        foreach (array_reverse($ciclos) as $c) {
+            if ($c['arquivado_em'] === null) {
+                $base = $c;
+                break;
+            }
+        }
+        if ($base === null) {
+            return Resultado::sucesso(null, 'Assinatura arquivada no CRM (pagamento ignorado).');
+        }
+        $status = AsaasClient::statusDoPagamento($payment, $evento) ?? 'pendente';
+        if ($status === 'cancelado') {
+            return Resultado::sucesso(null, 'Pagamento cancelado ou removido sem registro local (ignorado).');
+        }
+
+        $assinaturaId = (string) $base['asaas_id'];
+        $clienteId = (string) ($payment['customer'] ?? '') !== '' ? (string) $payment['customer'] : (string) $base['asaas_customer_id'];
+        $campos = $this->camposAsaasDoPagamento($payment, ['id' => $assinaturaId, 'situacao' => $base['asaas_assinatura_status']], $clienteId, $status);
+        $descricao = trim((string) ($payment['description'] ?? ''));
+        $notaCiclo = null;
+        if ($base['ciclo'] === null && preg_match('/^Ciclo no Asaas: .*$/m', (string) $base['notas'], $m)) {
+            $notaCiclo = $m[0];
+        }
+        $dados = [
+            'empresa_id' => (int) $base['empresa_id'],
+            'negocio_id' => $base['negocio_id'],
+            'contrato_id' => $base['contrato_id'],
+            'tipo' => 'recorrente',
+            'descricao' => mb_strimwidth($descricao !== '' ? $descricao : (string) $base['descricao'], 0, 200, '…'),
+            'valor' => reais_para_centavos($payment['value'] ?? null) ?? (int) $base['valor'],
+            'ciclo' => $base['ciclo'],
+            'forma_pagamento' => AsaasClient::formaPagamentoLocal((string) ($payment['billingType'] ?? '')) ?? $base['forma_pagamento'],
+            'notas' => $notaCiclo,
+        ];
+        $campos += ['vencimento' => hoje()];
+
+        return $this->gravarCobrancaImportada($dados + $campos, $evento, $payment, 'sub:' . $assinaturaId, 'ciclo_asaas');
+    }
+
     // ---- Eventos de assinatura (SUBSCRIPTION_*) ------------------------------------------------
 
     /**
-     * Mantém a cobrança recorrente em dia com a assinatura do Asaas: ciclo, situação (ativa/inativa/expirada/excluida)
-     * e, quando a assinatura é excluída, o cancelamento do que ainda está em aberto. Valor, descrição e forma de
-     * pagamento NÃO vêm daqui: a linha espelha o pagamento do ciclo (é ele que o cliente paga), e o Asaas já avisa
-     * por PAYMENT_UPDATED quando uma alteração na assinatura muda os pagamentos pendentes.
+     * Mantém as linhas da assinatura em dia com o Asaas: situação (ativa/inativa/expirada/excluida) em todas, ciclo
+     * nas que estão em aberto. Valor, descrição e forma de pagamento NÃO vêm daqui: cada linha espelha o seu
+     * pagamento (é ele que o cliente paga), e o Asaas avisa por PAYMENT_UPDATED quando uma alteração na assinatura
+     * muda os pagamentos pendentes. Excluída, só a linha sem pagamento (à espera do primeiro ciclo) é cancelada: os
+     * boletos já gerados seguem pagáveis no Asaas e mudam pelos próprios eventos PAYMENT_*.
      */
     public function processarEventoAssinaturaAsaas(string $evento, array $objeto): Resultado
     {
@@ -103,9 +155,9 @@ trait AcoesAsaasImportacao
         }
         $a = AsaasClient::assinaturaDoObjeto($objeto);
         $repo = Repositorios::cobrancas();
-        $cobranca = $repo->porAsaasId($a['id']);
+        $ciclos = $repo->daAssinatura($a['id']);
 
-        if ($cobranca === null) {
+        if ($ciclos === []) {
             // Só a criação importa uma assinatura nova. Uma alteração em assinatura desconhecida não diz em que pé
             // está o ciclo atual; quem traz as antigas é a conciliação.
             return $evento === 'SUBSCRIPTION_CREATED' && !$a['removida']
@@ -121,28 +173,41 @@ trait AcoesAsaasImportacao
         };
         $removida = $a['removida'] || $evento === 'SUBSCRIPTION_DELETED';
 
-        $depois = [];
-        if (($cobranca['asaas_assinatura_status'] ?? null) !== $situacao) {
-            $depois['asaas_assinatura_status'] = $situacao;
-        }
-        if ($a['ciclo_asaas'] !== '' && $a['ciclo'] !== ($cobranca['ciclo'] ?? null)) {
-            $depois['ciclo'] = $a['ciclo'];
-            if ($a['ciclo'] === null) {
-                $depois['notas'] = self::notaCicloAsaas($a['ciclo_asaas'], $cobranca['notas'] ?? null);
+        $mudancas = [];
+        foreach ($ciclos as $cobranca) {
+            if ($cobranca['arquivado_em'] !== null) {
+                continue;
+            }
+            $aberta = in_array($cobranca['status'], ['pendente', 'vencido'], true);
+            $depois = [];
+            if (($cobranca['asaas_assinatura_status'] ?? null) !== $situacao) {
+                $depois['asaas_assinatura_status'] = $situacao;
+            }
+            if ($aberta && $a['ciclo_asaas'] !== '' && $a['ciclo'] !== ($cobranca['ciclo'] ?? null)) {
+                $depois['ciclo'] = $a['ciclo'];
+                if ($a['ciclo'] === null) {
+                    $depois['notas'] = self::notaCicloAsaas($a['ciclo_asaas'], $cobranca['notas'] ?? null);
+                }
+            }
+            if ($removida && $aberta && $cobranca['asaas_payment_id'] === null) {
+                $depois['status'] = 'cancelado';
+            }
+            if ($depois !== []) {
+                $mudancas[] = [$cobranca, $depois];
             }
         }
-        if ($removida && in_array($cobranca['status'], ['pendente', 'vencido'], true)) {
-            $depois['status'] = 'cancelado';
-        }
-        if ($depois === []) {
-            return Resultado::sucesso((int) $cobranca['id'], 'Nada a atualizar.');
+        if ($mudancas === []) {
+            return Resultado::sucesso((int) end($ciclos)['id'], 'Nada a atualizar.');
         }
 
-        return $this->transacao(function () use ($repo, $cobranca, $depois): Resultado {
-            $id = (int) $cobranca['id'];
-            $antes = array_intersect_key($cobranca, $depois);
-            $repo->atualizar($id, $depois + ['atualizado_em' => agora()]);
-            $logId = Audit::registrar('sistema', 'cobrancas', $id, 'assinatura_asaas', $antes, $depois);
+        return $this->transacao(function () use ($repo, $mudancas): Resultado {
+            $id = 0;
+            $logId = null;
+            foreach ($mudancas as [$cobranca, $depois]) {
+                $id = (int) $cobranca['id'];
+                $repo->atualizar($id, $depois + ['atualizado_em' => agora()]);
+                $logId = Audit::registrar('sistema', 'cobrancas', $id, 'assinatura_asaas', array_intersect_key($cobranca, $depois), $depois);
+            }
             return Resultado::sucesso($id, 'Assinatura atualizada pelo Asaas.', $repo->encontrar($id), $logId);
         });
     }
@@ -260,32 +325,40 @@ trait AcoesAsaasImportacao
         return $campos;
     }
 
-    /** Insere a cobrança importada. @param array<string,mixed> $linha */
-    private function gravarCobrancaImportada(array $linha, string $evento, ?array $payment, string $chave): Resultado
+    /**
+     * Insere a cobrança importada (ou o ciclo novo de uma assinatura, com `$acao` = ciclo_asaas).
+     * @param array<string,mixed> $linha
+     */
+    private function gravarCobrancaImportada(array $linha, string $evento, ?array $payment, string $chave, string $acao = 'importar_asaas'): Resultado
     {
         $repo = Repositorios::cobrancas();
         $asaasId = (string) $linha['asaas_id'];
+        $pagamentoId = $linha['asaas_payment_id'] ?? null;
+        // A linha que já existe para este pagamento (ou, numa assinatura ainda sem pagamento, qualquer linha dela).
+        $existente = static fn (): ?array => $pagamentoId !== null
+            ? $repo->porAsaasPaymentId((string) $pagamentoId)
+            : ($linha['asaas_tipo'] === 'subscription' ? ($repo->daAssinatura($asaasId)[0] ?? null) : $repo->porAsaasId($asaasId));
         try {
-            return $this->transacao(function () use ($repo, $linha, $payment, $chave, $asaasId): Resultado {
+            return $this->transacao(function () use ($repo, $linha, $payment, $chave, $existente, $acao): Resultado {
                 // Reconfere dentro da transação: outro webhook do mesmo pagamento pode ter criado a linha agora há pouco.
-                $existente = $repo->porAsaasId($asaasId);
-                if ($existente !== null) {
-                    return Resultado::sucesso((int) $existente['id'], 'Cobrança já importada.');
+                $ja = $existente();
+                if ($ja !== null) {
+                    return Resultado::sucesso((int) $ja['id'], 'Cobrança já importada.');
                 }
                 $agora = agora();
                 $id = $repo->inserir($linha + ['criado_em' => $agora, 'atualizado_em' => $agora, 'criado_por' => 'sistema']);
                 $registro = $repo->encontrar($id);
                 $depois = array_intersect_key($registro, array_flip($repo->colunas()));
-                $logId = Audit::registrar('sistema', 'cobrancas', $id, 'importar_asaas', null, $depois);
+                $logId = Audit::registrar('sistema', 'cobrancas', $id, $acao, null, $depois);
                 if ($linha['status'] === 'pago' && $payment !== null) {
                     $this->lancarTaxaAsaas($registro, $payment, (string) ($linha['data_pagamento'] ?? hoje()));
                 }
                 (new AsaasPendenciaRepository())->resolver($chave);
-                return Resultado::sucesso($id, 'Cobrança importada do Asaas.', $registro, $logId);
+                return Resultado::sucesso($id, $acao === 'ciclo_asaas' ? 'Novo ciclo da assinatura registrado.' : 'Cobrança importada do Asaas.', $registro, $logId);
             });
         } catch (PDOException $e) {
-            // Corrida entre dois webhooks do mesmo pagamento (índice único em asaas_id): a linha existe agora, é só atualizá-la.
-            if ($repo->porAsaasId($asaasId) !== null && $payment !== null) {
+            // Corrida entre dois webhooks do mesmo pagamento (índice único no pagamento): a linha existe agora, é só atualizá-la.
+            if ($existente() !== null && $payment !== null) {
                 return $this->processarEventoAsaas($evento, $payment);
             }
             throw $e;
@@ -414,7 +487,7 @@ trait AcoesAsaasImportacao
     {
         $id = substr($chave, 4);
         $repo = Repositorios::cobrancas();
-        return str_starts_with($chave, 'sub:') ? $repo->porAsaasId($id) : ($repo->porAsaasId($id) ?? $repo->porAsaasPaymentId($id));
+        return str_starts_with($chave, 'sub:') ? ($repo->daAssinatura($id)[0] ?? null) : ($repo->porAsaasPaymentId($id) ?? $repo->porAsaasId($id));
     }
 
     /** Linha para `notas` avisando que o ciclo da assinatura no Asaas não existe no CRM (que só distingue mensal e anual). */

@@ -9,10 +9,16 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/app/bootstrap.php';
 
-/** Configuração sem chaves de IA: mesmo que config.local.php tenha as reais, nenhum teste chama a rede. */
+/**
+ * Configuração sem chaves de IA nem do Asaas: mesmo que config.local.php tenha as reais, nenhum teste chama a rede.
+ * (O Asaas faltava aqui: com a chave de produção salva, testes que pressupõem "Asaas não configurado" chamavam a API real.)
+ */
 function configNeutra(): array
 {
-    return array_replace_recursive(require dirname(__DIR__) . '/config.php', ['anthropic' => ['api_key' => ''], 'gemini' => ['api_key' => '']]);
+    return array_replace_recursive(require dirname(__DIR__) . '/config.php', [
+        'anthropic' => ['api_key' => ''], 'gemini' => ['api_key' => ''],
+        'asaas' => ['api_key' => '', 'ambiente' => 'sandbox', 'webhook_token' => ''],
+    ]);
 }
 
 \App\Core\Config::definir(configNeutra());

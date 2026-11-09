@@ -11,10 +11,12 @@ use App\Services\Asaas\Client as AsaasClient;
  * Cobranças ligadas ao Asaas (Fase 17): emitir (criar o cliente no Asaas na primeira vez, depois a cobrança ou
  * assinatura), cancelar e sincronizar o status pelo webhook. A chamada de rede ao Asaas fica fora da transação do
  * SQLite (como o envio de mensagens da caixa de entrada, Fase 14): grava o registro local primeiro (status
- * "pendente", sem dados do Asaas), chama a API depois e só então grava o resultado numa segunda transação. Uma
- * cobrança recorrente é uma linha só (o `asaas_id` é o id da assinatura, estável entre ciclos); o status reflete o
- * ciclo mais recente, sem histórico por ciclo — o Asaas gera um pagamento novo a cada ciclo, ligado à assinatura
- * por `payment.subscription`, e é por aí que o webhook reencontra a cobrança.
+ * "pendente", sem dados do Asaas), chama a API depois e só então grava o resultado numa segunda transação.
+ *
+ * Assinatura: uma linha por pagamento (ciclo). Todas as linhas guardam o id da assinatura em `asaas_id`, e cada uma o
+ * seu pagamento em `asaas_payment_id` (único). O Asaas gera cada ciclo 40 dias antes do vencimento, então dois ciclos
+ * ficam abertos ao mesmo tempo: o webhook sempre acha a linha pelo pagamento; a linha emitida pelo CRM (ainda sem
+ * pagamento) recebe o primeiro, e cada pagamento novo da assinatura vira uma linha nova.
  */
 trait AcoesFinanceiro
 {
@@ -110,6 +112,9 @@ trait AcoesFinanceiro
         if (in_array($cobranca['status'], ['cancelado', 'pago'], true)) {
             return Resultado::erroGeral('Esta cobrança já está ' . ($cobranca['status'] === 'pago' ? 'paga.' : 'cancelada.'));
         }
+        if ($cobranca['asaas_id'] !== null && $cobranca['asaas_tipo'] === 'subscription') {
+            return $this->cancelarAssinatura($cobranca, $origem);
+        }
         if ($cobranca['asaas_id'] !== null) {
             $r = AsaasClient::cancelar((string) $cobranca['asaas_id'], (string) $cobranca['asaas_tipo']);
             if (!$r['ok']) {
@@ -124,16 +129,76 @@ trait AcoesFinanceiro
     }
 
     /**
-     * Aplica um evento do webhook do Asaas. Evento sem cobrança correspondente (id do pagamento nem da assinatura
-     * batem com nada) ou sem mudança real de status é ignorado sem erro: o Asaas reenvia webhooks e manda eventos
-     * que não alteram nada por aqui (ex.: PAYMENT_UPDATED de um campo que o CRM não acompanha).
+     * Cancela a assinatura no Asaas e as parcelas dela ainda em aberto. Excluir a assinatura só impede ciclos novos: os
+     * boletos já gerados continuam pagáveis, então cada um é removido também. Parcela que o Asaas não removeu fica
+     * como está (e entra na mensagem), para o CRM não mostrar cancelado um boleto que o cliente ainda pode pagar.
+     */
+    private function cancelarAssinatura(array $cobranca, string $origem): Resultado
+    {
+        $repo = Repositorios::cobrancas();
+        $assinaturaId = (string) $cobranca['asaas_id'];
+        $r = AsaasClient::cancelar($assinaturaId, 'subscription');
+        if (!$r['ok'] && $r['http'] !== 404) {
+            return Resultado::erroGeral('Não foi possível cancelar a assinatura no Asaas: ' . $r['erro']);
+        }
+
+        $canceladas = [];
+        $falhas = [];
+        foreach ($repo->daAssinatura($assinaturaId) as $c) {
+            if ($c['arquivado_em'] !== null || !in_array($c['status'], ['pendente', 'vencido'], true)) {
+                continue;
+            }
+            if ($c['asaas_payment_id'] !== null) {
+                $rp = AsaasClient::cancelar((string) $c['asaas_payment_id'], 'payment');
+                if (!$rp['ok'] && $rp['http'] !== 404) {
+                    $falhas[] = data_br((string) $c['vencimento']) . ' (' . $rp['erro'] . ')';
+                    continue;
+                }
+            }
+            $canceladas[] = $c;
+        }
+
+        return $this->transacao(function () use ($repo, $cobranca, $canceladas, $falhas, $origem): Resultado {
+            $agora = agora();
+            $logId = null;
+            foreach ($canceladas as $c) {
+                $repo->atualizar((int) $c['id'], ['status' => 'cancelado', 'asaas_assinatura_status' => 'excluida', 'atualizado_em' => $agora]);
+                $logId = Audit::registrar($origem, 'cobrancas', (int) $c['id'], 'cancelar', ['status' => $c['status']], ['status' => 'cancelado']);
+            }
+            $id = (int) $cobranca['id'];
+            $msg = 'Assinatura cancelada no Asaas'
+                . (count($canceladas) > 0 ? ', com ' . count($canceladas) . (count($canceladas) === 1 ? ' parcela em aberto.' : ' parcelas em aberto.') : '.');
+            if ($falhas !== []) {
+                $msg .= ' Não foi possível remover no Asaas a parcela de ' . implode(', ', $falhas) . ': cancele pelo painel.';
+            }
+            return Resultado::sucesso($id, $msg, $repo->encontrar($id), $logId);
+        });
+    }
+
+    /**
+     * Aplica um evento do webhook do Asaas na cobrança do pagamento. Numa assinatura, a linha é sempre a do próprio
+     * pagamento; sem ela, a linha da assinatura que ainda espera o primeiro pagamento o recebe, e senão o pagamento é
+     * um ciclo novo e ganha linha própria. Sem nenhuma linha da assinatura (ou avulsa desconhecida), importa.
+     * Evento sem mudança real é ignorado sem erro: o Asaas reenvia webhooks e manda eventos que não alteram nada
+     * por aqui (ex.: PAYMENT_UPDATED de um campo que o CRM não acompanha).
      */
     public function processarEventoAsaas(string $evento, array $payment): Resultado
     {
         $repo = Repositorios::cobrancas();
-        $cobranca = !empty($payment['id']) ? $repo->porAsaasId((string) $payment['id']) : null;
-        if ($cobranca === null && !empty($payment['subscription'])) {
-            $cobranca = $repo->porAsaasId((string) $payment['subscription']);
+        $pagamentoId = (string) ($payment['id'] ?? '');
+        $assinaturaId = (string) ($payment['subscription'] ?? '');
+        $cobranca = $pagamentoId !== '' ? $repo->porAsaasPaymentId($pagamentoId) : null;
+        if ($cobranca === null && $assinaturaId === '' && $pagamentoId !== '') {
+            $cobranca = $repo->porAsaasId($pagamentoId);
+        }
+        if ($cobranca === null && $assinaturaId !== '') {
+            $ciclos = $repo->daAssinatura($assinaturaId);
+            if ($ciclos !== []) {
+                $cobranca = self::cicloAguardandoPagamento($ciclos);
+                if ($cobranca === null) {
+                    return $this->novoCicloAssinaturaAsaas($evento, $payment, $ciclos);
+                }
+            }
         }
         if ($cobranca === null) {
             return $this->importarPagamentoAsaas($evento, $payment);
@@ -144,8 +209,8 @@ trait AcoesFinanceiro
         $mudaFatura = !empty($payment['invoiceUrl']) && $payment['invoiceUrl'] !== $cobranca['url_fatura'];
         $novoVencimento = self::vencimentoDoEvento($cobranca, $payment);
         $espelho = self::espelhoDoPagamento($cobranca, $payment);
-        // asaas_payment_id sempre acompanha o pagamento mais recente do ciclo (mesmo numa avulsa, onde já é igual a asaas_id):
-        // é por ele que o webhook de NF-e reencontra a cobrança (invoice.payment nunca é o id da assinatura).
+        // asaas_payment_id guarda o pagamento da linha (numa avulsa, igual a asaas_id): é por ele que este webhook e o
+        // de NF-e reencontram a cobrança (invoice.payment nunca é o id da assinatura).
         $novoPaymentId = !empty($payment['id']) && (string) $payment['id'] !== (string) ($cobranca['asaas_payment_id'] ?? '') ? (string) $payment['id'] : null;
         if (($novoStatus === null || $novoStatus === $cobranca['status']) && !$mudaFatura && $novoVencimento === null && $novoPaymentId === null && $espelho === []) {
             return Resultado::sucesso((int) $cobranca['id'], 'Nada a atualizar.');
@@ -188,6 +253,10 @@ trait AcoesFinanceiro
     {
         $taxa = AsaasClient::taxaDoPagamento($payment);
         if ($taxa <= 0) {
+            return;
+        }
+        // Uma taxa por pagamento: o mesmo pagamento pode virar "pago" de novo numa linha recriada (reconciliação).
+        if (!empty($payment['id']) && Repositorios::despesas()->existeTaxaAsaas((string) $payment['id'])) {
             return;
         }
         $categoriaId = $this->categoriaDespesaAsaas();
@@ -256,17 +325,12 @@ trait AcoesFinanceiro
 
     /**
      * Valor, descrição e forma de pagamento que o painel do Asaas mudou: com o Asaas como fonte da verdade, a linha
-     * do CRM acompanha o pagamento (é ele que o cliente paga e que entra na receita). Numa assinatura, evento de um
-     * ciclo anterior (vencimento menor que o da linha) não sobrescreve os dados do ciclo atual.
+     * do CRM acompanha o pagamento (é ele que o cliente paga e que entra na receita).
      *
      * @return array<string,mixed>
      */
     private static function espelhoDoPagamento(array $cobranca, array $payment): array
     {
-        $vencimento = substr(trim((string) ($payment['dueDate'] ?? '')), 0, 10);
-        if ($cobranca['asaas_tipo'] === 'subscription' && $vencimento !== '' && $vencimento < (string) $cobranca['vencimento']) {
-            return [];
-        }
         $depois = [];
         $valor = reais_para_centavos($payment['value'] ?? null);
         if ($valor !== null && $valor > 0 && $valor !== (int) $cobranca['valor']) {
@@ -283,21 +347,27 @@ trait AcoesFinanceiro
         return $depois;
     }
 
-    /**
-     * Vencimento a gravar a partir do evento, ou null se não muda. Numa assinatura o Asaas abre um pagamento por
-     * ciclo e a linha do CRM acompanha o ciclo mais recente: sem isso o vencimento ficava congelado no primeiro
-     * ciclo e o fallback do worker marcava "vencido" toda mensalidade em dia assim que o ciclo seguinte abria.
-     * Evento atrasado de um ciclo anterior não puxa a data para trás; numa avulsa a linha é o próprio pagamento,
-     * então espelha o que vier (inclusive vencimento adiantado no painel do Asaas).
-     */
+    /** Vencimento a gravar a partir do evento, ou null se não muda: a linha é o próprio pagamento, então espelha o que vier (inclusive data adiada no painel). */
     private static function vencimentoDoEvento(array $cobranca, array $payment): ?string
     {
         $vencimento = substr(trim((string) ($payment['dueDate'] ?? '')), 0, 10);
-        if ($vencimento === '' || $vencimento === (string) $cobranca['vencimento']) {
-            return null;
+        return $vencimento === '' || $vencimento === (string) $cobranca['vencimento'] ? null : $vencimento;
+    }
+
+    /**
+     * Linha da assinatura que ainda não tem pagamento (a emitida pelo CRM ou importada do SUBSCRIPTION_CREATED, à
+     * espera do primeiro ciclo). Arquivada ou cancelada não recebe pagamento: aí o pagamento vira linha nova.
+     *
+     * @param list<array> $ciclos
+     */
+    private static function cicloAguardandoPagamento(array $ciclos): ?array
+    {
+        foreach ($ciclos as $c) {
+            if ($c['asaas_payment_id'] === null && $c['arquivado_em'] === null && $c['status'] !== 'cancelado') {
+                return $c;
+            }
         }
-        $cicloAntigo = $cobranca['asaas_tipo'] === 'subscription' && $vencimento < (string) $cobranca['vencimento'];
-        return $cicloAntigo ? null : $vencimento;
+        return null;
     }
 
     /** Fallback local (rotina do worker): cobrança pendente já vencida sem confirmação do Asaas (webhook perdido) vira "vencido". */

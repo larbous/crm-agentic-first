@@ -52,6 +52,14 @@ final class DespesaRepository extends BaseRepository
         return null;
     }
 
+    /** Já existe a taxa do Asaas lançada para este pagamento? (as notas da despesa automática citam "pagamento <id>.") */
+    public function existeTaxaAsaas(string $paymentId): bool
+    {
+        $st = $this->pdo()->prepare("SELECT 1 FROM despesas WHERE fornecedor = 'Asaas' AND instr(notas, :trecho) > 0 LIMIT 1");
+        $st->execute(['trecho' => 'pagamento ' . $paymentId . '.']);
+        return $st->fetchColumn() !== false;
+    }
+
     /**
      * Totais para o topo da lista: a pagar (pendentes), vencidas e pagas no mês [de, ate], em centavos.
      * @return array{a_pagar:int,vencidas:int,pago_no_mes:int}

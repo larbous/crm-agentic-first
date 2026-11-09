@@ -16,4 +16,10 @@ final class AsaasWebhookRepository
         $st->execute(['h' => $hash, 'e' => $evento, 'p' => $payload, 'q' => agora()]);
         return $st->rowCount() === 1;
     }
+
+    /** Eventos PAYMENT_* recebidos, na ordem de chegada (para a reconciliação de assinaturas). @return list<array{evento:string,payload:string}> */
+    public function eventosDePagamento(): array
+    {
+        return DB::conexao()->query("SELECT evento, payload FROM asaas_webhooks WHERE evento LIKE 'PAYMENT\\_%' ESCAPE '\\' ORDER BY id")->fetchAll();
+    }
 }

@@ -241,30 +241,67 @@ teste('importação: pagamento removido ou estornado que o CRM nunca viu não é
     igual(0, (new AsaasPendenciaRepository())->contarAbertas());
 });
 
-teste('importação: pagamento de assinatura vira UMA cobrança recorrente e os ciclos seguintes atualizam a mesma linha', function () {
+teste('importação: cada pagamento de uma assinatura vira uma cobrança (parcela) própria, ligada à assinatura', function () {
     bancoComSeed();
-    empresaLigada();
+    $empresaId = empresaLigada();
     comAsaas(function (array $req) {
         return $req['caminho'] === '/subscriptions/sub_i1' ? respostaAsaas(assinaturaAsaas()) : respostaAsaas([]);
     }, function () {
         $x = new ActionExecutor();
         $x->processarEventoAsaas('PAYMENT_CREATED', pagamentoAsaas(['id' => 'pay_c1', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-11-05', 'description' => null]));
         $x->processarEventoAsaas('PAYMENT_RECEIVED', pagamentoAsaas(['id' => 'pay_c1', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-11-05', 'description' => null, 'status' => 'RECEIVED', 'paymentDate' => '2026-11-04']));
-        $x->processarEventoAsaas('PAYMENT_CREATED', pagamentoAsaas(['id' => 'pay_c2', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-12-05', 'description' => null, 'invoiceUrl' => 'https://sandbox.asaas.com/i/pay_c2']));
+        $r = $x->processarEventoAsaas('PAYMENT_CREATED', pagamentoAsaas(['id' => 'pay_c2', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-12-05', 'description' => null, 'invoiceUrl' => 'https://sandbox.asaas.com/i/pay_c2']));
+        contem('Novo ciclo', $r->mensagem);
     });
-    $linhas = cobrancasDoTeste();
-    igual(1, count($linhas), 'uma linha por assinatura');
-    $c = $linhas[0];
-    igual('recorrente', $c['tipo']);
-    igual('mensal', $c['ciclo']);
-    igual(35000, (int) $c['valor']);
-    igual('sub_i1', $c['asaas_id']);
-    igual('subscription', $c['asaas_tipo']);
-    igual('pay_c2', $c['asaas_payment_id'], 'acompanha o pagamento do ciclo mais recente');
-    igual('2026-12-05', $c['vencimento']);
-    igual('pendente', $c['status'], 'o ciclo novo reabre a cobrança');
-    igual('ativa', $c['asaas_assinatura_status']);
-    igual('Mensalidade de manutenção', $c['descricao'], 'pagamento sem descrição usa a da assinatura');
+    $ciclos = Repositorios::cobrancas()->daAssinatura('sub_i1');
+    igual(2, count($ciclos), 'uma linha por pagamento');
+    [$nov, $dez] = $ciclos;
+    igual('pay_c1', $nov['asaas_payment_id']);
+    igual('2026-11-05', $nov['vencimento']);
+    igual('pago', $nov['status'], 'o ciclo pago continua pago');
+    igual('2026-11-04', $nov['data_pagamento']);
+    igual('pay_c2', $dez['asaas_payment_id']);
+    igual('2026-12-05', $dez['vencimento']);
+    igual('pendente', $dez['status']);
+    igual('https://sandbox.asaas.com/i/pay_c2', $dez['url_fatura']);
+    foreach ($ciclos as $c) {
+        igual($empresaId, (int) $c['empresa_id']);
+        igual('recorrente', $c['tipo']);
+        igual('mensal', $c['ciclo']);
+        igual(35000, (int) $c['valor']);
+        igual('sub_i1', $c['asaas_id']);
+        igual('subscription', $c['asaas_tipo']);
+        igual('ativa', $c['asaas_assinatura_status']);
+        igual('Mensalidade de manutenção', $c['descricao'], 'pagamento sem descrição usa a da assinatura');
+    }
+});
+
+teste('assinatura: com dois ciclos abertos (geração 40 dias antes), o boleto do mês não some e pagar um não quita o outro', function () {
+    bancoComSeed();
+    empresaLigada();
+    comAsaas(function (array $req) {
+        return $req['caminho'] === '/subscriptions/sub_i1' ? respostaAsaas(assinaturaAsaas()) : respostaAsaas([]);
+    }, function () {
+        $x = new ActionExecutor();
+        $x->processarEventoAsaas('PAYMENT_CREATED', pagamentoAsaas(['id' => 'pay_nov', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-11-16', 'invoiceUrl' => 'https://asaas.com/i/nov']));
+        // O Asaas gera dezembro em 07/11, com novembro ainda em aberto.
+        $x->processarEventoAsaas('PAYMENT_CREATED', pagamentoAsaas(['id' => 'pay_dez', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-12-16', 'invoiceUrl' => 'https://asaas.com/i/dez']));
+        $x->processarEventoAsaas('PAYMENT_BANK_SLIP_VIEWED', pagamentoAsaas(['id' => 'pay_nov', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-11-16', 'invoiceUrl' => 'https://asaas.com/i/nov']));
+    });
+    $repo = Repositorios::cobrancas();
+    $nov = $repo->porAsaasPaymentId('pay_nov');
+    $dez = $repo->porAsaasPaymentId('pay_dez');
+    igual('2026-11-16', $nov['vencimento'], 'novembro continua com o próprio vencimento');
+    igual('https://asaas.com/i/nov', $nov['url_fatura'], 'e com o próprio boleto');
+    igual('pendente', $nov['status']);
+    igual('pendente', $dez['status']);
+
+    // O cliente paga novembro depois de dezembro já existir.
+    (new ActionExecutor())->processarEventoAsaas('PAYMENT_RECEIVED', pagamentoAsaas(['id' => 'pay_nov', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-11-16', 'status' => 'RECEIVED', 'paymentDate' => '2026-11-10']));
+    igual('pago', $repo->porAsaasPaymentId('pay_nov')['status']);
+    igual('pendente', $repo->porAsaasPaymentId('pay_dez')['status'], 'dezembro não aparece como pago');
+    igual('2026-12-16', $repo->porAsaasPaymentId('pay_dez')['vencimento']);
+    igual(2, count($repo->daAssinatura('sub_i1')));
 });
 
 teste('importação: ciclo do Asaas que o CRM não tem (trimestral) fica sem ciclo e avisa nas notas, sem travar a edição', function () {
@@ -447,7 +484,7 @@ teste('espelho: valor, descrição e forma de pagamento alterados no painel cheg
     igual('2026-11-20', $c['vencimento']);
 });
 
-teste('espelho: evento atrasado de um ciclo anterior não sobrescreve valor, descrição nem forma do ciclo atual', function () {
+teste('espelho: evento de um ciclo anterior vai para a linha daquele ciclo, sem mexer valor, descrição nem forma do atual', function () {
     bancoComSeed();
     empresaLigada();
     comAsaas(function (array $req) {
@@ -455,13 +492,51 @@ teste('espelho: evento atrasado de um ciclo anterior não sobrescreve valor, des
     }, function () {
         $x = new ActionExecutor();
         $x->processarEventoAsaas('PAYMENT_CREATED', pagamentoAsaas(['id' => 'pay_c2', 'subscription' => 'sub_i1', 'value' => 400.0, 'dueDate' => '2026-12-05', 'billingType' => 'PIX']));
-        // Chega o PAYMENT_UPDATED do ciclo 1 (vencimento menor), com os dados antigos.
+        // Chega o PAYMENT_UPDATED do ciclo 1 (vencimento menor), com os dados dele.
         $x->processarEventoAsaas('PAYMENT_UPDATED', pagamentoAsaas(['id' => 'pay_c1', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-11-05', 'billingType' => 'BOLETO']));
     });
-    $c = cobrancasDoTeste()[0];
-    igual(40000, (int) $c['valor']);
-    igual('pix', $c['forma_pagamento']);
-    igual('2026-12-05', $c['vencimento']);
+    $repo = Repositorios::cobrancas();
+    $atual = $repo->porAsaasPaymentId('pay_c2');
+    igual(40000, (int) $atual['valor']);
+    igual('pix', $atual['forma_pagamento']);
+    igual('2026-12-05', $atual['vencimento']);
+    $anterior = $repo->porAsaasPaymentId('pay_c1');
+    igual(35000, (int) $anterior['valor']);
+    igual('boleto', $anterior['forma_pagamento']);
+    igual('2026-11-05', $anterior['vencimento']);
+});
+
+teste('assinatura: excluída no Asaas, os boletos já gerados mantêm o status (seguem pagáveis); só a linha sem pagamento é cancelada', function () {
+    bancoComSeed();
+    empresaLigada();
+    comAsaas(fn () => respostaAsaas([]), function () {
+        $x = new ActionExecutor();
+        $x->processarEventoAssinaturaAsaas('SUBSCRIPTION_CREATED', assinaturaAsaas());
+        $x->processarEventoAsaas('PAYMENT_CREATED', pagamentoAsaas(['id' => 'pay_c1', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-11-05']));
+        $x->processarEventoAssinaturaAsaas('SUBSCRIPTION_DELETED', assinaturaAsaas());
+        $c = Repositorios::cobrancas()->porAsaasPaymentId('pay_c1');
+        igual('pendente', $c['status'], 'o boleto gerado continua em aberto no Asaas');
+        igual('excluida', $c['asaas_assinatura_status']);
+
+        // Se o Asaas remover o boleto, o evento do próprio pagamento cancela a linha.
+        $x->processarEventoAsaas('PAYMENT_DELETED', pagamentoAsaas(['id' => 'pay_c1', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-11-05', 'deleted' => true]));
+        igual('cancelado', Repositorios::cobrancas()->porAsaasPaymentId('pay_c1')['status']);
+    });
+});
+
+teste('assinatura: pagamento de assinatura arquivada no CRM é ignorado (não ressuscita a cobrança)', function () {
+    bancoComSeed();
+    empresaLigada();
+    comAsaas(function (array $req) {
+        return $req['caminho'] === '/subscriptions/sub_i1' ? respostaAsaas(assinaturaAsaas()) : respostaAsaas([]);
+    }, function () {
+        (new ActionExecutor())->processarEventoAsaas('PAYMENT_RECEIVED', pagamentoAsaas(['id' => 'pay_c1', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-10-05', 'status' => 'RECEIVED', 'paymentDate' => '2026-10-05']));
+    });
+    $id = (int) Repositorios::cobrancas()->porAsaasPaymentId('pay_c1')['id'];
+    verdadeiro((new ActionExecutor())->arquivar('cobrancas', $id, 'humano')->ok);
+    $r = (new ActionExecutor())->processarEventoAsaas('PAYMENT_CREATED', pagamentoAsaas(['id' => 'pay_c2', 'subscription' => 'sub_i1', 'value' => 350.0, 'dueDate' => '2026-11-05']));
+    contem('arquivada', $r->mensagem);
+    igual(null, Repositorios::cobrancas()->porAsaasPaymentId('pay_c2'));
 });
 
 teste('webhook: evento de assinatura chega ao tratamento pelo controller, autenticado pelo token', function () {

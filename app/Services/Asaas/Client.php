@@ -158,12 +158,14 @@ final class Client
         return self::respostaEmissao($r, 'subscription');
     }
 
-    /** @return array{ok:bool,erro:?string} */
+    /** @return array{ok:bool,erro:?string,http:int} */
     public static function cancelar(string $asaasId, string $tipo): array
     {
         $caminho = $tipo === 'subscription' ? "/subscriptions/{$asaasId}" : "/payments/{$asaasId}";
         $r = self::requisitar('DELETE', $caminho, null);
-        return $r['status'] >= 200 && $r['status'] < 300 ? ['ok' => true, 'erro' => null] : ['ok' => false, 'erro' => self::erroDoCorpo($r)];
+        return $r['status'] >= 200 && $r['status'] < 300
+            ? ['ok' => true, 'erro' => null, 'http' => (int) $r['status']]
+            : ['ok' => false, 'erro' => self::erroDoCorpo($r), 'http' => (int) $r['status']];
     }
 
     /** billingType do Asaas a partir da forma de pagamento escolhida no CRM. */

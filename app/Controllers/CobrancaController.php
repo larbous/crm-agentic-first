@@ -108,8 +108,14 @@ final class CobrancaController extends CrudController
 
     protected function dadosDetalhe(array $registro): array
     {
+        $assinatura = $registro['asaas_tipo'] === 'subscription' && $registro['asaas_id'] !== null;
         return [
             'historico' => (new AuditoriaRepository())->listar(['entidade' => 'cobrancas', 'registro_id' => (string) $registro['id']], 1, 30)['linhas'],
+            // Os outros ciclos (uma linha por pagamento) da mesma assinatura do Asaas.
+            'ciclos' => $assinatura ? array_values(array_filter(
+                Repositorios::cobrancas()->daAssinatura((string) $registro['asaas_id']),
+                static fn (array $c): bool => $c['arquivado_em'] === null,
+            )) : [],
         ];
     }
 
