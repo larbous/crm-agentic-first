@@ -119,6 +119,7 @@ trait AcoesDocumentos
             $v['empresa_id'] ??= $n['empresa_id'] ?? null;
             $v['contato_id'] ??= $n['contato_principal_id'] ?? null;
         }
+        $v['desconto_valor'] ??= 0; // campo em branco no formulário = sem desconto (a coluna é NOT NULL)
         $modelo = null;
         if (!empty($v['modelo_id'])) {
             $modelo = Repositorios::modelos()->encontrar((int) $v['modelo_id']);
@@ -160,6 +161,9 @@ trait AcoesDocumentos
             return ['_' => 'Só propostas em rascunho podem ser editadas. Crie uma nova versão para alterar.'];
         }
         $erros = [];
+        if (array_key_exists('desconto_valor', $novos)) {
+            $novos['desconto_valor'] ??= 0;
+        }
         if (($novos['layout'] ?? $atual['layout']) === 'personalizado' && trim((string) (array_key_exists('html_personalizado', $novos) ? $novos['html_personalizado'] : $atual['html_personalizado'])) === '') {
             $erros['html_personalizado'] = 'Cole o HTML da proposta ou volte ao layout padrão.';
         }
