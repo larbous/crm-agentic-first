@@ -5,7 +5,8 @@ declare(strict_types=1);
 /**
  * Barra de filtros (busca + selects + chips de filtros ativos). Formulário GET que se auto-envia.
  * $o: acao (URL), q (texto), filtros [nome => ['rotulo', 'opcoes' => [valor => rótulo], 'valor']], ocultos [nome => valor],
- *     limpar (URL para limpar), placeholder.
+ *     limpar (URL para limpar), placeholder. Filtro com 'tipo' => 'data' vira um campo de data (sem 'opcoes'), enviado pelo
+ *     botão Filtrar — não se auto-envia, para dar tempo de preencher "de" e "até".
  */
 function barra_filtros(array $o): string
 {
@@ -21,6 +22,14 @@ function barra_filtros(array $o): string
 
     foreach ($o['filtros'] ?? [] as $nome => $f) {
         $valor = (string) ($f['valor'] ?? '');
+        if (($f['tipo'] ?? '') === 'data') {
+            $html .= '<label class="flex items-center gap-1.5 text-sm text-muted-foreground">' . e($f['rotulo'])
+                . ' <input type="date" class="input w-auto" name="' . e($nome) . '" id="filtro-' . e($nome) . '" value="' . e($valor) . '"></label>';
+            if ($valor !== '') {
+                $ativos[] = $f['rotulo'] . ': ' . data_br($valor);
+            }
+            continue;
+        }
         $html .= select($nome, $f['opcoes'], $valor !== '' ? $valor : null, [
             'placeholder' => $f['rotulo'] . ': todos', 'id' => 'filtro-' . $nome, 'classe' => 'w-auto',
             'attrs' => ['class' => 'select w-auto', 'aria-label' => $f['rotulo'], 'onchange' => 'this.form.requestSubmit()'],

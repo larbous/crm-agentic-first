@@ -44,6 +44,33 @@ final class CobrancaRepository extends BaseRepository
         return 'a.vencimento DESC, a.id DESC';
     }
 
+    /** Filtros pelo vencimento: mês (01–12), ano (AAAA) e período de/até (AAAA-MM-DD). Valor fora do formato é ignorado. */
+    protected function filtroEspecial(string $chave, mixed $valor, array &$params): ?string
+    {
+        $regras = [
+            'mes'      => ['/^(0[1-9]|1[0-2])$/', 'substr(a.vencimento, 6, 2) = :f_mes'],
+            'ano'      => ['/^\d{4}$/', 'substr(a.vencimento, 1, 4) = :f_ano'],
+            'venc_de'  => ['/^\d{4}-\d{2}-\d{2}$/', 'a.vencimento >= :f_venc_de'],
+            'venc_ate' => ['/^\d{4}-\d{2}-\d{2}$/', 'a.vencimento <= :f_venc_ate'],
+        ];
+        $v = (string) $valor;
+        if (!isset($regras[$chave]) || preg_match($regras[$chave][0], $v) !== 1) {
+            return null;
+        }
+        $params['f_' . $chave] = $v;
+        return $regras[$chave][1];
+    }
+
+    /** Anos que têm cobrança (pelo vencimento), do mais recente ao mais antigo, sempre incluindo o ano atual. @return list<string> */
+    public function anosDeVencimento(): array
+    {
+        $anos = $this->pdo()->query("SELECT DISTINCT substr(vencimento, 1, 4) FROM cobrancas WHERE arquivado_em IS NULL AND vencimento <> ''")->fetchAll(\PDO::FETCH_COLUMN);
+        $anos[] = date('Y');
+        $anos = array_values(array_unique(array_filter(array_map('strval', $anos), static fn (string $a): bool => preg_match('/^\d{4}$/', $a) === 1)));
+        rsort($anos);
+        return $anos;
+    }
+
     /** Cobrança avulsa pelo id do pagamento no Asaas (numa assinatura, use daAssinatura: várias linhas têm o mesmo asaas_id). */
     public function porAsaasId(string $asaasId): ?array
     {

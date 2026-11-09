@@ -739,6 +739,23 @@ teste('worker: cobrança pendente já vencida sem confirmação do Asaas vira "v
 
 // ---- DRE por cliente -------------------------------------------------------------------------------
 
+teste('lista de cobranças: filtra por mês, ano e período do vencimento; valor fora do formato é ignorado', function () {
+    bancoComSeed();
+    $empresaId = novaEmpresaFinanceiro();
+    $x = new ActionExecutor();
+    foreach (['15/11/2026', '16/11/2026', '15/12/2026', '15/11/2025'] as $venc) {
+        $x->criar('cobrancas', ['empresa_id' => $empresaId, 'tipo' => 'avulsa', 'descricao' => 'Venc ' . $venc, 'valor' => '100,00', 'forma_pagamento' => 'boleto', 'vencimento' => $venc], 'humano');
+    }
+    $contar = static fn (array $f): int => Repositorios::cobrancas()->listar(['filtros' => $f, 'por_pagina' => 100])['total'];
+    igual(3, $contar(['mes' => '11']));
+    igual(2, $contar(['mes' => '11', 'ano' => '2026']));
+    igual(3, $contar(['ano' => '2026']));
+    igual(2, $contar(['venc_de' => '2026-11-16', 'venc_ate' => '2026-12-31']), 'limites inclusivos');
+    igual(1, $contar(['venc_ate' => '2025-12-31']));
+    igual(4, $contar(['mes' => '13', 'venc_de' => "2026'; DROP"]), 'valor inválido não filtra nem entra no SQL');
+    igual(['2026', '2025'], array_slice(Repositorios::cobrancas()->anosDeVencimento(), 0, 2));
+});
+
 teste('DRE: soma cobranças pagas e custos por empresa, só dentro do período', function () {
     bancoComSeed();
     $e1 = novaEmpresaFinanceiro(['nome_fantasia' => 'Empresa A']);

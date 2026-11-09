@@ -87,9 +87,26 @@ final class CobrancaController extends CrudController
         ];
     }
 
+    /** Total da lista no rodapé: com o filtro de mês/período, é o total a receber (ou recebido) no intervalo. */
+    protected function somaMonetaria(): ?array
+    {
+        return ['tabela' => 'valor', 'lista' => 'valor'];
+    }
+
+    /** Mês, ano e período (de/até) filtram pelo vencimento; a regra fica em CobrancaRepository::filtroEspecial. */
     protected function filtros(): array
     {
+        $meses = ['01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Março', '04' => 'Abril', '05' => 'Maio', '06' => 'Junho',
+            '07' => 'Julho', '08' => 'Agosto', '09' => 'Setembro', '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro'];
+        $anos = [];
+        foreach (Repositorios::cobrancas()->anosDeVencimento() as $ano) {
+            $anos[$ano] = $ano;
+        }
         return [
+            'mes'    => ['rotulo' => 'Mês', 'opcoes' => $meses],
+            'ano'    => ['rotulo' => 'Ano', 'opcoes' => $anos],
+            'venc_de'  => ['rotulo' => 'Vencimento de', 'tipo' => 'data'],
+            'venc_ate' => ['rotulo' => 'até', 'tipo' => 'data'],
             'tipo'   => ['rotulo' => 'Tipo', 'opcoes' => Schema::opcoes('tipo_cobranca')],
             'status' => ['rotulo' => 'Status', 'opcoes' => Schema::opcoes('status_cobranca')],
             'forma_pagamento' => ['rotulo' => 'Forma de pagamento', 'opcoes' => Schema::opcoes('forma_pagamento_asaas')],
