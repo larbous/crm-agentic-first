@@ -231,8 +231,9 @@ trait AcoesDocumentos
     /** @return array<string,string> */
     private function regrasAtualizarContrato(array $atual, array $novos): array
     {
-        if ($atual['status'] !== 'rascunho') {
-            return ['_' => 'Só contratos em rascunho podem ser editados. Cancele e crie outro, ou renove.'];
+        // Enviado e ainda não assinado também pode ser corrigido: a alteração é registrada e o cliente é avisado no link.
+        if (!in_array($atual['status'], ['rascunho', 'enviado'], true)) {
+            return ['_' => 'Contratos assinados ou encerrados não podem ser editados. Cancele e crie outro, ou renove.'];
         }
         $ini = $novos['data_inicio'] ?? $atual['data_inicio'];
         $fim = $novos['data_fim'] ?? $atual['data_fim'];
@@ -503,6 +504,10 @@ trait AcoesDocumentos
             }
             if ($documento === null) {
                 $erros['documento'] = 'Informe um CPF ou CNPJ válido.';
+            }
+            // O cliente assina o texto que ele viu: se mudou desde que abriu a janela, ele precisa reler.
+            if (isset($dados['versao']) && !hash_equals(Assinatura::versao($c), (string) $dados['versao'])) {
+                return Resultado::erroGeral('Este contrato foi alterado enquanto você o lia. Recarregue a página, leia novamente e assine.');
             }
             $email = mb_strtolower(trim((string) ($dados['email'] ?? '')));
             if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 160) {

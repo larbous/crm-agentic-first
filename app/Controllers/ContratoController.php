@@ -119,7 +119,7 @@ final class ContratoController extends CrudController
     protected function extraAba(string $grupo, array $valores, array $erros): string
     {
         return $grupo === 'conteudo'
-            ? '<p class="text-muted-foreground mb-3 text-sm">Deixe o conteúdo em branco ao criar para gerá-lo a partir do modelo escolhido na aba Dados (as variáveis são preenchidas com os dados da empresa, do negócio e da proposta). Depois, edite o texto à vontade enquanto o contrato estiver em rascunho. Variáveis inseridas no texto (por exemplo <code>{empresa.nome}</code>, pelo botão “Inserir variável” da barra do editor) são preenchidas com os dados atuais ao visualizar, imprimir ou abrir o link; ao assinar, o texto fica congelado.</p>'
+            ? '<p class="text-muted-foreground mb-3 text-sm">Deixe o conteúdo em branco ao criar para gerá-lo a partir do modelo escolhido na aba Dados (as variáveis são preenchidas com os dados da empresa, do negócio e da proposta). Depois, edite o texto à vontade enquanto o contrato estiver em rascunho ou enviado (se já foi enviado, a alteração fica no histórico e o cliente vê no link o aviso para reler antes de assinar). Variáveis inseridas no texto (por exemplo <code>{empresa.nome}</code>, pelo botão “Inserir variável” da barra do editor) são preenchidas com os dados atuais ao visualizar, imprimir ou abrir o link; ao assinar, o texto fica congelado.</p>'
             : '';
     }
 

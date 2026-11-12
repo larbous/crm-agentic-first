@@ -913,6 +913,10 @@ final class ActionExecutor
 
             case 'contratos':
                 $erros += $this->regrasAtualizarContrato($atual, $novos);
+                // Texto (ou dado que entra nele) mudou depois do envio: marca para avisar o cliente no link.
+                if ($erros === [] && $atual['status'] === 'enviado' && Assinatura::versao($atual) !== Assinatura::versao($novos + $atual)) {
+                    $derivados['conteudo_alterado_em'] = agora();
+                }
                 break;
 
             case 'metas':

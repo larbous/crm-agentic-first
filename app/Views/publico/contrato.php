@@ -23,6 +23,8 @@ $clienteNome = trim((string) (($contato['nome'] ?? '') . ' ' . ($contato['sobren
 <div class="documento-avisos no-print">
     <?php if (in_array($c['status'], ['assinado', 'ativo', 'vencido', 'renovado'], true) && $c['assinado_em']): ?>
         <?= alerta('Contrato assinado', 'Assinatura registrada em ' . datahora_br($c['assinado_em']) . '. O comprovante está no fim do documento; guarde uma cópia (use “Imprimir / salvar PDF”).', 'default', 'circle-check') ?>
+    <?php elseif ($c['status'] === 'enviado' && !empty($c['conteudo_alterado_em'])): ?>
+        <?= alerta('Contrato alterado', 'O texto deste contrato foi alterado em ' . datahora_br($c['conteudo_alterado_em']) . '. Se você já o tinha lido, leia novamente antes de assinar.', 'default', 'triangle-alert') ?>
     <?php elseif ($c['status'] === 'cancelado'): ?>
         <?= alerta('Contrato cancelado', 'Este contrato foi cancelado e não pode mais ser assinado.', 'destructive') ?>
     <?php endif; ?>
@@ -67,6 +69,7 @@ $clienteNome = trim((string) (($contato['nome'] ?? '') . ' ' . ($contato['sobren
 <dialog id="dialogo-assinar" class="assinatura-dialogo no-print" aria-labelledby="titulo-dialogo-assinar"<?= $erroAssinatura !== [] ? ' data-abrir-ao-carregar' : '' ?>>
     <form method="post" action="<?= e(url('/c/' . $token . '/assinar')) ?>" class="grid gap-4" novalidate data-form-assinatura>
         <?= csrf_field() ?>
+        <input type="hidden" name="versao" value="<?= e(\App\Services\Assinatura::versao($c)) ?>">
         <div class="sr-only" aria-hidden="true"><label>Não preencha <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
         <h2 id="titulo-dialogo-assinar" class="text-lg font-semibold">Assinar contrato <?= e($c['numero']) ?></h2>
         <?php if (!empty($erroAssinatura['_'])): ?><?= alerta('Não foi possível registrar', (string) $erroAssinatura['_'], 'destructive') ?><?php endif; ?>

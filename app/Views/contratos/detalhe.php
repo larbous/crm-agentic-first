@@ -16,6 +16,7 @@ $id = (int) $r['id'];
 $voltar = '/contratos/' . $id;
 $op = static fn (string $grupo, ?string $v) => $v !== null ? (Schema::opcoes($grupo)[$v] ?? $v) : '';
 $rascunho = $r['status'] === 'rascunho';
+$editavel = in_array($r['status'], ['rascunho', 'enviado'], true);
 $assinavel = in_array($r['status'], ['assinado', 'ativo', 'vencido'], true);
 $acoesHistorico = ['criar' => 'Criado', 'atualizar' => 'Editado', 'enviar_contrato' => 'Enviado para assinatura', 'visualizar_contrato' => 'Visualizado pelo cliente',
     'assinar_contrato' => 'Assinado pelo cliente', 'cancelar_contrato' => 'Cancelado', 'renovar_contrato' => 'Renovado', 'arquivar' => 'Arquivado', 'desfazer' => 'Ação desfeita'];
@@ -41,7 +42,7 @@ $painelConversa = ($conversa !== '' ? '<ul class="mb-4 grid gap-3">' . $conversa
 $abas = [
     ['rotulo' => 'Documento', 'html' => trim((string) $r['conteudo']) !== ''
         ? '<div class="documento" style="max-width:none;box-shadow:none"><div class="documento-corpo">' . Variaveis::renderizarContrato($r) . '</div></div>'
-        : vazio('Contrato sem conteúdo', 'Edite o contrato para gerar o texto a partir de um modelo.', ['icone' => 'file-text', 'acao_html' => $rascunho ? botao('Editar', ['href' => url('/contratos/' . $id . '/editar'), 'icone' => 'pencil']) : ''])],
+        : vazio('Contrato sem conteúdo', 'Edite o contrato para gerar o texto a partir de um modelo.', ['icone' => 'file-text', 'acao_html' => $editavel ? botao('Editar', ['href' => url('/contratos/' . $id . '/editar'), 'icone' => 'pencil']) : ''])],
     ['rotulo' => 'Comentários', 'contagem' => count($comentarios), 'html' => '<div id="comentarios">' . $painelConversa . '</div>'],
     ['rotulo' => 'Tarefas', 'contagem' => count(array_filter($tarefas, 'tarefa_aberta')), 'html' => tarefas_mini($tarefas, 'contrato_id', $id, $voltar)],
     ['rotulo' => 'Histórico', 'contagem' => count($historico), 'html' => $hist !== '' ? '<ul>' . $hist . '</ul>' : vazio('Sem histórico', '', ['icone' => 'scroll-text'])],
@@ -67,6 +68,8 @@ $abas = [
             <form method="post" action="<?= e(url('/contratos/' . $id . '/enviar')) ?>" data-confirmar="Marcar como enviado? O link de assinatura passa a funcionar.">
                 <?= csrf_field() ?><?= botao('Marcar como enviado', ['tipo' => 'submit', 'icone' => 'send']) ?>
             </form>
+        <?php endif; ?>
+        <?php if ($editavel): ?>
             <?= botao('Editar', ['href' => url('/contratos/' . $id . '/editar'), 'variante' => 'outline', 'icone' => 'pencil']) ?>
         <?php endif; ?>
         <?php if ($assinavel): ?>

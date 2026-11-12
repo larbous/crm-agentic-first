@@ -34,6 +34,12 @@ final class Assinatura
         return hash('sha256', $numero . "\n" . $textoAssinado);
     }
 
+    /** Identifica a versão do texto que o cliente está vendo (o que ele assinaria agora). */
+    public static function versao(array $contrato): string
+    {
+        return substr(self::hash((string) $contrato['numero'], Variaveis::renderizarContrato($contrato)), 0, 24);
+    }
+
     /** O texto gravado ainda é o que foi assinado? */
     public static function integro(array $contrato): bool
     {

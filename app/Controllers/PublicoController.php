@@ -126,7 +126,7 @@ final class PublicoController
         }
         $r = (new ActionExecutor())->assinarContrato((int) $contrato['id'], [
             'nome' => $_POST['nome'] ?? '', 'documento' => $_POST['documento'] ?? '', 'email' => $_POST['email'] ?? '',
-            'assinatura' => $_POST['assinatura'] ?? '', 'ip' => $this->ip(), 'user_agent' => (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''),
+            'assinatura' => $_POST['assinatura'] ?? '', 'versao' => $_POST['versao'] ?? '', 'ip' => $this->ip(), 'user_agent' => (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''),
         ], 'sistema');
         if (!$r->ok) {
             return $this->paginaContrato($contrato, $r->erros, 422);

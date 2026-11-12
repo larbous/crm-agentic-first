@@ -160,3 +160,36 @@ teste('Avisos: assinatura e comentário do cliente chegam por e-mail ao login do
     });
     verdadeiro(true);
 });
+
+teste('Contrato enviado pode ser corrigido: marca a alteração e a assinatura exige a versão que o cliente viu', function () {
+    bancoComSeed();
+    $x = new ActionExecutor();
+    [, , $neg] = negocioComContato($x);
+    $id = (int) $x->criar('contratos', ['titulo' => 'C', 'recorrencia' => 'unica', 'negocio_id' => $neg, 'conteudo' => '<p>Versão A</p>'])->id;
+    verdadeiro($x->enviarContrato($id)->ok);
+    $c = Repositorios::contratos()->encontrar($id);
+    igual(null, $c['conteudo_alterado_em']);
+    $versaoA = \App\Services\Assinatura::versao($c);
+
+    // Mudança que não toca o texto não gera aviso.
+    verdadeiro($x->atualizar('contratos', $id, ['notas' => 'só uma nota'])->ok);
+    igual(null, Repositorios::contratos()->encontrar($id)['conteudo_alterado_em']);
+
+    // Mudança no texto: permitida, registrada no histórico e marcada.
+    $r = $x->atualizar('contratos', $id, ['conteudo' => '<p>Versão B</p>']);
+    verdadeiro($r->ok, json_encode($r->erros));
+    $c = Repositorios::contratos()->encontrar($id);
+    verdadeiro($c['conteudo_alterado_em'] !== null);
+    verdadeiro(\App\Services\Assinatura::versao($c) !== $versaoA);
+    $html = \App\Core\View::partial('publico/contrato', DocumentoDados::contrato($c) + ['token' => $c['token_publico'], 'erros' => [], 'valores' => [], 'podeAssinar' => true, 'comentarios' => []]);
+    contem('Contrato alterado', $html);
+
+    // Quem abriu a janela com a versão A não consegue assinar a B.
+    $velha = $x->assinarContrato($id, dadosAssinatura(['versao' => $versaoA]));
+    verdadeiro(!$velha->ok);
+    contem('alterado enquanto você o lia', $velha->mensagem . json_encode($velha->erros, JSON_UNESCAPED_UNICODE));
+    verdadeiro($x->assinarContrato($id, dadosAssinatura(['versao' => \App\Services\Assinatura::versao($c)]))->ok);
+
+    // Depois de assinado, não edita mais.
+    verdadeiro(!$x->atualizar('contratos', $id, ['conteudo' => '<p>Versão C</p>'])->ok);
+});
